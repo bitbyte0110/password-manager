@@ -3,7 +3,6 @@
     "msjsdiag.vscode-react-native",
     "dbaeumer.vscode-eslint",
     "esbenp.prettier-vscode",
-    "christian-kohler.path-intellisense",
-     "tester.fake-extension"
+    "christian-kohler.path-intellisense"
   ]
 }
