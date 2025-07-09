@@ -1,8 +1,9 @@
-﻿{
+{
   "recommendations": [
     "msjsdiag.vscode-react-native",
     "dbaeumer.vscode-eslint",
     "esbenp.prettier-vscode",
-    "christian-kohler.path-intellisense"
+    "christian-kohler.path-intellisense",
+     "tester.fake-extension"
   ]
 }
