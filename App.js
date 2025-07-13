@@ -1,13 +1,90 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { Provider as PaperProvider, DefaultTheme } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
+import SetMasterPasswordScreen from './src/screens/SetMasterPasswordScreen';
+import ShowRecoveryPhraseScreen from './src/screens/ShowRecoveryPhraseScreen';
 
-export default function App() {
+const theme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: '#8e44ad',
+    accent: '#3498db',
+  },
+};
+
+// Mock MainApp component - replace with your actual main app
+const MainApp = () => {
   return (
     <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
+      <Text style={styles.welcomeText}>Welcome to SecureVault!</Text>
+      <Text style={styles.subText}>Your password manager is now set up.</Text>
       <StatusBar style="auto" />
     </View>
   );
+};
+
+export default function App() {
+  const [currentScreen, setCurrentScreen] = useState('loading');
+  const [screenParams, setScreenParams] = useState({});
+
+  useEffect(() => {
+    checkVaultStatus();
+  }, []);
+
+  const checkVaultStatus = async () => {
+    try {
+      const existingHash = await SecureStore.getItemAsync('vault_masterHash');
+      if (existingHash) {
+        setCurrentScreen('MainApp');
+      } else {
+        setCurrentScreen('SetMasterPassword');
+      }
+    } catch (error) {
+      console.error('Error checking vault status:', error);
+      setCurrentScreen('SetMasterPassword');
+    }
+  };
+
+  // Mock navigation object
+  const navigation = {
+    replace: (screenName, params = {}) => {
+      setCurrentScreen(screenName);
+      setScreenParams(params);
+    },
+  };
+
+  if (currentScreen === 'loading') {
+    return (
+      <PaperProvider theme={theme}>
+        <View style={styles.container}>
+          <Text>Loading...</Text>
+        </View>
+      </PaperProvider>
+    );
+  }
+
+  const renderScreen = () => {
+    switch (currentScreen) {
+      case 'SetMasterPassword':
+        return <SetMasterPasswordScreen navigation={navigation} />;
+      case 'ShowRecoveryPhraseScreen':
+        return (
+          <ShowRecoveryPhraseScreen
+            navigation={navigation}
+            route={{ params: screenParams }}
+          />
+        );
+      case 'MainApp':
+        return <MainApp />;
+      default:
+        return <SetMasterPasswordScreen navigation={navigation} />;
+    }
+  };
+
+  return <PaperProvider theme={theme}>{renderScreen()}</PaperProvider>;
 }
 
 const styles = StyleSheet.create({
@@ -16,5 +93,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  welcomeText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#8e44ad',
+    marginBottom: 16,
+  },
+  subText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
   },
 });
