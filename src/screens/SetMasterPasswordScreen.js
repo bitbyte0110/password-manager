@@ -1,3 +1,4 @@
+import 'react-native-get-random-values';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -106,12 +107,9 @@ const SetMasterPasswordScreen = ({ navigation }) => {
   const handleSubmit = async () => {
     if (!validateInputs()) return;
 
-    // Ensure masterPassword is a valid string
-    if (
-      !masterPassword ||
-      typeof masterPassword !== 'string' ||
-      masterPassword.trim() === ''
-    ) {
+    // Ensure masterPassword is a valid string and not empty
+    const passwordString = String(masterPassword || '').trim();
+    if (!passwordString) {
       showSnackbar('Invalid password format');
       return;
     }
@@ -119,7 +117,8 @@ const SetMasterPasswordScreen = ({ navigation }) => {
     setIsLoading(true);
     try {
       // Hash the master password with bcrypt (salt rounds = 10)
-      const hashedPassword = await bcrypt.hash(masterPassword.trim(), 10);
+      // Ensure we're passing a proper string to bcrypt
+      const hashedPassword = await bcrypt.hash(passwordString, 10);
 
       // Generate recovery phrase
       const recoveryPhrase = generateMnemonic(wordlist);
@@ -146,7 +145,11 @@ const SetMasterPasswordScreen = ({ navigation }) => {
       }, 1500);
     } catch (error) {
       console.error('Error setting master password:', error);
-      showSnackbar('Error setting master password. Please try again.');
+      if (error.message && error.message.includes('Invalid string')) {
+        showSnackbar('Password format error. Please try again.');
+      } else {
+        showSnackbar('Error setting master password. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
