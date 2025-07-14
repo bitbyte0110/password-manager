@@ -7,7 +7,6 @@ import {
   FlatList,
   TouchableOpacity,
   useColorScheme,
-  Dimensions,
   Alert,
 } from 'react-native';
 import {
@@ -24,10 +23,7 @@ import Icon from 'react-native-vector-icons/FontAwesome5';
 
 import vaultService from '../services/vaultService';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-
 // Constants for activity tracking
-const ACTIVITY_TIMEOUT = 2 * 60 * 1000; // 2 minutes
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
 
 const MyVaultScreen = ({ navigation }) => {
@@ -39,12 +35,10 @@ const MyVaultScreen = ({ navigation }) => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState('recently_used');
   const [isLoading, setIsLoading] = useState(true);
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [recentSearches, setRecentSearches] = useState([]);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showFABMenu, setShowFABMenu] = useState(false);
   const [activeTab, setActiveTab] = useState('vault');
-  const [showCategoryBottomSheet, setShowCategoryBottomSheet] = useState(false);
   // Get color scheme for theme support
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
@@ -77,6 +71,7 @@ const MyVaultScreen = ({ navigation }) => {
 
       // Check if user is authenticated
       if (!vaultService.isUserAuthenticated()) {
+        console.log('User not authenticated, redirecting to login');
         // Redirect to login if not authenticated
         navigation.replace('LoginScreen');
         return;
@@ -456,11 +451,14 @@ const MyVaultScreen = ({ navigation }) => {
                     backgroundColor: theme.primary,
                   },
                 ]}
-                textStyle={[
-                  { color: selectedCategory === item.id ? '#fff' : theme.text },
-                ]}
+                textStyle={
+                  selectedCategory === item.id
+                    ? { color: '#fff' }
+                    : { color: theme.text }
+                }
               >
-                {item.label} {item.count > 0 && `(${item.count})`}
+                {item.label}
+                {item.count > 0 ? ` (${item.count})` : ''}
               </Chip>
             </TouchableOpacity>
           )}
