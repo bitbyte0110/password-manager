@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import bcrypt from 'bcryptjs';
-import DatabaseService from './databaseService';
+import databaseService from './databaseService';
 import encryptionService from './encryptionService';
 
 /**
@@ -9,7 +9,7 @@ import encryptionService from './encryptionService';
  */
 class VaultService {
   constructor() {
-    this.dbService = new DatabaseService();
+    this.dbService = databaseService; // Use the singleton instance
     this.masterPassword = null; // Keep master password in memory during session
     this.isAuthenticated = false;
     this.sessionStartTime = null;
@@ -26,6 +26,22 @@ class VaultService {
     } catch (error) {
       console.error('VaultService initialization error:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Try to restore authentication session (for when user is already logged in)
+   * This is a placeholder - in a real app, you'd check session validity
+   * @param {string} masterPassword - Master password from login
+   * @returns {Promise<boolean>} Session restore success
+   */
+  async restoreSession(masterPassword) {
+    try {
+      const isValid = await this.authenticate(masterPassword);
+      return isValid;
+    } catch (error) {
+      console.error('Session restore error:', error);
+      return false;
     }
   }
 
