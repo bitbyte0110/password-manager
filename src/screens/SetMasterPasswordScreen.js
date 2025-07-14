@@ -136,11 +136,12 @@ const SetMasterPasswordScreen = ({ navigation }) => {
 
       showSnackbar('Master password set successfully!');
 
-      // Navigate to ShowRecoveryPhraseScreen with the recovery phrase
+      // Navigate to ShowRecoveryPhraseScreen with the recovery phrase, then show setup modals
       setTimeout(() => {
         if (navigation) {
           navigation.replace('ShowRecoveryPhraseScreen', {
             recoveryPhrase: recoveryPhrase,
+            showSetupModals: true, // Flag to trigger modal flow
           });
         }
       }, 1500);
