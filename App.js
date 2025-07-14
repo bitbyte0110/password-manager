@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as SecureStore from 'expo-secure-store';
 import SetMasterPasswordScreen from './src/screens/SetMasterPasswordScreen';
 import ShowRecoveryPhraseScreen from './src/screens/ShowRecoveryPhraseScreen';
+import LoginScreen from './src/screens/LoginScreen';
 
 const theme = {
   ...DefaultTheme,
@@ -34,23 +35,30 @@ export default function App() {
     checkVaultStatus();
   }, []);
 
-  const checkVaultStatus = async () => {
-    try {
-      const existingHash = await SecureStore.getItemAsync('vault_masterHash');
-      if (existingHash) {
-        setCurrentScreen('MainApp');
-      } else {
+      const checkVaultStatus = async () => {
+      try {
+        // Use the valid SecureStore key format (alphanumeric, ".", "-", "_" only)
+        const existingHash = await SecureStore.getItemAsync('vault_masterHash');
+        if (existingHash) {
+          // If master password exists, show LoginScreen for authentication
+          setCurrentScreen('LoginScreen');
+        } else {
+          // If no master password, show SetMasterPasswordScreen
+          setCurrentScreen('SetMasterPassword');
+        }
+      } catch (error) {
+        console.error('Error checking vault status:', error);
         setCurrentScreen('SetMasterPassword');
       }
-    } catch (error) {
-      console.error('Error checking vault status:', error);
-      setCurrentScreen('SetMasterPassword');
-    }
-  };
+    };
 
   // Mock navigation object
   const navigation = {
     replace: (screenName, params = {}) => {
+      setCurrentScreen(screenName);
+      setScreenParams(params);
+    },
+    navigate: (screenName, params = {}) => {
       setCurrentScreen(screenName);
       setScreenParams(params);
     },
@@ -77,8 +85,24 @@ export default function App() {
             route={{ params: screenParams }}
           />
         );
+      case 'LoginScreen':
+        return <LoginScreen navigation={navigation} />;
       case 'MainApp':
         return <MainApp />;
+      case 'RecoveryScreen':
+        // TODO: Add RecoveryScreen component when implemented
+        return (
+          <View style={styles.container}>
+            <Text>Recovery Screen - Coming Soon</Text>
+          </View>
+        );
+      case 'ResetVaultScreen':
+        // TODO: Add ResetVaultScreen component when implemented
+        return (
+          <View style={styles.container}>
+            <Text>Reset Vault Screen - Coming Soon</Text>
+          </View>
+        );
       default:
         return <SetMasterPasswordScreen navigation={navigation} />;
     }
