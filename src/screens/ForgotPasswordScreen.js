@@ -21,6 +21,10 @@ const { width: screenWidth } = Dimensions.get('window');
 const ForgotPasswordScreen = ({ navigation: navProp }) => {
   const navigation = navProp || useNavigation();
 
+  // Step management state
+  const [currentStep, setCurrentStep] = useState(1); // 1 = verify phrase, 2 = set password
+  const [isVerified, setIsVerified] = useState(false);
+
   // Form state
   const [recoveryPhrase, setRecoveryPhrase] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -28,33 +32,39 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Validation state
+  // Validation state - Step 1
   const [recoveryPhraseError, setRecoveryPhraseError] = useState('');
+  const [wordCount, setWordCount] = useState(0);
+  const [isRecoveryPhraseValid, setIsRecoveryPhraseValid] = useState(false);
+
+  // Validation state - Step 2
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [passwordStrength, setPasswordStrength] = useState(null);
-  const [wordCount, setWordCount] = useState(0);
+  const [isNewPasswordValid, setIsNewPasswordValid] = useState(false);
+  const [isConfirmPasswordValid, setIsConfirmPasswordValid] = useState(false);
 
   // UI state
   const [isLoading, setIsLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
 
-  // Validation state
-  const [isRecoveryPhraseValid, setIsRecoveryPhraseValid] = useState(false);
-  const [isNewPasswordValid, setIsNewPasswordValid] = useState(false);
-  const [isConfirmPasswordValid, setIsConfirmPasswordValid] = useState(false);
+  useEffect(() => {
+    if (currentStep === 1) {
+      validateRecoveryPhrase();
+    }
+  }, [recoveryPhrase, currentStep]);
 
   useEffect(() => {
-    validateRecoveryPhrase();
-  }, [recoveryPhrase]);
+    if (currentStep === 2) {
+      validateNewPassword();
+    }
+  }, [newPassword, currentStep]);
 
   useEffect(() => {
-    validateNewPassword();
-  }, [newPassword]);
-
-  useEffect(() => {
-    validateConfirmPassword();
-  }, [confirmPassword, newPassword]);
+    if (currentStep === 2) {
+      validateConfirmPassword();
+    }
+  }, [confirmPassword, newPassword, currentStep]);
 
   const validateRecoveryPhrase = () => {
     const trimmed = recoveryPhrase.trim();
@@ -123,11 +133,11 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
     }
   };
 
+  // Form validation based on current step
   const isFormValid =
-    isRecoveryPhraseValid &&
-    isNewPasswordValid &&
-    isConfirmPasswordValid &&
-    !isLoading;
+    currentStep === 1
+      ? isRecoveryPhraseValid && !isLoading
+      : isNewPasswordValid && isConfirmPasswordValid && !isLoading;
 
   const getStrengthColor = score => {
     const colors = ['#e74c3c', '#e67e22', '#f39c12', '#27ae60', '#2ecc71'];
@@ -139,27 +149,26 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
     return texts[score] || 'Very Weak';
   };
 
-  const handleResetPassword = async () => {
+  const handleVerifyPhrase = async () => {
     if (!isFormValid) {
-      showSnackbar('Please fix all errors before proceeding');
+      showSnackbar('Please enter a valid 12-word recovery phrase');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Step 1: Validate recovery phrase against stored hash
+      // Validate recovery phrase against stored hash
       const storedRecoveryHash =
         await SecureStore.getItemAsync('vault_recoveryHash');
 
       if (!storedRecoveryHash) {
         showSnackbar('No recovery phrase found. Please contact support.');
-        clearSensitiveData();
         setIsLoading(false);
         return;
       }
 
-      // Step 2: Hash the entered recovery phrase and compare
+      // Hash the entered recovery phrase and compare
       const normalizedPhrase = recoveryPhrase
         .trim()
         .split(/\s+/)
@@ -175,25 +184,51 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
         showSnackbar(
           'Invalid recovery phrase. Please check your words and try again.'
         );
-        clearPasswordFields();
+        setRecoveryPhrase(''); // Clear the input field
         setIsLoading(false);
         return;
       }
 
-      // Step 3: Hash the new password
+      // Success - proceed to Step 2
+      showSnackbar('Recovery phrase verified!');
+      setIsVerified(true);
+      setRecoveryPhrase(''); // Clear recovery phrase from memory for security
+
+      setTimeout(() => {
+        setCurrentStep(2);
+      }, 1000);
+    } catch (error) {
+      console.error('Recovery phrase verification error:', error);
+      showSnackbar('An error occurred during verification. Please try again.');
+      setIsLoading(false);
+    }
+
+    setIsLoading(false);
+  };
+
+  const handleResetPassword = async () => {
+    if (!isFormValid) {
+      showSnackbar('Please fix all errors before proceeding');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Hash the new password
       const saltRounds = 12;
       const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
 
-      // Step 4: Update the master password hash in SecureStore
+      // Update the master password hash in SecureStore
       await SecureStore.setItemAsync('vault_masterHash', newPasswordHash);
 
-      // Step 5: Clear sensitive data
+      // Clear sensitive data
       clearSensitiveData();
 
-      // Step 6: Show success message
+      // Show success message
       showSnackbar('Password reset successfully!');
 
-      // Step 7: Navigate to LoginScreen after delay
+      // Navigate to LoginScreen after delay
       setTimeout(() => {
         navigation.replace('LoginScreen');
       }, 1500);
@@ -208,7 +243,7 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
         showSnackbar('An unexpected error occurred. Please try again.');
       }
 
-      clearSensitiveData();
+      clearPasswordFields();
       setIsLoading(false);
     }
   };
@@ -256,165 +291,228 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
               </LinearGradient>
             </View>
 
-            {/* Title */}
-            <Text style={styles.title}>Reset Master Password</Text>
-            <Text style={styles.subtitle}>
-              Verify your recovery phrase to reset your password
-            </Text>
-
-            {/* Recovery Phrase Input */}
-            <View style={styles.inputContainer}>
-              <TextInput
-                label="12-Word Recovery Phrase"
-                mode="outlined"
-                value={recoveryPhrase}
-                onChangeText={setRecoveryPhrase}
-                placeholder="Enter your 12-word recovery phrase separated by spaces"
-                multiline={true}
-                numberOfLines={4}
-                autoCapitalize="none"
-                autoCorrect={false}
-                style={styles.textInput}
-                theme={{
-                  colors: {
-                    primary: '#9b59b6',
-                    accent: '#9b59b6',
-                  },
-                }}
-              />
-              {wordCount > 0 && (
-                <Text
-                  style={[
-                    styles.wordCountText,
-                    { color: wordCount === 12 ? '#27ae60' : '#666' },
-                  ]}
-                >
-                  {wordCount}/12 words entered
+            {/* Conditional rendering based on current step */}
+            {currentStep === 1 ? (
+              // Step 1: Recovery Phrase Verification
+              <>
+                {/* Step 1 Title */}
+                <Text style={styles.title}>Verify Recovery Phrase</Text>
+                <Text style={styles.subtitle}>
+                  Enter your 12-word recovery phrase to continue
                 </Text>
-              )}
-              {recoveryPhraseError && wordCount !== 12 ? (
-                <Text style={styles.errorText}>{recoveryPhraseError}</Text>
-              ) : null}
-            </View>
 
-            {/* New Password Input */}
-            <View style={styles.inputContainer}>
-              <TextInput
-                label="New Master Password"
-                mode="outlined"
-                value={newPassword}
-                onChangeText={setNewPassword}
-                secureTextEntry={!showNewPassword}
-                style={styles.textInput}
-                theme={{
-                  colors: {
-                    primary: '#9b59b6',
-                    accent: '#9b59b6',
-                  },
-                }}
-                right={
-                  <TextInput.Icon
-                    icon={showNewPassword ? 'eye-off' : 'eye'}
-                    onPress={() => setShowNewPassword(!showNewPassword)}
+                {/* Recovery Phrase Input */}
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    label="12-Word Recovery Phrase"
+                    mode="outlined"
+                    value={recoveryPhrase}
+                    onChangeText={setRecoveryPhrase}
+                    placeholder="Enter your 12-word recovery phrase separated by spaces"
+                    multiline={true}
+                    numberOfLines={4}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    style={styles.textInput}
+                    theme={{
+                      colors: {
+                        primary: '#9b59b6',
+                        accent: '#9b59b6',
+                      },
+                    }}
                   />
-                }
-              />
-
-              {/* Password Strength Indicator */}
-              {passwordStrength && (
-                <View style={styles.strengthContainer}>
-                  <View style={styles.strengthBar}>
-                    <View
+                  {wordCount > 0 && (
+                    <Text
                       style={[
-                        styles.strengthFill,
-                        {
-                          width: `${(passwordStrength.score + 1) * 20}%`,
-                          backgroundColor: getStrengthColor(
-                            passwordStrength.score
-                          ),
-                        },
+                        styles.wordCountText,
+                        { color: wordCount === 12 ? '#27ae60' : '#666' },
                       ]}
-                    />
-                  </View>
-                  <Text
-                    style={[
-                      styles.strengthText,
-                      { color: getStrengthColor(passwordStrength.score) },
-                    ]}
-                  >
-                    {getStrengthText(passwordStrength.score)}
-                  </Text>
+                    >
+                      {wordCount}/12 words entered
+                    </Text>
+                  )}
+                  {recoveryPhraseError && wordCount !== 12 ? (
+                    <Text style={styles.errorText}>{recoveryPhraseError}</Text>
+                  ) : null}
                 </View>
-              )}
 
-              {passwordError ? (
-                <Text style={styles.errorText}>{passwordError}</Text>
-              ) : null}
-            </View>
+                {/* Verify Button */}
+                <View style={styles.buttonContainer}>
+                  <View style={styles.resetButtonWrapper}>
+                    <LinearGradient
+                      colors={
+                        isFormValid ? ['#9b59b6', '#3498db'] : ['#ccc', '#999']
+                      }
+                      style={[
+                        styles.resetButtonGradient,
+                        !isFormValid && styles.disabledButton,
+                      ]}
+                    >
+                      <Button
+                        mode="text"
+                        onPress={handleVerifyPhrase}
+                        disabled={!isFormValid}
+                        loading={isLoading}
+                        style={styles.resetButton}
+                        labelStyle={styles.resetButtonText}
+                      >
+                        {isLoading ? 'Verifying...' : 'Verify Phrase'}
+                      </Button>
+                    </LinearGradient>
+                  </View>
 
-            {/* Confirm Password Input */}
-            <View style={styles.inputContainer}>
-              <TextInput
-                label="Confirm New Password"
-                mode="outlined"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry={!showConfirmPassword}
-                style={styles.textInput}
-                theme={{
-                  colors: {
-                    primary: '#9b59b6',
-                    accent: '#9b59b6',
-                  },
-                }}
-                right={
-                  <TextInput.Icon
-                    icon={showConfirmPassword ? 'eye-off' : 'eye'}
-                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  />
-                }
-              />
-              {confirmPasswordError ? (
-                <Text style={styles.errorText}>{confirmPasswordError}</Text>
-              ) : null}
-            </View>
-
-            {/* Reset Button */}
-            <View style={styles.buttonContainer}>
-              <View style={styles.resetButtonWrapper}>
-                <LinearGradient
-                  colors={
-                    isFormValid ? ['#9b59b6', '#3498db'] : ['#ccc', '#999']
-                  }
-                  style={[
-                    styles.resetButtonGradient,
-                    !isFormValid && styles.disabledButton,
-                  ]}
-                >
+                  {/* Back Button */}
                   <Button
                     mode="text"
-                    onPress={handleResetPassword}
-                    disabled={!isFormValid}
-                    loading={isLoading}
-                    style={styles.resetButton}
-                    labelStyle={styles.resetButtonText}
+                    onPress={handleGoBack}
+                    disabled={isLoading}
+                    style={styles.backButton}
+                    labelStyle={styles.backButtonText}
                   >
-                    {isLoading ? 'Resetting...' : 'Reset Password'}
+                    Back to Login
                   </Button>
-                </LinearGradient>
-              </View>
+                </View>
+              </>
+            ) : (
+              // Step 2: Set New Password
+              <>
+                {/* Step 2 Title */}
+                <Text style={styles.title}>Set New Password</Text>
+                <Text style={styles.subtitle}>
+                  Create a strong new master password
+                </Text>
 
-              {/* Back Button */}
-              <Button
-                mode="text"
-                onPress={handleGoBack}
-                disabled={isLoading}
-                style={styles.backButton}
-                labelStyle={styles.backButtonText}
-              >
-                Back to Login
-              </Button>
-            </View>
+                {/* Password Requirements */}
+                <View style={styles.requirementsContainer}>
+                  <Text style={styles.requirementsTitle}>
+                    Password Requirements:
+                  </Text>
+                  <Text style={styles.requirementText}>
+                    • At least 12 characters
+                  </Text>
+                  <Text style={styles.requirementText}>
+                    • One uppercase letter
+                  </Text>
+                  <Text style={styles.requirementText}>
+                    • One lowercase letter
+                  </Text>
+                  <Text style={styles.requirementText}>• One number</Text>
+                  <Text style={styles.requirementText}>
+                    • Symbols recommended
+                  </Text>
+                </View>
+
+                {/* New Password Input */}
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    label="New Master Password"
+                    mode="outlined"
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    secureTextEntry={!showNewPassword}
+                    style={styles.textInput}
+                    theme={{
+                      colors: {
+                        primary: '#9b59b6',
+                        accent: '#9b59b6',
+                      },
+                    }}
+                    right={
+                      <TextInput.Icon
+                        icon={showNewPassword ? 'eye-off' : 'eye'}
+                        onPress={() => setShowNewPassword(!showNewPassword)}
+                      />
+                    }
+                  />
+
+                  {/* Password Strength Indicator */}
+                  {passwordStrength && (
+                    <View style={styles.strengthContainer}>
+                      <View style={styles.strengthBar}>
+                        <View
+                          style={[
+                            styles.strengthFill,
+                            {
+                              width: `${(passwordStrength.score + 1) * 20}%`,
+                              backgroundColor: getStrengthColor(
+                                passwordStrength.score
+                              ),
+                            },
+                          ]}
+                        />
+                      </View>
+                      <Text
+                        style={[
+                          styles.strengthText,
+                          { color: getStrengthColor(passwordStrength.score) },
+                        ]}
+                      >
+                        {getStrengthText(passwordStrength.score)}
+                      </Text>
+                    </View>
+                  )}
+
+                  {passwordError ? (
+                    <Text style={styles.errorText}>{passwordError}</Text>
+                  ) : null}
+                </View>
+
+                {/* Confirm Password Input */}
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    label="Confirm New Password"
+                    mode="outlined"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry={!showConfirmPassword}
+                    style={styles.textInput}
+                    theme={{
+                      colors: {
+                        primary: '#9b59b6',
+                        accent: '#9b59b6',
+                      },
+                    }}
+                    right={
+                      <TextInput.Icon
+                        icon={showConfirmPassword ? 'eye-off' : 'eye'}
+                        onPress={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
+                      />
+                    }
+                  />
+                  {confirmPasswordError ? (
+                    <Text style={styles.errorText}>{confirmPasswordError}</Text>
+                  ) : null}
+                </View>
+
+                {/* Reset Password Button */}
+                <View style={styles.buttonContainer}>
+                  <View style={styles.resetButtonWrapper}>
+                    <LinearGradient
+                      colors={
+                        isFormValid ? ['#9b59b6', '#3498db'] : ['#ccc', '#999']
+                      }
+                      style={[
+                        styles.resetButtonGradient,
+                        !isFormValid && styles.disabledButton,
+                      ]}
+                    >
+                      <Button
+                        mode="text"
+                        onPress={handleResetPassword}
+                        disabled={!isFormValid}
+                        loading={isLoading}
+                        style={styles.resetButton}
+                        labelStyle={styles.resetButtonText}
+                      >
+                        {isLoading ? 'Resetting...' : 'Reset Password'}
+                      </Button>
+                    </LinearGradient>
+                  </View>
+                </View>
+              </>
+            )}
           </View>
         </ScrollView>
       </LinearGradient>
@@ -488,6 +586,23 @@ const styles = StyleSheet.create({
   },
   textInput: {
     backgroundColor: '#fff',
+  },
+  requirementsContainer: {
+    backgroundColor: '#f8f9fa',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  requirementsTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  requirementText: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
   },
   wordCountText: {
     fontSize: 12,
