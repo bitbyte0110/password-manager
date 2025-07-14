@@ -12,11 +12,15 @@ import { Card, Button, Snackbar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
+import BiometricSetupModal from '../components/BiometricSetupModal';
+import MFASetupModal from '../components/MFASetupModal';
 
 const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
   const [showSuccessScreen, setShowSuccessScreen] = useState(false);
-  const { recoveryPhrase } = route?.params || {};
+  const [showBiometricModal, setShowBiometricModal] = useState(false);
+  const [showMFAModal, setShowMFAModal] = useState(false);
+  const { recoveryPhrase, showSetupModals } = route?.params || {};
 
   const copyRecoveryPhrase = async () => {
     try {
@@ -38,13 +42,18 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
           text: 'Yes, I saved it',
           style: 'default',
           onPress: () => {
-            setShowSuccessScreen(true);
-            // Show success message for 2.5 seconds, then navigate to LoginScreen
-            setTimeout(() => {
-              if (navigation) {
-                navigation.replace('LoginScreen');
-              }
-            }, 2500);
+            if (showSetupModals) {
+              // Start the modal flow: show BiometricSetupModal first
+              setShowBiometricModal(true);
+            } else {
+              // Original flow for backward compatibility
+              setShowSuccessScreen(true);
+              setTimeout(() => {
+                if (navigation) {
+                  navigation.replace('LoginScreen');
+                }
+              }, 2500);
+            }
           },
         },
       ]
@@ -53,6 +62,23 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
 
   const showSnackbar = message => {
     setSnackbar({ visible: true, message });
+  };
+
+  const handleBiometricSetupComplete = () => {
+    setShowBiometricModal(false);
+    // Show MFA modal next
+    setShowMFAModal(true);
+  };
+
+  const handleMFASetupComplete = () => {
+    setShowMFAModal(false);
+    // Show success screen and then navigate to LoginScreen
+    setShowSuccessScreen(true);
+    setTimeout(() => {
+      if (navigation) {
+        navigation.replace('LoginScreen');
+      }
+    }, 2500);
   };
 
   if (!recoveryPhrase) {
@@ -206,6 +232,17 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
         >
           {snackbar.message}
         </Snackbar>
+
+        {/* Setup Modals */}
+        <BiometricSetupModal
+          visible={showBiometricModal}
+          onComplete={handleBiometricSetupComplete}
+        />
+
+        <MFASetupModal
+          visible={showMFAModal}
+          onComplete={handleMFASetupComplete}
+        />
       </LinearGradient>
     </SafeAreaView>
   );
