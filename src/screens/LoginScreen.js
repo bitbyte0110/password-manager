@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Modal,
   Alert,
+  Dimensions,
 } from 'react-native';
 import { Button, TextInput, Snackbar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,6 +17,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import bcrypt from 'bcryptjs';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useNavigation } from '@react-navigation/native';
+
+const { width: screenWidth } = Dimensions.get('window');
 
 const FAILED_ATTEMPTS_KEY = 'vault_failedAttempts';
 const LOCKOUT_TIME_KEY = 'vault_lockoutTime';
@@ -278,95 +281,97 @@ const LoginScreen = ({ navigation: navProp }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        {/* Logo */}
-        <View style={styles.logoContainer}>
-          <LinearGradient colors={['#7E57C2', '#26A69A']} style={styles.logo}>
-            <Icon name="shield-alt" size={40} color="#fff" />
-          </LinearGradient>
-        </View>
-
-        {/* Title */}
-        <Text style={styles.title}>SecureVault</Text>
-        <Text style={styles.subtitle}>Your Trusted Password Manager</Text>
-
-        {/* Lockout Warning */}
-        {isLocked && (
-          <View style={styles.lockoutContainer}>
-            <Icon name="exclamation-triangle" size={24} color="#e74c3c" />
-            <Text style={styles.lockoutText}>
-              Account locked for {formatRemainingTime()}
-            </Text>
-            <Text style={styles.lockoutSubtext}>
-              Too many failed attempts. Try again later or use recovery options.
-            </Text>
+      <LinearGradient colors={['#9b59b6', '#3498db']} style={styles.gradient}>
+        <View style={styles.content}>
+          {/* Logo */}
+          <View style={styles.logoContainer}>
+            <LinearGradient colors={['#7E57C2', '#26A69A']} style={styles.logo}>
+              <Icon name="shield-alt" size={40} color="#fff" />
+            </LinearGradient>
           </View>
-        )}
 
-        {/* Login Buttons */}
-        <View style={styles.buttonContainer}>
-          {/* Biometric Login Button - Always show but disable if not available */}
-          <TouchableOpacity
-            style={[
-              styles.primaryButton,
-              (isLocked || !biometricAvailable) && styles.disabledButton,
-            ]}
-            onPress={handleBiometricLogin}
-            disabled={isLoading || isLocked || !biometricAvailable}
-          >
-            <LinearGradient
-              colors={
-                isLocked || !biometricAvailable
-                  ? ['#bdc3c7', '#95a5a6']
-                  : ['#3498db', '#2980b9']
-              }
-              style={styles.buttonGradient}
+          {/* Title */}
+          <Text style={styles.title}>SecureVault</Text>
+          <Text style={styles.subtitle}>Your Trusted Password Manager</Text>
+
+          {/* Lockout Warning */}
+          {isLocked && (
+            <View style={styles.lockoutContainer}>
+              <Icon name="exclamation-triangle" size={24} color="#fff" />
+              <Text style={styles.lockoutText}>
+                Account locked for {formatRemainingTime()}
+              </Text>
+              <Text style={styles.lockoutSubtext}>
+                Too many failed attempts. Try again later or use recovery
+                options.
+              </Text>
+            </View>
+          )}
+
+          {/* Login Buttons */}
+          <View style={styles.buttonContainer}>
+            {/* Biometric Login Button */}
+            <TouchableOpacity
+              style={[
+                styles.loginButton,
+                (isLocked || !biometricAvailable) && styles.disabledButton,
+              ]}
+              onPress={handleBiometricLogin}
+              disabled={isLoading || isLocked || !biometricAvailable}
+              activeOpacity={0.8}
             >
               <Icon
                 name="fingerprint"
                 size={20}
-                color="#fff"
+                color={isLocked || !biometricAvailable ? '#888' : '#FFFFFF'}
                 style={styles.buttonIcon}
               />
-              <Text style={styles.primaryButtonText}>
+              <Text
+                style={[
+                  styles.buttonText,
+                  (isLocked || !biometricAvailable) &&
+                    styles.disabledButtonText,
+                ]}
+              >
                 {biometricAvailable
                   ? 'Login with Biometric'
                   : 'Biometric Not Available'}
               </Text>
-            </LinearGradient>
-          </TouchableOpacity>
+            </TouchableOpacity>
 
-          {/* Password Login Button */}
-          <TouchableOpacity
-            style={[styles.secondaryButton, isLocked && styles.disabledButton]}
-            onPress={() => setShowPasswordModal(true)}
-            disabled={isLoading || isLocked}
-          >
-            <Icon
-              name="lock"
-              size={20}
-              color={isLocked ? '#bdc3c7' : '#333'}
-              style={styles.buttonIcon}
-            />
-            <Text
-              style={[
-                styles.secondaryButtonText,
-                isLocked && styles.disabledText,
-              ]}
+            {/* Password Login Button */}
+            <TouchableOpacity
+              style={[styles.loginButton, isLocked && styles.disabledButton]}
+              onPress={() => setShowPasswordModal(true)}
+              disabled={isLoading || isLocked}
+              activeOpacity={0.8}
             >
-              Login with Password
-            </Text>
-          </TouchableOpacity>
-        </View>
+              <Icon
+                name="lock"
+                size={20}
+                color={isLocked ? '#888' : '#FFFFFF'}
+                style={styles.buttonIcon}
+              />
+              <Text
+                style={[
+                  styles.buttonText,
+                  isLocked && styles.disabledButtonText,
+                ]}
+              >
+                Login with Password
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-        {/* Failed Attempts Warning */}
-        {failedAttempts > 0 && !isLocked && (
-          <Text style={styles.warningText}>
-            {failedAttempts} failed attempt{failedAttempts > 1 ? 's' : ''}.
-            {MAX_FAILED_ATTEMPTS - failedAttempts} remaining.
-          </Text>
-        )}
-      </View>
+          {/* Failed Attempts Warning */}
+          {failedAttempts > 0 && !isLocked && (
+            <Text style={styles.warningText}>
+              {failedAttempts} failed attempt{failedAttempts > 1 ? 's' : ''}.
+              {MAX_FAILED_ATTEMPTS - failedAttempts} remaining.
+            </Text>
+          )}
+        </View>
+      </LinearGradient>
 
       {/* Password Modal */}
       <Modal
@@ -456,7 +461,9 @@ const LoginScreen = ({ navigation: navProp }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+  },
+  gradient: {
+    flex: 1,
   },
   content: {
     flex: 1,
@@ -466,108 +473,92 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   logo: {
     width: 80,
     height: 80,
-    borderRadius: 10,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#8e44ad',
+    color: '#fff',
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: 48,
   },
   lockoutContainer: {
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#fef2f2',
-    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 15,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#fecaca',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   lockoutText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#e74c3c',
+    color: '#fff',
     marginTop: 10,
     textAlign: 'center',
   },
   lockoutSubtext: {
     fontSize: 14,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.8)',
     marginTop: 5,
     textAlign: 'center',
   },
   buttonContainer: {
     width: '100%',
-    maxWidth: 300,
+    alignItems: 'center',
   },
-  primaryButton: {
-    borderRadius: 8,
-    overflow: 'hidden',
+  loginButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2C3E50',
+    borderRadius: 25,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     marginBottom: 16,
+    width: screenWidth * 0.87,
+    height: 56,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 3,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
     elevation: 5,
   },
-  buttonGradient: {
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   buttonIcon: {
-    marginRight: 10,
+    marginRight: 14,
   },
-  primaryButtonText: {
-    color: '#fff',
+  buttonText: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
   },
-  secondaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    backgroundColor: '#fff',
-  },
-  secondaryButtonText: {
-    color: '#333',
-    fontSize: 16,
-    fontWeight: '500',
-  },
   disabledButton: {
-    opacity: 0.5,
+    backgroundColor: '#ccc',
   },
-  disabledText: {
-    color: '#bdc3c7',
+  disabledButtonText: {
+    color: '#888',
   },
   warningText: {
     marginTop: 20,
     fontSize: 14,
-    color: '#e67e22',
+    color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
   },
   modalOverlay: {
