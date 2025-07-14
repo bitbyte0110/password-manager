@@ -1,0 +1,555 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  Dimensions,
+} from 'react-native';
+import { TextInput, Button, Snackbar } from 'react-native-paper';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as SecureStore from 'expo-secure-store';
+import * as Crypto from 'expo-crypto';
+import bcrypt from 'bcryptjs';
+import zxcvbn from 'zxcvbn';
+import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/FontAwesome5';
+
+const { width: screenWidth } = Dimensions.get('window');
+
+const ForgotPasswordScreen = ({ navigation: navProp }) => {
+  const navigation = navProp || useNavigation();
+
+  // Form state
+  const [recoveryPhrase, setRecoveryPhrase] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Validation state
+  const [recoveryPhraseError, setRecoveryPhraseError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
+  const [passwordStrength, setPasswordStrength] = useState(null);
+  const [wordCount, setWordCount] = useState(0);
+
+  // UI state
+  const [isLoading, setIsLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
+
+  // Validation state
+  const [isRecoveryPhraseValid, setIsRecoveryPhraseValid] = useState(false);
+  const [isNewPasswordValid, setIsNewPasswordValid] = useState(false);
+  const [isConfirmPasswordValid, setIsConfirmPasswordValid] = useState(false);
+
+  useEffect(() => {
+    validateRecoveryPhrase();
+  }, [recoveryPhrase]);
+
+  useEffect(() => {
+    validateNewPassword();
+  }, [newPassword]);
+
+  useEffect(() => {
+    validateConfirmPassword();
+  }, [confirmPassword, newPassword]);
+
+  const validateRecoveryPhrase = () => {
+    const trimmed = recoveryPhrase.trim();
+    if (!trimmed) {
+      setWordCount(0);
+      setRecoveryPhraseError('');
+      setIsRecoveryPhraseValid(false);
+      return;
+    }
+
+    const words = trimmed.split(/\s+/).filter(word => word.length > 0);
+    setWordCount(words.length);
+
+    if (words.length === 0) {
+      setRecoveryPhraseError('');
+      setIsRecoveryPhraseValid(false);
+    } else if (words.length < 12) {
+      setRecoveryPhraseError(`${words.length}/12 words entered`);
+      setIsRecoveryPhraseValid(false);
+    } else if (words.length === 12) {
+      setRecoveryPhraseError('');
+      setIsRecoveryPhraseValid(true);
+    } else {
+      setRecoveryPhraseError('Recovery phrase must be exactly 12 words');
+      setIsRecoveryPhraseValid(false);
+    }
+  };
+
+  const validateNewPassword = () => {
+    if (!newPassword) {
+      setPasswordStrength(null);
+      setPasswordError('');
+      setIsNewPasswordValid(false);
+      return;
+    }
+
+    const result = zxcvbn(newPassword);
+    setPasswordStrength(result);
+
+    if (result.score < 3) {
+      setPasswordError(
+        result.feedback.suggestions.length > 0
+          ? result.feedback.suggestions[0]
+          : 'Password is too weak. Please choose a stronger password.'
+      );
+      setIsNewPasswordValid(false);
+    } else {
+      setPasswordError('');
+      setIsNewPasswordValid(true);
+    }
+  };
+
+  const validateConfirmPassword = () => {
+    if (!confirmPassword) {
+      setConfirmPasswordError('');
+      setIsConfirmPasswordValid(false);
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setConfirmPasswordError('Passwords do not match');
+      setIsConfirmPasswordValid(false);
+    } else {
+      setConfirmPasswordError('');
+      setIsConfirmPasswordValid(true);
+    }
+  };
+
+  const isFormValid =
+    isRecoveryPhraseValid &&
+    isNewPasswordValid &&
+    isConfirmPasswordValid &&
+    !isLoading;
+
+  const getStrengthColor = score => {
+    const colors = ['#e74c3c', '#e67e22', '#f39c12', '#27ae60', '#2ecc71'];
+    return colors[score] || '#e74c3c';
+  };
+
+  const getStrengthText = score => {
+    const texts = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];
+    return texts[score] || 'Very Weak';
+  };
+
+  const handleResetPassword = async () => {
+    if (!isFormValid) {
+      showSnackbar('Please fix all errors before proceeding');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Step 1: Validate recovery phrase against stored hash
+      const storedRecoveryHash =
+        await SecureStore.getItemAsync('vault_recoveryHash');
+
+      if (!storedRecoveryHash) {
+        showSnackbar('No recovery phrase found. Please contact support.');
+        clearSensitiveData();
+        setIsLoading(false);
+        return;
+      }
+
+      // Step 2: Hash the entered recovery phrase and compare
+      const normalizedPhrase = recoveryPhrase
+        .trim()
+        .split(/\s+/)
+        .map(word => word.toLowerCase())
+        .join(' ');
+
+      const enteredPhraseHash = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        normalizedPhrase
+      );
+
+      if (enteredPhraseHash !== storedRecoveryHash) {
+        showSnackbar(
+          'Invalid recovery phrase. Please check your words and try again.'
+        );
+        clearPasswordFields();
+        setIsLoading(false);
+        return;
+      }
+
+      // Step 3: Hash the new password
+      const saltRounds = 12;
+      const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+
+      // Step 4: Update the master password hash in SecureStore
+      await SecureStore.setItemAsync('vault_masterHash', newPasswordHash);
+
+      // Step 5: Clear sensitive data
+      clearSensitiveData();
+
+      // Step 6: Show success message
+      showSnackbar('Password reset successfully!');
+
+      // Step 7: Navigate to LoginScreen after delay
+      setTimeout(() => {
+        navigation.replace('LoginScreen');
+      }, 1500);
+    } catch (error) {
+      console.error('Password reset error:', error);
+
+      if (error.message.includes('SecureStore')) {
+        showSnackbar('Storage error. Please try again.');
+      } else if (error.message.includes('bcrypt')) {
+        showSnackbar('Encryption error. Please try again.');
+      } else {
+        showSnackbar('An unexpected error occurred. Please try again.');
+      }
+
+      clearSensitiveData();
+      setIsLoading(false);
+    }
+  };
+
+  const clearPasswordFields = () => {
+    setNewPassword('');
+    setConfirmPassword('');
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
+  };
+
+  const clearSensitiveData = () => {
+    setRecoveryPhrase('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
+    setPasswordStrength(null);
+  };
+
+  const showSnackbar = message => {
+    setSnackbar({ visible: true, message });
+  };
+
+  const handleGoBack = () => {
+    clearSensitiveData();
+    navigation.navigate('LoginScreen');
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <LinearGradient colors={['#9b59b6', '#3498db']} style={styles.gradient}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.card}>
+            {/* Logo */}
+            <View style={styles.logoContainer}>
+              <LinearGradient
+                colors={['#7E57C2', '#26A69A']}
+                style={styles.logo}
+              >
+                <Icon name="shield-alt" size={40} color="#fff" />
+              </LinearGradient>
+            </View>
+
+            {/* Title */}
+            <Text style={styles.title}>Reset Master Password</Text>
+            <Text style={styles.subtitle}>
+              Verify your recovery phrase to reset your password
+            </Text>
+
+            {/* Recovery Phrase Input */}
+            <View style={styles.inputContainer}>
+              <TextInput
+                label="12-Word Recovery Phrase"
+                mode="outlined"
+                value={recoveryPhrase}
+                onChangeText={setRecoveryPhrase}
+                placeholder="Enter your 12-word recovery phrase separated by spaces"
+                multiline={true}
+                numberOfLines={4}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={styles.textInput}
+                theme={{
+                  colors: {
+                    primary: '#9b59b6',
+                    accent: '#9b59b6',
+                  },
+                }}
+              />
+              {wordCount > 0 && (
+                <Text
+                  style={[
+                    styles.wordCountText,
+                    { color: wordCount === 12 ? '#27ae60' : '#666' },
+                  ]}
+                >
+                  {wordCount}/12 words entered
+                </Text>
+              )}
+              {recoveryPhraseError && wordCount !== 12 ? (
+                <Text style={styles.errorText}>{recoveryPhraseError}</Text>
+              ) : null}
+            </View>
+
+            {/* New Password Input */}
+            <View style={styles.inputContainer}>
+              <TextInput
+                label="New Master Password"
+                mode="outlined"
+                value={newPassword}
+                onChangeText={setNewPassword}
+                secureTextEntry={!showNewPassword}
+                style={styles.textInput}
+                theme={{
+                  colors: {
+                    primary: '#9b59b6',
+                    accent: '#9b59b6',
+                  },
+                }}
+                right={
+                  <TextInput.Icon
+                    icon={showNewPassword ? 'eye-off' : 'eye'}
+                    onPress={() => setShowNewPassword(!showNewPassword)}
+                  />
+                }
+              />
+
+              {/* Password Strength Indicator */}
+              {passwordStrength && (
+                <View style={styles.strengthContainer}>
+                  <View style={styles.strengthBar}>
+                    <View
+                      style={[
+                        styles.strengthFill,
+                        {
+                          width: `${(passwordStrength.score + 1) * 20}%`,
+                          backgroundColor: getStrengthColor(
+                            passwordStrength.score
+                          ),
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      styles.strengthText,
+                      { color: getStrengthColor(passwordStrength.score) },
+                    ]}
+                  >
+                    {getStrengthText(passwordStrength.score)}
+                  </Text>
+                </View>
+              )}
+
+              {passwordError ? (
+                <Text style={styles.errorText}>{passwordError}</Text>
+              ) : null}
+            </View>
+
+            {/* Confirm Password Input */}
+            <View style={styles.inputContainer}>
+              <TextInput
+                label="Confirm New Password"
+                mode="outlined"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!showConfirmPassword}
+                style={styles.textInput}
+                theme={{
+                  colors: {
+                    primary: '#9b59b6',
+                    accent: '#9b59b6',
+                  },
+                }}
+                right={
+                  <TextInput.Icon
+                    icon={showConfirmPassword ? 'eye-off' : 'eye'}
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  />
+                }
+              />
+              {confirmPasswordError ? (
+                <Text style={styles.errorText}>{confirmPasswordError}</Text>
+              ) : null}
+            </View>
+
+            {/* Reset Button */}
+            <View style={styles.buttonContainer}>
+              <View style={styles.resetButtonWrapper}>
+                <LinearGradient
+                  colors={
+                    isFormValid ? ['#9b59b6', '#3498db'] : ['#ccc', '#999']
+                  }
+                  style={[
+                    styles.resetButtonGradient,
+                    !isFormValid && styles.disabledButton,
+                  ]}
+                >
+                  <Button
+                    mode="text"
+                    onPress={handleResetPassword}
+                    disabled={!isFormValid}
+                    loading={isLoading}
+                    style={styles.resetButton}
+                    labelStyle={styles.resetButtonText}
+                  >
+                    {isLoading ? 'Resetting...' : 'Reset Password'}
+                  </Button>
+                </LinearGradient>
+              </View>
+
+              {/* Back Button */}
+              <Button
+                mode="text"
+                onPress={handleGoBack}
+                disabled={isLoading}
+                style={styles.backButton}
+                labelStyle={styles.backButtonText}
+              >
+                Back to Login
+              </Button>
+            </View>
+          </View>
+        </ScrollView>
+      </LinearGradient>
+
+      {/* Snackbar */}
+      <Snackbar
+        visible={snackbar.visible}
+        onDismiss={() => setSnackbar({ visible: false, message: '' })}
+        duration={3000}
+        style={styles.snackbar}
+      >
+        {snackbar.message}
+      </Snackbar>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  gradient: {
+    flex: 1,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingVertical: 20,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    marginHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  logo: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#8e44ad',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 20,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  textInput: {
+    backgroundColor: '#fff',
+  },
+  wordCountText: {
+    fontSize: 12,
+    marginTop: 4,
+    textAlign: 'right',
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#e74c3c',
+    marginTop: 4,
+  },
+  strengthContainer: {
+    marginTop: 8,
+  },
+  strengthBar: {
+    height: 4,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  strengthFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  strengthText: {
+    fontSize: 12,
+    marginTop: 4,
+    textAlign: 'right',
+    fontWeight: '500',
+  },
+  buttonContainer: {
+    marginTop: 24,
+  },
+  resetButtonWrapper: {
+    borderRadius: 25,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  resetButtonGradient: {
+    borderRadius: 25,
+  },
+  resetButton: {
+    paddingVertical: 4,
+  },
+  resetButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  backButton: {
+    alignSelf: 'center',
+  },
+  backButtonText: {
+    color: '#8e44ad',
+    fontSize: 14,
+  },
+  snackbar: {
+    backgroundColor: '#333',
+  },
+});
+
+export default ForgotPasswordScreen;
