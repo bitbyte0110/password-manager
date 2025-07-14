@@ -15,6 +15,7 @@ import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 
 const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
+  const [showSuccessScreen, setShowSuccessScreen] = useState(false);
   const { recoveryPhrase } = route?.params || {};
 
   const copyRecoveryPhrase = async () => {
@@ -37,9 +38,13 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
           text: 'Yes, I saved it',
           style: 'default',
           onPress: () => {
-            if (navigation) {
-              navigation.replace('MainApp');
-            }
+            setShowSuccessScreen(true);
+            // Show success message for 2.5 seconds, then navigate to LoginScreen
+            setTimeout(() => {
+              if (navigation) {
+                navigation.replace('LoginScreen');
+              }
+            }, 2500);
           },
         },
       ]
@@ -65,6 +70,33 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
             >
               <Text>Go Back</Text>
             </Button>
+          </View>
+        </LinearGradient>
+      </SafeAreaView>
+    );
+  }
+
+  // Show success screen after user confirms they saved the recovery phrase
+  if (showSuccessScreen) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <LinearGradient colors={['#9b59b6', '#3498db']} style={styles.gradient}>
+          <View style={styles.successContainer}>
+            <View style={styles.logoContainer}>
+              <LinearGradient
+                colors={['#7E57C2', '#26A69A']}
+                style={styles.logo}
+              >
+                <FontAwesome5 name="check-circle" size={40} color="#fff" />
+              </LinearGradient>
+            </View>
+            <Text style={styles.successTitle}>Welcome to SecureVault!</Text>
+            <Text style={styles.successSubtitle}>
+              Your password manager is now set up.
+            </Text>
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Redirecting to login...</Text>
+            </View>
           </View>
         </LinearGradient>
       </SafeAreaView>
@@ -328,6 +360,34 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  successContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  successSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+    marginBottom: 40,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'center',
   },
 });
 

@@ -138,7 +138,9 @@ const LoginScreen = ({ navigation: navProp }) => {
 
   const handleBiometricLogin = async () => {
     if (!biometricAvailable) {
-      showSnackbar('Biometric authentication not available');
+      showSnackbar(
+        'Biometric authentication not available. Please use password login.'
+      );
       return;
     }
 
@@ -160,11 +162,17 @@ const LoginScreen = ({ navigation: navProp }) => {
         await resetFailedAttempts();
         navigation.replace('MainApp');
       } else {
-        showSnackbar('Biometric authentication failed');
+        if (result.error === 'user_cancel') {
+          showSnackbar('Biometric authentication cancelled');
+        } else {
+          showSnackbar('Biometric authentication failed. Please try again.');
+        }
       }
     } catch (error) {
       console.error('Biometric authentication error:', error);
-      showSnackbar('Biometric authentication error');
+      showSnackbar(
+        'Biometric authentication error. Please use password login.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -297,31 +305,36 @@ const LoginScreen = ({ navigation: navProp }) => {
 
         {/* Login Buttons */}
         <View style={styles.buttonContainer}>
-          {/* Biometric Login Button */}
-          {biometricAvailable && (
-            <TouchableOpacity
-              style={[styles.primaryButton, isLocked && styles.disabledButton]}
-              onPress={handleBiometricLogin}
-              disabled={isLoading || isLocked}
+          {/* Biometric Login Button - Always show but disable if not available */}
+          <TouchableOpacity
+            style={[
+              styles.primaryButton,
+              (isLocked || !biometricAvailable) && styles.disabledButton,
+            ]}
+            onPress={handleBiometricLogin}
+            disabled={isLoading || isLocked || !biometricAvailable}
+          >
+            <LinearGradient
+              colors={
+                isLocked || !biometricAvailable
+                  ? ['#bdc3c7', '#95a5a6']
+                  : ['#3498db', '#2980b9']
+              }
+              style={styles.buttonGradient}
             >
-              <LinearGradient
-                colors={
-                  isLocked ? ['#bdc3c7', '#95a5a6'] : ['#3498db', '#2980b9']
-                }
-                style={styles.buttonGradient}
-              >
-                <Icon
-                  name="fingerprint"
-                  size={20}
-                  color="#fff"
-                  style={styles.buttonIcon}
-                />
-                <Text style={styles.primaryButtonText}>
-                  Login with Biometric
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
+              <Icon
+                name="fingerprint"
+                size={20}
+                color="#fff"
+                style={styles.buttonIcon}
+              />
+              <Text style={styles.primaryButtonText}>
+                {biometricAvailable
+                  ? 'Login with Biometric'
+                  : 'Biometric Not Available'}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
 
           {/* Password Login Button */}
           <TouchableOpacity
@@ -388,7 +401,7 @@ const LoginScreen = ({ navigation: navProp }) => {
                 onPress={handleForgotPassword}
                 style={styles.modalLinkButton}
               >
-                Forgot Password?
+                <Text>Forgot Password?</Text>
               </Button>
 
               <Button
@@ -397,7 +410,7 @@ const LoginScreen = ({ navigation: navProp }) => {
                 style={styles.modalLinkButton}
                 textColor="#e74c3c"
               >
-                Reset Vault
+                <Text>Reset Vault</Text>
               </Button>
             </View>
 
@@ -411,7 +424,7 @@ const LoginScreen = ({ navigation: navProp }) => {
                 }}
                 style={styles.modalCancelButton}
               >
-                Cancel
+                <Text>Cancel</Text>
               </Button>
 
               <Button
@@ -421,7 +434,7 @@ const LoginScreen = ({ navigation: navProp }) => {
                 disabled={!masterPassword.trim() || isLoading}
                 style={styles.modalLoginButton}
               >
-                Login
+                <Text>Login</Text>
               </Button>
             </View>
           </View>

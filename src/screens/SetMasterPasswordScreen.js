@@ -1,5 +1,5 @@
 import 'react-native-get-random-values';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import { wordlist } from '@scure/bip39/wordlists/english';
 const SetMasterPasswordScreen = ({ navigation }) => {
   const [masterPassword, setMasterPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const confirmPasswordRef = useRef(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState({
@@ -219,6 +220,19 @@ const SetMasterPasswordScreen = ({ navigation }) => {
               secureTextEntry={!showPassword}
               error={!!errors.masterPassword}
               style={styles.input}
+              autoFocus={true}
+              keyboardType="default"
+              returnKeyType="next"
+              textContentType="newPassword"
+              autoComplete="password-new"
+              autoCorrect={false}
+              blurOnSubmit={false}
+              onSubmitEditing={() => {
+                // Focus on confirm password field when user presses "next"
+                if (confirmPasswordRef.current) {
+                  confirmPasswordRef.current.focus();
+                }
+              }}
               right={
                 <TextInput.Icon
                   icon={showPassword ? 'eye-off' : 'eye'}
@@ -261,6 +275,7 @@ const SetMasterPasswordScreen = ({ navigation }) => {
 
             {/* Confirm Password Input */}
             <TextInput
+              ref={confirmPasswordRef}
               label="Confirm Password"
               mode="outlined"
               value={confirmPassword}
@@ -268,6 +283,13 @@ const SetMasterPasswordScreen = ({ navigation }) => {
               secureTextEntry={!showConfirmPassword}
               error={!!errors.confirmPassword}
               style={styles.input}
+              keyboardType="default"
+              returnKeyType="done"
+              textContentType="newPassword"
+              autoComplete="password-new"
+              autoCorrect={false}
+              blurOnSubmit={true}
+              onSubmitEditing={handleSubmit}
               right={
                 <TextInput.Icon
                   icon={showConfirmPassword ? 'eye-off' : 'eye'}
