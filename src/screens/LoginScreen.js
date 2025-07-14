@@ -684,14 +684,15 @@ const LoginScreen = ({ navigation: navProp }) => {
             </View>
 
             <View style={styles.modalActionButtons}>
-              <Button
-                mode="outlined"
+              <TouchableOpacity
+                style={styles.modalCancelButtonContainer}
                 onPress={handleCancelPasswordModal}
-                style={styles.modalCancelButton}
-                textColor="#666"
+                activeOpacity={0.8}
               >
-                <Text>Cancel</Text>
-              </Button>
+                <View style={styles.modalCancelButtonContent}>
+                  <Text style={styles.modalCancelButtonText}>Cancel</Text>
+                </View>
+              </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.modalLoginButtonContainer}
@@ -907,9 +908,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
   },
-  modalCancelButton: {
+  modalCancelButtonContainer: {
     flex: 1,
+    borderRadius: 8,
+    borderWidth: 1,
     borderColor: '#ddd',
+    overflow: 'hidden',
+  },
+  modalCancelButtonContent: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 40,
+    backgroundColor: '#fff',
+  },
+  modalCancelButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   modalLoginButtonContainer: {
     flex: 1,

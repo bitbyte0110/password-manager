@@ -72,11 +72,11 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
 
   const handleMFASetupComplete = () => {
     setShowMFAModal(false);
-    // Show success screen and then navigate to LoginScreen
+    // Show success screen and then navigate to MainApp
     setShowSuccessScreen(true);
     setTimeout(() => {
       if (navigation) {
-        navigation.replace('LoginScreen');
+        navigation.replace('MainApp');
       }
     }, 2500);
   };
