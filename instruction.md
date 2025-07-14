@@ -1,9 +1,10 @@
+feature
 Project overview
 i am building a proect that is a secure password manager application for mobile devices that stores the data on the device n is not linked to the cloud
 
 i will be using:
 
-react native for Cross‑platform mobile framework for Android development, 
+react native for Cross‑platform mobile framework for Android development,
 
 expo for React Native toolchain with security modules and faster iteration,
 
@@ -31,7 +32,7 @@ SQLite as On‑device encrypted database for credential storage,
 
 npm audit for Dependency vulnerability scanning,
 
-ESLint with security rules for Static code analysis to enforce secure coding practices, 
+ESLint with security rules for Static code analysis to enforce secure coding practices,
 
 Redux or Context API (for state management across UI components)
 
@@ -42,9 +43,6 @@ React Navigation (for screen navigation and routing)
 React Native Vector Icons (for UI icons including password visibility toggle)
 
 Custom timeout handlers (for auto-logout functionality)
- 
-
-
 
 core functionalities
 
@@ -100,17 +98,14 @@ MFA + Biometric = Require a second factor (e.g. device biometric) after master p
 
 Auto‑logout = Automatically sign out users after a short period of inactivity.
 
- Clipboard Auto‑clear = Clear copied passwords from the clipboard after a brief delay.
+Clipboard Auto‑clear = Clear copied passwords from the clipboard after a brief delay.
 
- Responsive UI = UI interactions (toggles, taps, modals) should feel instantaneous and snappy.
+Responsive UI = UI interactions (toggles, taps, modals) should feel instantaneous and snappy.
 
 Smooth List Updates = Filtering and updating lists should feel seamless, even with large datasets.
 
- Modular Codebase = Separate concerns; use clear naming and documentation.
+Modular Codebase = Separate concerns; use clear naming and documentation.
 
 Accessible Design = Support light/dark themes and ensure UI elements remain legible under typical conditions.
 
 Real‑time Feedback = Provide inline validation and progress indicators where appropriate.
-
-
-is this work as the intrustion.md in cursor ?or any repeat I can delete, is the non functional request I need to delete

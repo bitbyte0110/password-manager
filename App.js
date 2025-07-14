@@ -8,6 +8,7 @@ import SetMasterPasswordScreen from './src/screens/SetMasterPasswordScreen';
 import ShowRecoveryPhraseScreen from './src/screens/ShowRecoveryPhraseScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
+import MyVaultScreen from './src/screens/MyVaultScreen';
 
 const theme = {
   ...DefaultTheme,
@@ -104,32 +105,22 @@ const MainApp = ({ navigation }) => {
     setAppState(nextAppState);
   };
 
-  const handleUserActivity = () => {
-    // Update activity on any user interaction
-    updateActivity();
+  // Create enhanced navigation object that includes activity tracking
+  const enhancedNavigation = {
+    ...navigation,
+    replace: (screenName, params = {}) => {
+      updateActivity();
+      navigation.replace(screenName, params);
+    },
+    navigate: (screenName, params = {}) => {
+      updateActivity();
+      navigation.navigate(screenName, params);
+    },
   };
 
   return (
-    <View
-      style={styles.container}
-      onTouchStart={handleUserActivity}
-      onTouchEnd={handleUserActivity}
-    >
-      <Text style={styles.welcomeText}>Welcome to SecureVault!</Text>
-      <Text style={styles.subText}>Your password manager is now set up.</Text>
-      <Text style={styles.infoText}>
-        Auto-logout after 2 minutes of inactivity
-      </Text>
-
-      {/* Temporary content - this will be replaced with actual password manager UI */}
-      <View style={styles.tempContainer}>
-        <Text style={styles.tempText}>🔒 Secure Password Vault Active</Text>
-        <Text style={styles.tempSubText}>
-          This is where your password management interface will go. Touch
-          anywhere to reset the inactivity timer.
-        </Text>
-      </View>
-
+    <View style={styles.container} onTouchStart={updateActivity}>
+      <MyVaultScreen navigation={enhancedNavigation} />
       <StatusBar style="auto" />
     </View>
   );
@@ -329,35 +320,5 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     marginBottom: 12,
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#888',
-    textAlign: 'center',
-    marginBottom: 32,
-    fontStyle: 'italic',
-  },
-  tempContainer: {
-    backgroundColor: '#f8f9fa',
-    padding: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#e9ecef',
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    maxWidth: 300,
-  },
-  tempText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#28a745',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  tempSubText: {
-    fontSize: 14,
-    color: '#6c757d',
-    textAlign: 'center',
-    lineHeight: 20,
   },
 });
