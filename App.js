@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import SetMasterPasswordScreen from './src/screens/SetMasterPasswordScreen';
 import ShowRecoveryPhraseScreen from './src/screens/ShowRecoveryPhraseScreen';
 import LoginScreen from './src/screens/LoginScreen';
+import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 
 const theme = {
   ...DefaultTheme,
@@ -263,6 +264,8 @@ export default function App() {
         );
       case 'LoginScreen':
         return <LoginScreen navigation={navigation} />;
+      case 'ForgotPasswordScreen':
+        return <ForgotPasswordScreen navigation={navigation} />;
       case 'MainApp':
         return <MainApp navigation={navigation} />;
       case 'RecoveryScreen':
