@@ -11,9 +11,13 @@ import {
 import { Card, Button, Snackbar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import BiometricSetupModal from '../components/BiometricSetupModal';
 import MFASetupModal from '../components/MFASetupModal';
+
+// Constants for session management (matching App.js)
+const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
 
 const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
@@ -70,8 +74,18 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
     setShowMFAModal(true);
   };
 
-  const handleMFASetupComplete = () => {
+  const handleMFASetupComplete = async () => {
     setShowMFAModal(false);
+
+    // Set activity timestamp to establish authenticated session
+    try {
+      const timestamp = Date.now().toString();
+      await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, timestamp);
+      console.log('Activity timestamp set during setup completion');
+    } catch (error) {
+      console.error('Error setting activity timestamp:', error);
+    }
+
     // Show success screen and then navigate to MainApp
     setShowSuccessScreen(true);
     setTimeout(() => {
