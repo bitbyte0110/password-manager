@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import BiometricSetupModal from '../components/BiometricSetupModal';
 import MFASetupModal from '../components/MFASetupModal';
+import vaultService from '../services/vaultService';
 
 // Constants for session management (matching App.js)
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
@@ -24,7 +25,8 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
   const [showSuccessScreen, setShowSuccessScreen] = useState(false);
   const [showBiometricModal, setShowBiometricModal] = useState(false);
   const [showMFAModal, setShowMFAModal] = useState(false);
-  const { recoveryPhrase, showSetupModals } = route?.params || {};
+  const { recoveryPhrase, masterPassword, showSetupModals } =
+    route?.params || {};
 
   const copyRecoveryPhrase = async () => {
     try {
@@ -45,16 +47,29 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
         {
           text: 'Yes, I saved it',
           style: 'default',
-          onPress: () => {
+          onPress: async () => {
             if (showSetupModals) {
               // Start the modal flow: show BiometricSetupModal first
               setShowBiometricModal(true);
             } else {
               // Original flow for backward compatibility
+              // Set initial activity timestamp for new user
+              try {
+                const timestamp = Date.now().toString();
+                await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, timestamp);
+
+                // Authenticate vault service if master password is available
+                if (masterPassword) {
+                  await vaultService.authenticate(masterPassword);
+                  console.log('Vault service authenticated during setup');
+                }
+              } catch (error) {
+                console.error('Error setting up authentication:', error);
+              }
               setShowSuccessScreen(true);
               setTimeout(() => {
                 if (navigation) {
-                  navigation.replace('LoginScreen');
+                  navigation.replace('MainApp');
                 }
               }, 2500);
             }
@@ -82,8 +97,16 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
       const timestamp = Date.now().toString();
       await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, timestamp);
       console.log('Activity timestamp set during setup completion');
+
+      // Authenticate vault service with master password
+      if (masterPassword) {
+        await vaultService.authenticate(masterPassword);
+        console.log('Vault service authenticated during setup completion');
+      } else {
+        console.warn('No master password available for vault authentication');
+      }
     } catch (error) {
-      console.error('Error setting activity timestamp:', error);
+      console.error('Error setting up authentication:', error);
     }
 
     // Show success screen and then navigate to MainApp
@@ -135,7 +158,7 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
               Your password manager is now set up.
             </Text>
             <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>Redirecting to login...</Text>
+              <Text style={styles.loadingText}>Redirecting to vault...</Text>
             </View>
           </View>
         </LinearGradient>
