@@ -143,6 +143,7 @@ const SetMasterPasswordScreen = ({ navigation }) => {
         if (navigation) {
           navigation.replace('ShowRecoveryPhraseScreen', {
             recoveryPhrase: recoveryPhrase,
+            masterPassword: passwordString, // Pass master password for vault authentication
             showSetupModals: true, // Flag to trigger modal flow
           });
         }
