@@ -39,6 +39,8 @@ const MyVaultScreen = ({ navigation }) => {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showFABMenu, setShowFABMenu] = useState(false);
   const [activeTab, setActiveTab] = useState('vault');
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const [showCategoryBottomSheet, setShowCategoryBottomSheet] = useState(false);
   // Get color scheme for theme support
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';

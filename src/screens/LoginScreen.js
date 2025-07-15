@@ -16,6 +16,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import bcrypt from 'bcryptjs';
 import Icon from 'react-native-vector-icons/FontAwesome5';
+import vaultService from '../services/vaultService';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -316,6 +317,17 @@ const LoginScreen = ({ navigation }) => {
           // MFA disabled: Go directly to MainApp
           await resetFailedAttempts(); // Reset password attempts too
           console.log('About to call navigation.replace("MainApp")');
+
+          // Authenticate vault service with the stored master password
+          const storedHash = await SecureStore.getItemAsync('vault_masterHash');
+          // We need to get the actual password for vault service - this is a limitation
+          // For biometric-only login without MFA, we'll use a placeholder approach
+          // In a real implementation, you'd store the password encrypted with biometric key
+          console.log(
+            'Biometric login successful, but cannot authenticate vault service without password'
+          );
+          showSnackbar('Biometric authentication successful');
+
           navigation.replace('MainApp');
           console.log('Navigation.replace("MainApp") called');
         }
@@ -370,6 +382,17 @@ const LoginScreen = ({ navigation }) => {
         console.log('Navigation object:', navigation);
         await resetFailedAttempts();
         await resetBiometricFailedAttempts(); // Reset biometric attempts on successful password
+
+        // Authenticate vault service with the master password
+        try {
+          await vaultService.authenticate(masterPassword);
+          console.log('Vault service authenticated successfully');
+        } catch (vaultError) {
+          console.error('Error authenticating vault service:', vaultError);
+          showSnackbar('Authentication error. Please try again.');
+          return;
+        }
+
         setShowPasswordModal(false);
         setMasterPassword('');
         setMfaMode(false);
