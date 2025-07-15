@@ -11,6 +11,7 @@ import {
 import { Card, Button, Snackbar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import BiometricSetupModal from '../components/BiometricSetupModal';
 import MFASetupModal from '../components/MFASetupModal';
@@ -41,16 +42,23 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
         {
           text: 'Yes, I saved it',
           style: 'default',
-          onPress: () => {
+          onPress: async () => {
             if (showSetupModals) {
               // Start the modal flow: show BiometricSetupModal first
               setShowBiometricModal(true);
             } else {
               // Original flow for backward compatibility
+              // Set initial activity timestamp for new user
+              try {
+                const timestamp = Date.now().toString();
+                await AsyncStorage.setItem('vault_lastActiveTime', timestamp);
+              } catch (error) {
+                console.error('Error setting activity timestamp:', error);
+              }
               setShowSuccessScreen(true);
               setTimeout(() => {
                 if (navigation) {
-                  navigation.replace('LoginScreen');
+                  navigation.replace('MainApp');
                 }
               }, 2500);
             }
