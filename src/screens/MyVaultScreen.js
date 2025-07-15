@@ -8,16 +8,10 @@ import {
   TouchableOpacity,
   useColorScheme,
   Alert,
+  Modal,
+  Dimensions,
 } from 'react-native';
-import {
-  Searchbar,
-  Chip,
-  FAB,
-  Badge,
-  Menu,
-  ActivityIndicator,
-} from 'react-native-paper';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Searchbar, Badge, Menu, ActivityIndicator } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 
@@ -25,6 +19,7 @@ import vaultService from '../services/vaultService';
 
 // Constants for activity tracking
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
+const { height: screenHeight } = Dimensions.get('window');
 
 const MyVaultScreen = ({ navigation }) => {
   // State management
@@ -37,10 +32,9 @@ const MyVaultScreen = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [recentSearches, setRecentSearches] = useState([]);
   const [showSortMenu, setShowSortMenu] = useState(false);
-  const [showFABMenu, setShowFABMenu] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [activeTab, setActiveTab] = useState('vault');
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-  const [showCategoryBottomSheet, setShowCategoryBottomSheet] = useState(false);
   // Get color scheme for theme support
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
@@ -54,6 +48,7 @@ const MyVaultScreen = ({ navigation }) => {
     text: isDarkMode ? '#ffffff' : '#000000',
     textSecondary: isDarkMode ? '#b0b0b0' : '#666666',
     border: isDarkMode ? '#333333' : '#e0e0e0',
+    modalBackground: 'rgba(0,0,0,0.5)',
   };
 
   useEffect(() => {
@@ -243,31 +238,26 @@ const MyVaultScreen = ({ navigation }) => {
     updateActivity();
   };
 
-  const handleCategoryFilter = categoryValue => {
-    setSelectedCategory(categoryValue);
-    updateActivity();
-  };
-
-  const handleSort = sortOption => {
-    setSortBy(sortOption);
+  const handleSort = sortType => {
+    setSortBy(sortType);
     setShowSortMenu(false);
     updateActivity();
   };
 
-  const handlePasswordPress = passwordEntry => {
+  const handlePasswordPress = () => {
     updateActivity();
     // Navigate to password details screen
-    // navigation.navigate('PasswordDetails', { passwordId: passwordEntry.id });
+    // navigation.navigate('PasswordDetails', { passwordId: item.id });
   };
 
   const handleAddPassword = () => {
-    setShowFABMenu(false);
+    setShowAddModal(false);
     updateActivity();
     // navigation.navigate('AddPassword');
   };
 
   const handleAddCategory = () => {
-    setShowFABMenu(false);
+    setShowAddModal(false);
     updateActivity();
     // navigation.navigate('AddCategory');
   };
@@ -291,11 +281,10 @@ const MyVaultScreen = ({ navigation }) => {
     }
   };
 
-  const renderPasswordItem = ({ item }) => (
+  const renderPasswordCard = ({ item }) => (
     <TouchableOpacity
       style={[styles.passwordCard, { backgroundColor: theme.surface }]}
       onPress={() => handlePasswordPress(item)}
-      activeOpacity={0.7}
     >
       <View style={styles.passwordCardContent}>
         <View style={styles.passwordCardLeft}>
@@ -346,6 +335,243 @@ const MyVaultScreen = ({ navigation }) => {
         Tap the + button to add your first password
       </Text>
     </View>
+  );
+
+  const renderFilterModal = () => (
+    <Modal
+      visible={showFilterModal}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={() => setShowFilterModal(false)}
+    >
+      <View style={styles.modalContainer}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowFilterModal(false)}
+        />
+        <View
+          style={[
+            styles.filterModalContent,
+            { backgroundColor: theme.background },
+          ]}
+        >
+          <View style={styles.modalHeader}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>
+              Filter by
+            </Text>
+            <TouchableOpacity onPress={() => setShowFilterModal(false)}>
+              <Icon name="times" size={20} color={theme.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.filterOption,
+              selectedCategory === 'all' && {
+                backgroundColor: theme.primary + '20',
+              },
+            ]}
+            onPress={() => {
+              setSelectedCategory('all');
+              setShowFilterModal(false);
+            }}
+          >
+            <Icon
+              name="list"
+              size={20}
+              color={
+                selectedCategory === 'all' ? theme.primary : theme.textSecondary
+              }
+            />
+            <Text
+              style={[
+                styles.filterOptionText,
+                {
+                  color:
+                    selectedCategory === 'all' ? theme.primary : theme.text,
+                },
+              ]}
+            >
+              All Records
+            </Text>
+            <Text style={[styles.filterCount, { color: theme.textSecondary }]}>
+              {passwords.length}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.filterOption,
+              selectedCategory === 'favorites' && {
+                backgroundColor: theme.primary + '20',
+              },
+            ]}
+            onPress={() => {
+              setSelectedCategory('favorites');
+              setShowFilterModal(false);
+            }}
+          >
+            <Icon
+              name="star"
+              size={20}
+              color={
+                selectedCategory === 'favorites' ? theme.primary : '#FFD700'
+              }
+              solid
+            />
+            <Text
+              style={[
+                styles.filterOptionText,
+                {
+                  color:
+                    selectedCategory === 'favorites'
+                      ? theme.primary
+                      : theme.text,
+                },
+              ]}
+            >
+              Favorites
+            </Text>
+            <Text style={[styles.filterCount, { color: theme.textSecondary }]}>
+              {passwords.filter(p => p.is_favorite === 1).length}
+            </Text>
+          </TouchableOpacity>
+
+          {categories.map(category => (
+            <TouchableOpacity
+              key={category.id}
+              style={[
+                styles.filterOption,
+                selectedCategory === category.id.toString() && {
+                  backgroundColor: theme.primary + '20',
+                },
+              ]}
+              onPress={() => {
+                setSelectedCategory(category.id.toString());
+                setShowFilterModal(false);
+              }}
+            >
+              <View
+                style={[
+                  styles.categoryIndicator,
+                  { backgroundColor: category.color || theme.primary },
+                ]}
+              >
+                <Icon name={category.icon || 'folder'} size={12} color="#fff" />
+              </View>
+              <Text
+                style={[
+                  styles.filterOptionText,
+                  {
+                    color:
+                      selectedCategory === category.id.toString()
+                        ? theme.primary
+                        : theme.text,
+                  },
+                ]}
+              >
+                {category.name}
+              </Text>
+              <Text
+                style={[styles.filterCount, { color: theme.textSecondary }]}
+              >
+                {category.password_count || 0}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const renderAddModal = () => (
+    <Modal
+      visible={showAddModal}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={() => setShowAddModal(false)}
+    >
+      <View style={styles.modalContainer}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowAddModal(false)}
+        />
+        <View
+          style={[
+            styles.addModalContent,
+            { backgroundColor: theme.background },
+          ]}
+        >
+          <View style={styles.modalHeader}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>
+              Add New
+            </Text>
+            <TouchableOpacity onPress={() => setShowAddModal(false)}>
+              <Icon name="times" size={20} color={theme.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={styles.addOption}
+            onPress={() => {
+              setShowAddModal(false);
+              handleAddPassword();
+            }}
+          >
+            <View
+              style={[styles.addOptionIcon, { backgroundColor: theme.primary }]}
+            >
+              <Icon name="key" size={20} color="#fff" />
+            </View>
+            <View style={styles.addOptionContent}>
+              <Text style={[styles.addOptionTitle, { color: theme.text }]}>
+                Add Password
+              </Text>
+              <Text
+                style={[
+                  styles.addOptionSubtitle,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                Store a new login credential
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.addOption}
+            onPress={() => {
+              setShowAddModal(false);
+              handleAddCategory();
+            }}
+          >
+            <View
+              style={[
+                styles.addOptionIcon,
+                { backgroundColor: theme.secondary },
+              ]}
+            >
+              <Icon name="folder-plus" size={20} color="#fff" />
+            </View>
+            <View style={styles.addOptionContent}>
+              <Text style={[styles.addOptionTitle, { color: theme.text }]}>
+                Add Category
+              </Text>
+              <Text
+                style={[
+                  styles.addOptionSubtitle,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                Create a new category
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
   );
 
   if (isLoading) {
@@ -399,7 +625,7 @@ const MyVaultScreen = ({ navigation }) => {
         />
 
         {/* Recent searches */}
-        {isSearchExpanded && recentSearches.length > 0 && (
+        {/* isSearchExpanded && recentSearches.length > 0 && (
           <View style={styles.recentSearches}>
             {recentSearches.map((search, index) => (
               <Chip
@@ -411,80 +637,39 @@ const MyVaultScreen = ({ navigation }) => {
               </Chip>
             ))}
           </View>
-        )}
+        ) */}
       </View>
 
-      {/* Filter Chips */}
-      <View style={styles.filterContainer}>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={[
-            { id: 'all', label: 'All', count: passwords.length },
-            {
-              id: 'favorites',
-              label: '⭐ Favorites',
-              count: passwords.filter(p => p.is_favorite === 1).length,
-            },
-            ...categories.slice(0, 4).map(cat => ({
-              id: cat.id.toString(),
-              label: cat.name,
-              count: cat.password_count || 0,
-              color: cat.color,
-              icon: cat.icon,
-            })),
-            { id: 'more', label: 'More', count: 0 },
-          ]}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              onPress={() => {
-                if (item.id === 'more') {
-                  setShowCategoryBottomSheet(true);
-                } else {
-                  handleCategoryFilter(item.id);
-                }
-              }}
-            >
-              <Chip
-                selected={selectedCategory === item.id}
-                style={[
-                  styles.filterChip,
-                  selectedCategory === item.id && {
-                    backgroundColor: theme.primary,
-                  },
-                ]}
-                textStyle={
-                  selectedCategory === item.id
-                    ? { color: '#fff' }
-                    : { color: theme.text }
-                }
-              >
-                {item.label}
-                {item.count > 0 ? ` (${item.count})` : ''}
-              </Chip>
-            </TouchableOpacity>
-          )}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.filterChipContainer}
-        />
-      </View>
+      {/* Filter Button */}
+      <View style={styles.filterButtonContainer}>
+        <TouchableOpacity
+          style={[styles.filterButton, { backgroundColor: theme.surface }]}
+          onPress={() => setShowFilterModal(true)}
+        >
+          <Icon name="sliders-h" size={16} color={theme.textSecondary} />
+          <Text
+            style={[styles.filterButtonText, { color: theme.textSecondary }]}
+          >
+            {selectedCategory === 'all'
+              ? 'All Records'
+              : selectedCategory === 'favorites'
+                ? 'Favorites'
+                : categories.find(c => c.id.toString() === selectedCategory)
+                    ?.name || 'Filter'}
+          </Text>
+          <Icon name="chevron-down" size={12} color={theme.textSecondary} />
+        </TouchableOpacity>
 
-      {/* Sort Menu */}
-      <View style={styles.sortContainer}>
+        {/* Sort Menu */}
         <Menu
           visible={showSortMenu}
           onDismiss={() => setShowSortMenu(false)}
           anchor={
             <TouchableOpacity
-              style={styles.sortButton}
+              style={[styles.sortButton, { backgroundColor: theme.surface }]}
               onPress={() => setShowSortMenu(true)}
             >
               <Icon name="sort" size={16} color={theme.textSecondary} />
-              <Text
-                style={[styles.sortButtonText, { color: theme.textSecondary }]}
-              >
-                Sort
-              </Text>
             </TouchableOpacity>
           }
         >
@@ -498,11 +683,7 @@ const MyVaultScreen = ({ navigation }) => {
           />
           <Menu.Item onPress={() => handleSort('alphabetical')} title="A-Z" />
           <Menu.Item
-            onPress={() => handleSort('reverse_alphabetical')}
-            title="Z-A"
-          />
-          <Menu.Item
-            onPress={() => handleSort('by_category')}
+            onPress={() => handleSort('category')}
             title="By Category"
           />
         </Menu>
@@ -511,50 +692,21 @@ const MyVaultScreen = ({ navigation }) => {
       {/* Password List */}
       <FlatList
         data={filteredPasswords}
-        renderItem={renderPasswordItem}
+        renderItem={renderPasswordCard}
         keyExtractor={item => item.id.toString()}
-        contentContainerStyle={styles.passwordList}
-        ListEmptyComponent={renderEmptyState}
+        style={styles.passwordList}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={renderEmptyState}
       />
 
       {/* Floating Action Button */}
       <View style={styles.fabContainer}>
-        <LinearGradient
-          colors={['#7E57C2', '#26A69A']}
-          style={styles.fabGradient}
+        <TouchableOpacity
+          style={[styles.fab, { backgroundColor: theme.primary }]}
+          onPress={() => setShowAddModal(true)}
         >
-          <FAB
-            style={styles.fab}
-            icon="plus"
-            onPress={() => setShowFABMenu(!showFABMenu)}
-            color="#fff"
-          />
-        </LinearGradient>
-
-        {/* FAB Menu */}
-        {showFABMenu && (
-          <View style={styles.fabMenu}>
-            <TouchableOpacity
-              style={[styles.fabMenuItem, { backgroundColor: theme.surface }]}
-              onPress={handleAddPassword}
-            >
-              <Icon name="key" size={20} color={theme.primary} />
-              <Text style={[styles.fabMenuText, { color: theme.text }]}>
-                Add Password
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.fabMenuItem, { backgroundColor: theme.surface }]}
-              onPress={handleAddCategory}
-            >
-              <Icon name="folder-plus" size={20} color={theme.primary} />
-              <Text style={[styles.fabMenuText, { color: theme.text }]}>
-                Add Category
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
+          <Icon name="plus" size={24} color="#fff" />
+        </TouchableOpacity>
       </View>
 
       {/* Bottom Navigation */}
@@ -596,6 +748,10 @@ const MyVaultScreen = ({ navigation }) => {
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* Modals */}
+      {renderFilterModal()}
+      {renderAddModal()}
     </SafeAreaView>
   );
 };
@@ -618,7 +774,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 20, // Increased top padding
+    paddingBottom: 16,
     borderBottomWidth: 1,
   },
   headerTitle: {
@@ -629,44 +786,44 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   searchContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 8, // Reduced horizontal padding
     paddingVertical: 12,
   },
   searchBar: {
     elevation: 0,
     shadowOpacity: 0,
+    borderRadius: 8, // Reduced corner radius
   },
-  recentSearches: {
+
+  filterButtonContainer: {
     flexDirection: 'row',
-    marginTop: 8,
-  },
-  recentSearchChip: {
-    marginRight: 8,
-  },
-  filterContainer: {
+    paddingHorizontal: 16,
     paddingVertical: 8,
+    gap: 8,
   },
-  filterChipContainer: {
-    paddingHorizontal: 20,
-  },
-  filterChip: {
-    marginRight: 8,
-  },
-  sortContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-  },
-  sortButton: {
+  filterButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 8,
   },
-  sortButtonText: {
-    marginLeft: 4,
+  filterButtonText: {
+    flex: 1,
+    fontSize: 14,
+  },
+  sortButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 8,
   },
   passwordList: {
-    paddingHorizontal: 20,
-    paddingBottom: 100,
+    flex: 1,
+    paddingHorizontal: 16,
   },
   passwordCard: {
     borderRadius: 12,
@@ -729,43 +886,26 @@ const styles = StyleSheet.create({
   },
   fabContainer: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 90, // Positioned above bottom nav
     right: 20,
   },
-  fabGradient: {
-    borderRadius: 28,
-  },
   fab: {
-    backgroundColor: 'transparent',
-    margin: 0,
-  },
-  fabMenu: {
-    position: 'absolute',
-    bottom: 70,
-    right: 0,
-    gap: 8,
-  },
-  fabMenuItem: {
-    flexDirection: 'row',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
-    elevation: 4,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  fabMenuText: {
-    marginLeft: 8,
-    fontSize: 14,
-    fontWeight: '500',
+    elevation: 6,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
   bottomNav: {
     flexDirection: 'row',
     paddingVertical: 12,
     paddingHorizontal: 8,
     borderTopWidth: 1,
+    backgroundColor: '#fff',
   },
   bottomNavTab: {
     flex: 1,
@@ -775,6 +915,85 @@ const styles = StyleSheet.create({
   bottomNavLabel: {
     fontSize: 12,
     marginTop: 4,
+  },
+  // Modal Styles
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  filterModalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: screenHeight * 0.6,
+    paddingBottom: 20,
+  },
+  addModalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  filterOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    gap: 12,
+  },
+  filterOptionText: {
+    flex: 1,
+    fontSize: 16,
+  },
+  filterCount: {
+    fontSize: 14,
+  },
+  categoryIndicator: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    gap: 12,
+  },
+  addOptionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addOptionContent: {
+    flex: 1,
+  },
+  addOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  addOptionSubtitle: {
+    fontSize: 14,
   },
 });
 
