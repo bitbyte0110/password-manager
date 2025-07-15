@@ -9,6 +9,7 @@ import ShowRecoveryPhraseScreen from './src/screens/ShowRecoveryPhraseScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 import MyVaultScreen from './src/screens/MyVaultScreen';
+import PasswordGeneratorScreen from './src/screens/PasswordGeneratorScreen';
 
 const theme = {
   ...DefaultTheme,
@@ -259,6 +260,8 @@ export default function App() {
         return <ForgotPasswordScreen navigation={navigation} />;
       case 'MainApp':
         return <MainApp navigation={navigation} />;
+      case 'PasswordGeneratorScreen':
+        return <PasswordGeneratorScreen navigation={navigation} />;
       case 'RecoveryScreen':
         // TODO: Add RecoveryScreen component when implemented
         return (
