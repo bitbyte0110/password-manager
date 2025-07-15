@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Modal,
   Alert,
-  Dimensions,
 } from 'react-native';
 import { Button, TextInput, Snackbar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,8 +16,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import bcrypt from 'bcryptjs';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import vaultService from '../services/vaultService';
-
-const { width: screenWidth } = Dimensions.get('window');
 
 // Password lockout constants
 const FAILED_ATTEMPTS_KEY = 'vault_failedAttempts';
@@ -318,10 +315,7 @@ const LoginScreen = ({ navigation }) => {
           await resetFailedAttempts(); // Reset password attempts too
           console.log('About to call navigation.replace("MainApp")');
 
-          // Authenticate vault service with the stored master password
-          const storedHash = await SecureStore.getItemAsync('vault_masterHash');
-          // We need to get the actual password for vault service - this is a limitation
-          // For biometric-only login without MFA, we'll use a placeholder approach
+          // Note: For biometric-only login without MFA, we'll use a placeholder approach
           // In a real implementation, you'd store the password encrypted with biometric key
           console.log(
             'Biometric login successful, but cannot authenticate vault service without password'
@@ -494,7 +488,7 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#9b59b6', '#3498db']} style={styles.gradient}>
+      <LinearGradient colors={['#8e44ad', '#3498db']} style={styles.gradient}>
         <View style={styles.content}>
           {/* Logo */}
           <View style={styles.logoContainer}>
@@ -548,11 +542,7 @@ const LoginScreen = ({ navigation }) => {
           <View style={styles.buttonContainer}>
             {/* Biometric Login Button */}
             <TouchableOpacity
-              style={[
-                styles.loginButton,
-                (isLocked || !biometricAvailable || biometricLocked) &&
-                  styles.disabledButton,
-              ]}
+              style={styles.loginButton}
               onPress={() => handleBiometricLogin(false)}
               disabled={
                 isLoading ||
@@ -564,67 +554,44 @@ const LoginScreen = ({ navigation }) => {
               activeOpacity={0.8}
             >
               <LinearGradient
-                colors={['#9b59b6', '#3498db']}
+                colors={['#3366cc', '#3B82F6']}
                 style={[
                   styles.buttonGradient,
-                  (isLocked || !biometricAvailable || biometricLocked) &&
-                    styles.disabledButtonGradient,
+                  (!biometricAvailable || isLocked || biometricLocked) &&
+                    styles.disabledGradient,
                 ]}
               >
                 <Icon
                   name="fingerprint"
                   size={20}
-                  color={
-                    isLocked || !biometricAvailable || biometricLocked
-                      ? '#888'
-                      : '#FFFFFF'
-                  }
+                  color="#FFFFFF"
                   style={styles.buttonIcon}
                 />
-                <Text
-                  style={[
-                    styles.buttonText,
-                    (isLocked || !biometricAvailable || biometricLocked) &&
-                      styles.disabledButtonText,
-                  ]}
-                >
-                  {biometricAvailable
-                    ? biometricLocked
-                      ? 'Biometric Locked'
-                      : 'Login with Biometric'
-                    : 'Biometric Not Available'}
-                </Text>
+                <Text style={styles.buttonText}>Login with Biometric</Text>
               </LinearGradient>
             </TouchableOpacity>
 
             {/* Password Login Button */}
             <TouchableOpacity
-              style={[styles.loginButton, isLocked && styles.disabledButton]}
+              style={styles.loginButton}
               onPress={() => setShowPasswordModal(true)}
               disabled={isLoading || isLocked}
               activeOpacity={0.8}
             >
               <LinearGradient
-                colors={['#9b59b6', '#3498db']}
+                colors={['#1E3A8A', '#3B82F6']}
                 style={[
                   styles.buttonGradient,
-                  isLocked && styles.disabledButtonGradient,
+                  isLocked && styles.disabledGradient,
                 ]}
               >
                 <Icon
                   name="lock"
                   size={20}
-                  color={isLocked ? '#888' : '#FFFFFF'}
+                  color="#FFFFFF"
                   style={styles.buttonIcon}
                 />
-                <Text
-                  style={[
-                    styles.buttonText,
-                    isLocked && styles.disabledButtonText,
-                  ]}
-                >
-                  Login with Password
-                </Text>
+                <Text style={styles.buttonText}>Login with Password</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -789,15 +756,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 14,
+    color: '#fff',
     textAlign: 'center',
     marginBottom: 48,
   },
@@ -839,49 +806,45 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   buttonContainer: {
-    width: '100%',
+    width: '80%',
     alignItems: 'center',
   },
   loginButton: {
-    borderRadius: 25,
-    marginBottom: 16,
-    width: screenWidth * 0.87,
+    width: '100%',
     height: 56,
+    borderRadius: 16,
+    marginBottom: 16,
+    overflow: 'hidden',
+    elevation: 8,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 3,
+      height: 4,
     },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
   },
   buttonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 25,
     paddingVertical: 16,
     paddingHorizontal: 24,
     height: 56,
+    borderRadius: 16,
   },
-  disabledButton: {
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  disabledButtonGradient: {
-    opacity: 0.5,
+  disabledGradient: {
+    opacity: 0.6,
   },
   buttonIcon: {
-    marginRight: 14,
+    marginRight: 10,
   },
   buttonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 'bold',
-  },
-  disabledButtonText: {
-    color: '#888',
+    fontWeight: '600',
+    textAlign: 'center',
+    flex: 1,
   },
   warningText: {
     marginTop: 20,
@@ -976,9 +939,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  disabledGradient: {
-    opacity: 0.5,
   },
 });
 
