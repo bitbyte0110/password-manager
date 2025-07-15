@@ -7,6 +7,8 @@ import {
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Card, TextInput, Snackbar, ProgressBar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -179,155 +181,171 @@ const SetMasterPasswordScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient colors={['#9b59b6', '#3498db']} style={styles.gradient}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
+        <KeyboardAvoidingView
+          style={styles.keyboardAvoidingView}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
-          <Card style={styles.card}>
-            {/* Logo */}
-            <View style={styles.logoContainer}>
-              <LinearGradient
-                colors={['#7E57C2', '#26A69A']}
-                style={styles.logo}
-              >
-                <FontAwesome5 name="shield-alt" size={40} color="#fff" />
-              </LinearGradient>
-            </View>
-
-            {/* Title */}
-            <Text style={styles.title}>SecureVault</Text>
-            <Text style={styles.subtitle}>Your Trusted Password Manager</Text>
-
-            {/* Password Requirements */}
-            <View style={styles.requirementsContainer}>
-              <Text style={styles.requirementsTitle}>
-                Password Requirements:
-              </Text>
-              <Text style={styles.requirementItem}>
-                • At least 12 characters
-              </Text>
-              <Text style={styles.requirementItem}>• One uppercase letter</Text>
-              <Text style={styles.requirementItem}>• One lowercase letter</Text>
-              <Text style={styles.requirementItem}>• One number</Text>
-              <Text style={styles.requirementItem}>• Symbols recommended</Text>
-            </View>
-
-            {/* Master Password Input */}
-            <TextInput
-              label="Master Password"
-              mode="outlined"
-              value={masterPassword}
-              onChangeText={setMasterPassword}
-              secureTextEntry={!showPassword}
-              error={!!errors.masterPassword}
-              style={styles.input}
-              autoFocus={true}
-              keyboardType="default"
-              returnKeyType="next"
-              textContentType="newPassword"
-              autoComplete="password-new"
-              autoCorrect={false}
-              blurOnSubmit={false}
-              onSubmitEditing={() => {
-                // Focus on confirm password field when user presses "next"
-                if (confirmPasswordRef.current) {
-                  confirmPasswordRef.current.focus();
-                }
-              }}
-              right={
-                <TextInput.Icon
-                  icon={showPassword ? 'eye-off' : 'eye'}
-                  onPress={() => setShowPassword(!showPassword)}
-                />
-              }
-            />
-            {errors.masterPassword && (
-              <Text style={styles.errorText}>{errors.masterPassword}</Text>
-            )}
-
-            {/* Password Strength Indicator */}
-            {masterPassword && (
-              <View style={styles.strengthContainer}>
-                <View style={styles.strengthHeader}>
-                  <Text style={styles.strengthLabel}>Password Strength:</Text>
-                  <Text
-                    style={[
-                      styles.strengthValue,
-                      {
-                        color: getPasswordStrengthColor(passwordStrength.score),
-                      },
-                    ]}
-                  >
-                    {getPasswordStrengthText(passwordStrength.score)}
-                  </Text>
-                </View>
-                <ProgressBar
-                  progress={passwordStrength.score / 4}
-                  color={getPasswordStrengthColor(passwordStrength.score)}
-                  style={styles.progressBar}
-                />
-                {passwordStrength.feedback.suggestions && (
-                  <Text style={styles.suggestionText}>
-                    {passwordStrength.feedback.suggestions.join(' ')}
-                  </Text>
-                )}
+          <ScrollView
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            enableOnAndroid={true}
+          >
+            <Card style={styles.card}>
+              {/* Logo */}
+              <View style={styles.logoContainer}>
+                <LinearGradient
+                  colors={['#7E57C2', '#26A69A']}
+                  style={styles.logo}
+                >
+                  <FontAwesome5 name="shield-alt" size={40} color="#fff" />
+                </LinearGradient>
               </View>
-            )}
 
-            {/* Confirm Password Input */}
-            <TextInput
-              ref={confirmPasswordRef}
-              label="Confirm Password"
-              mode="outlined"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry={!showConfirmPassword}
-              error={!!errors.confirmPassword}
-              style={styles.input}
-              keyboardType="default"
-              returnKeyType="done"
-              textContentType="newPassword"
-              autoComplete="password-new"
-              autoCorrect={false}
-              blurOnSubmit={true}
-              onSubmitEditing={handleSubmit}
-              right={
-                <TextInput.Icon
-                  icon={showConfirmPassword ? 'eye-off' : 'eye'}
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                />
-              }
-            />
-            {errors.confirmPassword && (
-              <Text style={styles.errorText}>{errors.confirmPassword}</Text>
-            )}
+              {/* Title */}
+              <Text style={styles.title}>SecureVault</Text>
+              <Text style={styles.subtitle}>Your Trusted Password Manager</Text>
 
-            {/* Submit Button */}
-            <TouchableOpacity
-              style={styles.submitButton}
-              onPress={handleSubmit}
-              disabled={isLoading}
-            >
-              <LinearGradient
-                colors={['#8e44ad', '#3498db']}
-                style={styles.submitGradient}
-              >
-                <Text style={styles.submitButtonText}>
-                  {isLoading ? 'Setting Password...' : 'Set Master Password'}
+              {/* Password Requirements */}
+              <View style={styles.requirementsContainer}>
+                <Text style={styles.requirementsTitle}>
+                  Password Requirements:
                 </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </Card>
-        </ScrollView>
+                <Text style={styles.requirementItem}>
+                  • At least 12 characters
+                </Text>
+                <Text style={styles.requirementItem}>
+                  • One uppercase letter
+                </Text>
+                <Text style={styles.requirementItem}>
+                  • One lowercase letter
+                </Text>
+                <Text style={styles.requirementItem}>• One number</Text>
+                <Text style={styles.requirementItem}>
+                  • Symbols recommended
+                </Text>
+              </View>
 
-        {/* Snackbar */}
-        <Snackbar
-          visible={snackbar.visible}
-          onDismiss={() => setSnackbar({ visible: false, message: '' })}
-          duration={3000}
-        >
-          {snackbar.message}
-        </Snackbar>
+              {/* Master Password Input */}
+              <TextInput
+                label="Master Password"
+                mode="outlined"
+                value={masterPassword}
+                onChangeText={setMasterPassword}
+                secureTextEntry={!showPassword}
+                error={!!errors.masterPassword}
+                style={styles.input}
+                autoFocus={true}
+                keyboardType="default"
+                returnKeyType="next"
+                textContentType="newPassword"
+                autoComplete="password-new"
+                autoCorrect={false}
+                blurOnSubmit={false}
+                onSubmitEditing={() => {
+                  // Focus on confirm password field when user presses "next"
+                  if (confirmPasswordRef.current) {
+                    confirmPasswordRef.current.focus();
+                  }
+                }}
+                right={
+                  <TextInput.Icon
+                    icon={showPassword ? 'eye-off' : 'eye'}
+                    onPress={() => setShowPassword(!showPassword)}
+                  />
+                }
+              />
+              {errors.masterPassword && (
+                <Text style={styles.errorText}>{errors.masterPassword}</Text>
+              )}
+
+              {/* Password Strength Indicator */}
+              {masterPassword && (
+                <View style={styles.strengthContainer}>
+                  <View style={styles.strengthHeader}>
+                    <Text style={styles.strengthLabel}>Password Strength:</Text>
+                    <Text
+                      style={[
+                        styles.strengthValue,
+                        {
+                          color: getPasswordStrengthColor(
+                            passwordStrength.score
+                          ),
+                        },
+                      ]}
+                    >
+                      {getPasswordStrengthText(passwordStrength.score)}
+                    </Text>
+                  </View>
+                  <ProgressBar
+                    progress={passwordStrength.score / 4}
+                    color={getPasswordStrengthColor(passwordStrength.score)}
+                    style={styles.progressBar}
+                  />
+                  {passwordStrength.feedback.suggestions && (
+                    <Text style={styles.suggestionText}>
+                      {passwordStrength.feedback.suggestions.join(' ')}
+                    </Text>
+                  )}
+                </View>
+              )}
+
+              {/* Confirm Password Input */}
+              <TextInput
+                ref={confirmPasswordRef}
+                label="Confirm Password"
+                mode="outlined"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!showConfirmPassword}
+                error={!!errors.confirmPassword}
+                style={styles.input}
+                keyboardType="default"
+                returnKeyType="done"
+                textContentType="newPassword"
+                autoComplete="password-new"
+                autoCorrect={false}
+                blurOnSubmit={true}
+                onSubmitEditing={handleSubmit}
+                right={
+                  <TextInput.Icon
+                    icon={showConfirmPassword ? 'eye-off' : 'eye'}
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  />
+                }
+              />
+              {errors.confirmPassword && (
+                <Text style={styles.errorText}>{errors.confirmPassword}</Text>
+              )}
+
+              {/* Submit Button */}
+              <TouchableOpacity
+                style={styles.submitButton}
+                onPress={handleSubmit}
+                disabled={isLoading}
+              >
+                <LinearGradient
+                  colors={['#8e44ad', '#3498db']}
+                  style={styles.submitGradient}
+                >
+                  <Text style={styles.submitButtonText}>
+                    {isLoading ? 'Setting Password...' : 'Set Master Password'}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </Card>
+          </ScrollView>
+
+          {/* Snackbar */}
+          <Snackbar
+            visible={snackbar.visible}
+            onDismiss={() => setSnackbar({ visible: false, message: '' })}
+            duration={3000}
+          >
+            {snackbar.message}
+          </Snackbar>
+        </KeyboardAvoidingView>
       </LinearGradient>
     </SafeAreaView>
   );
@@ -340,10 +358,14 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
+    paddingBottom: 40,
   },
   card: {
     borderRadius: 20,
