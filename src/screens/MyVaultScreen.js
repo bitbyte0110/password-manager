@@ -774,7 +774,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 20, // Increased top padding
+    paddingTop: 40, // Increased top padding
     paddingBottom: 16,
     borderBottomWidth: 1,
   },
@@ -786,18 +786,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   searchContainer: {
-    paddingHorizontal: 8, // Reduced horizontal padding
-    paddingVertical: 12,
+    paddingHorizontal: 0, // Reduced horizontal padding
+    paddingVertical: 10,
   },
   searchBar: {
     elevation: 0,
     shadowOpacity: 0,
-    borderRadius: 8, // Reduced corner radius
+    borderRadius: 8,
+    height: 50, // Reduced corner radius
   },
 
   filterButtonContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
     paddingVertical: 8,
     gap: 8,
   },
@@ -823,7 +824,7 @@ const styles = StyleSheet.create({
   },
   passwordList: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
   },
   passwordCard: {
     borderRadius: 12,
@@ -886,7 +887,7 @@ const styles = StyleSheet.create({
   },
   fabContainer: {
     position: 'absolute',
-    bottom: 90, // Positioned above bottom nav
+    bottom: 150, // Positioned above bottom nav
     right: 20,
   },
   fab: {
@@ -903,7 +904,8 @@ const styles = StyleSheet.create({
   bottomNav: {
     flexDirection: 'row',
     paddingVertical: 12,
-    paddingHorizontal: 8,
+    paddingHorizontal: 0,
+    paddingBottom: 15,
     borderTopWidth: 1,
     backgroundColor: '#fff',
   },
