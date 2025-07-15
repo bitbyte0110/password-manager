@@ -494,7 +494,7 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#9b59b6', '#3498db']} style={styles.gradient}>
+      <LinearGradient colors={['#223374', '#3582db']} style={styles.gradient}>
         <View style={styles.content}>
           {/* Logo */}
           <View style={styles.logoContainer}>
