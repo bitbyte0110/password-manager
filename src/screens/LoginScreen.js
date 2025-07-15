@@ -16,7 +16,6 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import bcrypt from 'bcryptjs';
 import Icon from 'react-native-vector-icons/FontAwesome5';
-import { useNavigation } from '@react-navigation/native';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -299,10 +298,12 @@ const LoginScreen = ({ navigation }) => {
       });
 
       if (result.success) {
+        console.log('Biometric authentication successful');
         await resetBiometricFailedAttempts();
 
         // Check if MFA is enabled
         if (mfaEnabled) {
+          console.log('MFA enabled, showing password modal');
           // MFA enabled: Show password modal for second factor
           setMfaMode(true);
           setShowPasswordModal(true);
@@ -310,9 +311,13 @@ const LoginScreen = ({ navigation }) => {
             'Biometric authentication successful. Please enter your master password.'
           );
         } else {
+          console.log('MFA disabled, navigating to MainApp');
+          console.log('Navigation object:', navigation);
           // MFA disabled: Go directly to MainApp
           await resetFailedAttempts(); // Reset password attempts too
+          console.log('About to call navigation.replace("MainApp")');
           navigation.replace('MainApp');
+          console.log('Navigation.replace("MainApp") called');
         }
       } else {
         if (result.error === 'user_cancel') {
@@ -361,12 +366,16 @@ const LoginScreen = ({ navigation }) => {
       const isValid = await bcrypt.compare(masterPassword, storedHash);
 
       if (isValid) {
+        console.log('Password authentication successful');
+        console.log('Navigation object:', navigation);
         await resetFailedAttempts();
         await resetBiometricFailedAttempts(); // Reset biometric attempts on successful password
         setShowPasswordModal(false);
         setMasterPassword('');
         setMfaMode(false);
+        console.log('About to call navigation.replace("MainApp")');
         navigation.replace('MainApp');
+        console.log('Navigation.replace("MainApp") called');
       } else {
         await incrementFailedAttempts();
         if (mfaMode) {
