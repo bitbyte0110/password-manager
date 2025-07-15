@@ -32,8 +32,8 @@ const MAX_FAILED_ATTEMPTS = 3;
 const LOCKOUT_DURATION = 30 * 60 * 1000; // 30 minutes
 const BIOMETRIC_TIMEOUT_DURATION = 30 * 1000; // 30 seconds
 
-const LoginScreen = ({ navigation: navProp }) => {
-  const navigation = navProp || useNavigation();
+const LoginScreen = ({ navigation }) => {
+  // const navigation = navProp || useNavigation(); // REMOVE THIS LINE
 
   // State management
   const [masterPassword, setMasterPassword] = useState('');
