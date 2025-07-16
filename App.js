@@ -16,6 +16,7 @@ import MyVaultScreen from './src/screens/MyVaultScreen';
 import PasswordGeneratorScreen from './src/screens/PasswordGeneratorScreen';
 import AddPasswordScreen from './src/screens/AddPasswordScreen';
 import CategoriesScreen from './src/screens/CategoriesScreen';
+import EditCategoryScreen from './src/screens/EditCategoryScreen';
 
 // Create Stack Navigator
 const Stack = createStackNavigator();
@@ -227,6 +228,7 @@ const AppNavigator = () => {
         />
         <Stack.Screen name="AddPassword" component={AddPasswordScreen} />
         <Stack.Screen name="Categories" component={CategoriesScreen} />
+        <Stack.Screen name="EditCategory" component={EditCategoryScreen} />
       </Stack.Navigator>
     </SessionManager>
   );
