@@ -227,10 +227,9 @@ class DatabaseService {
         // Create indexes
         await this.createIndexes();
 
-        console.log('Indexes created, inserting default data...');
-
-        // Insert default data
-        await this.insertDefaultCategories();
+        console.log(
+          'Database initialization completed - no default data inserted'
+        );
 
         this.isInitialized = true;
         console.log('Database initialization completed successfully');
@@ -1471,10 +1470,9 @@ class DatabaseService {
       // Reset auto-increment counters
       await this.db.execAsync('DELETE FROM sqlite_sequence');
 
-      // Insert default categories
-      await this.insertDefaultCategories();
-
-      console.log('Database reset successfully');
+      console.log(
+        'Database reset successfully - no default categories inserted'
+      );
       return true;
     } catch (error) {
       throw new Error(`Failed to reset database: ${error.message}`);
