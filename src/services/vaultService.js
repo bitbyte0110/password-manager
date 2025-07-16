@@ -512,7 +512,7 @@ class VaultService {
   }
 
   /**
-   * Decrypt a password entry
+   * Decrypt a password entry with enhanced null handling and error recovery
    * @param {Object} encryptedEntry - Encrypted password entry
    * @returns {Promise<Object>} Decrypted password entry
    */
@@ -547,7 +547,7 @@ class VaultService {
         console.log('Authentication restored, master password now available');
       }
 
-      // Parse encrypted fields
+      // Parse encrypted fields with enhanced null handling
       const decrypted = {
         id: encryptedEntry.id,
         title: '',
@@ -567,87 +567,179 @@ class VaultService {
 
       console.log('Decrypting fields for entry:', encryptedEntry.id);
 
-      // Decrypt each field if it exists
-      if (encryptedEntry.title_encrypted) {
-        console.log('Decrypting title...');
+      // Helper function to safely decrypt a field with comprehensive null handling
+      const safeDecryptField = (
+        fieldName,
+        encryptedData,
+        isOptional = false
+      ) => {
+        console.log(`\n--- Attempting to decrypt ${fieldName} ---`);
+        console.log(`${fieldName} raw data:`, encryptedData);
+        console.log(`${fieldName} data type:`, typeof encryptedData);
+
         try {
-          const titleData = JSON.parse(encryptedEntry.title_encrypted);
-          console.log('Title data structure:', titleData);
-          decrypted.title = encryptionService.decrypt(
-            titleData,
+          // CRITICAL: Never attempt to decrypt if data is null, undefined, or empty
+          // This prevents the "Encrypted data and master password are required" error
+          if (encryptedData === null) {
+            console.log(
+              `${fieldName}: Value is null - treating as empty field`
+            );
+            return '';
+          }
+
+          if (encryptedData === undefined) {
+            console.log(
+              `${fieldName}: Value is undefined - treating as empty field`
+            );
+            return '';
+          }
+
+          if (encryptedData === '') {
+            console.log(
+              `${fieldName}: Value is empty string - treating as empty field`
+            );
+            return '';
+          }
+
+          // Handle string "null" values from database (legacy data)
+          if (encryptedData === 'null') {
+            console.log(
+              `${fieldName}: Found string "null" - treating as empty field`
+            );
+            return '';
+          }
+
+          if (encryptedData === '"null"') {
+            console.log(
+              `${fieldName}: Found JSON string "null" - treating as empty field`
+            );
+            return '';
+          }
+
+          // Verify master password is available before attempting decryption
+          if (!this.masterPassword) {
+            console.error(
+              `${fieldName}: Master password not available during decryption`
+            );
+            return isOptional ? '' : `[${fieldName} Error: No Key]`;
+          }
+
+          // Attempt to parse the encrypted data as JSON
+          console.log(`${fieldName}: Parsing JSON data...`);
+          let parsedData;
+          try {
+            parsedData = JSON.parse(encryptedData);
+          } catch (parseError) {
+            console.error(
+              `${fieldName}: JSON parse failed - data may be corrupted`
+            );
+            console.error(`${fieldName}: Parse error:`, parseError.message);
+            console.error(`${fieldName}: Raw data:`, encryptedData);
+            return isOptional ? '' : `[${fieldName} Error: Invalid Data]`;
+          }
+
+          // Validate that parsed data has the required encryption structure
+          if (!parsedData || typeof parsedData !== 'object') {
+            console.error(
+              `${fieldName}: Parsed data is not an object - invalid encryption format`
+            );
+            return isOptional ? '' : `[${fieldName} Error: Invalid Format]`;
+          }
+
+          // Check for required encryption properties
+          if (!parsedData.ciphertext || !parsedData.salt || !parsedData.iv) {
+            console.error(
+              `${fieldName}: Missing required encryption properties (ciphertext, salt, iv)`
+            );
+            console.error(
+              `${fieldName}: Available properties:`,
+              Object.keys(parsedData)
+            );
+            return isOptional
+              ? ''
+              : `[${fieldName} Error: Incomplete Encryption]`;
+          }
+
+          console.log(
+            `${fieldName}: Valid encryption structure found - attempting decryption`
+          );
+
+          // SAFE: Now we know we have valid data and master password - attempt decryption
+          const decryptedValue = encryptionService.decrypt(
+            parsedData,
             this.masterPassword
           );
-          console.log('Title decrypted successfully:', decrypted.title);
-        } catch (titleError) {
-          console.error('Failed to decrypt title:', titleError);
-          decrypted.title = '[Title Decryption Failed]';
-        }
-      }
 
-      if (encryptedEntry.username_encrypted) {
-        console.log('Decrypting username...');
-        try {
-          const usernameData = JSON.parse(encryptedEntry.username_encrypted);
-          decrypted.username = encryptionService.decrypt(
-            usernameData,
-            this.masterPassword
+          console.log(
+            `${fieldName}: Decryption successful - length: ${decryptedValue ? decryptedValue.length : 0}`
           );
-          console.log('Username decrypted successfully');
-        } catch (usernameError) {
-          console.error('Failed to decrypt username:', usernameError);
-          decrypted.username = '[Username Decryption Failed]';
-        }
-      }
 
-      if (encryptedEntry.password_encrypted) {
-        console.log('Decrypting password...');
-        try {
-          const passwordData = JSON.parse(encryptedEntry.password_encrypted);
-          decrypted.password = encryptionService.decrypt(
-            passwordData,
-            this.masterPassword
+          // Return the decrypted value or empty string if null
+          return decryptedValue || '';
+        } catch (error) {
+          console.error(
+            `\n!!! CRITICAL ${fieldName.toUpperCase()} DECRYPTION ERROR !!!`
           );
-          console.log('Password decrypted successfully');
-        } catch (passwordError) {
-          console.error('Failed to decrypt password:', passwordError);
-          decrypted.password = '[Password Decryption Failed]';
-        }
-      }
+          console.error(`Error type: ${error.constructor.name}`);
+          console.error(`Error message: ${error.message}`);
+          console.error(`Original encrypted data: ${encryptedData}`);
+          console.error(`Data type: ${typeof encryptedData}`);
+          console.error(`Master password available: ${!!this.masterPassword}`);
+          console.error(`Is optional field: ${isOptional}`);
 
-      if (encryptedEntry.url_encrypted) {
-        console.log('Decrypting URL...');
-        try {
-          const urlData = JSON.parse(encryptedEntry.url_encrypted);
-          decrypted.url = encryptionService.decrypt(
-            urlData,
-            this.masterPassword
-          );
-          console.log('URL decrypted successfully');
-        } catch (urlError) {
-          console.error('Failed to decrypt URL:', urlError);
-          decrypted.url = '[URL Decryption Failed]';
-        }
-      }
+          // For optional fields (URL, notes), always return empty string to prevent UI errors
+          if (isOptional) {
+            console.log(
+              `${fieldName} is optional - returning empty string to prevent app failure`
+            );
+            return '';
+          }
 
-      if (encryptedEntry.notes_encrypted) {
-        console.log('Decrypting notes...');
-        try {
-          const notesData = JSON.parse(encryptedEntry.notes_encrypted);
-          decrypted.notes = encryptionService.decrypt(
-            notesData,
-            this.masterPassword
-          );
-          console.log('Notes decrypted successfully');
-        } catch (notesError) {
-          console.error('Failed to decrypt notes:', notesError);
-          decrypted.notes = '[Notes Decryption Failed]';
+          // For required fields, return a clear error indicator
+          console.log(`${fieldName} is required - returning error indicator`);
+          return `[${fieldName} Decryption Failed]`;
         }
-      }
+      };
 
+      // Decrypt each field with proper optional field handling
+      console.log('\n=== STARTING FIELD DECRYPTION ===');
+
+      // Required fields
+      decrypted.title = safeDecryptField(
+        'title',
+        encryptedEntry.title_encrypted,
+        false
+      );
+      decrypted.username = safeDecryptField(
+        'username',
+        encryptedEntry.username_encrypted,
+        false
+      );
+      decrypted.password = safeDecryptField(
+        'password',
+        encryptedEntry.password_encrypted,
+        false
+      );
+
+      // Optional fields - these should never cause errors, just return empty strings
+      decrypted.url = safeDecryptField(
+        'url',
+        encryptedEntry.url_encrypted,
+        true
+      );
+      decrypted.notes = safeDecryptField(
+        'notes',
+        encryptedEntry.notes_encrypted,
+        true
+      );
+
+      console.log('\n=== DECRYPTION COMPLETE ===');
       console.log('Final decrypted entry:', {
         id: decrypted.id,
         title: decrypted.title,
         username: decrypted.username,
+        url: decrypted.url,
+        notes: decrypted.notes,
         categoryId: decrypted.categoryId,
         categoryName: decrypted.categoryName,
       });
@@ -655,11 +747,13 @@ class VaultService {
 
       return decrypted;
     } catch (error) {
-      console.error('=== DECRYPTION ERROR ===');
+      console.error('=== CRITICAL DECRYPTION ERROR ===');
       console.error('Error decrypting password entry:', error);
       console.error('Authentication state:', this.isAuthenticated);
       console.error('Master password available:', !!this.masterPassword);
-      console.error('=== END DECRYPTION ERROR ===');
+      console.error('Entry ID:', encryptedEntry.id);
+      console.error('Entry keys:', Object.keys(encryptedEntry));
+      console.error('=== END CRITICAL DECRYPTION ERROR ===');
       throw error;
     }
   }

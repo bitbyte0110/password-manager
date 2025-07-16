@@ -36,6 +36,7 @@ const MyVaultScreen = ({ navigation, route }) => {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeTab, setActiveTab] = useState('vault');
+  const [authError, setAuthError] = useState(null); // New state for authentication errors
   // Get color scheme for theme support
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
@@ -128,6 +129,11 @@ const MyVaultScreen = ({ navigation, route }) => {
 
   const loadPasswords = async () => {
     try {
+      setAuthError(null);
+      console.log(
+        'MyVaultScreen: Loading passwords with enhanced error handling...'
+      );
+
       // Ensure vault service is authenticated before loading passwords
       if (!vaultService.isUserAuthenticated()) {
         console.log('Vault service not authenticated, redirecting to login');
@@ -135,29 +141,70 @@ const MyVaultScreen = ({ navigation, route }) => {
         return;
       }
 
-      console.log('Loading passwords...');
+      console.log(
+        'Loading passwords with comprehensive decryption error handling...'
+      );
       const decryptedPasswords = await vaultService.getPasswordEntries({
         sortBy: 'last_accessed',
         sortOrder: 'DESC',
       });
-      console.log(`Loaded ${decryptedPasswords.length} password entries`);
-      setPasswords(decryptedPasswords);
+
+      console.log(
+        `Successfully loaded ${decryptedPasswords.length} password entries`
+      );
+
+      // Filter out entries that had critical decryption failures vs those with partial failures
+      const validEntries = decryptedPasswords.filter(entry => {
+        // Allow entries with optional field decryption failures (URL, notes)
+        // but exclude entries where core fields (title, username, password) failed
+        if (entry.decryptionError) {
+          console.log(
+            `Entry ${entry.id} has decryption error, excluding from display`
+          );
+          return false;
+        }
+        return true;
+      });
+
+      const failedEntries = decryptedPasswords.length - validEntries.length;
+      if (failedEntries > 0) {
+        console.log(
+          `${failedEntries} entries had critical decryption failures and were excluded`
+        );
+      }
+
+      console.log(
+        'Password entries sample:',
+        validEntries.slice(0, 2).map(p => ({
+          id: p.id,
+          title: p.title,
+          username: p.username,
+          url: p.url ? 'has URL' : 'no URL',
+          notes: p.notes ? 'has notes' : 'no notes',
+          categoryId: p.categoryId,
+          categoryName: p.categoryName,
+          decryptionError: p.decryptionError,
+        }))
+      );
+
+      setPasswords(validEntries);
     } catch (error) {
       console.error('Error loading passwords:', error);
 
-      // Handle specific error types
+      // Handle specific error types with better user guidance
       if (
         error.message.includes('not authenticated') ||
         error.message.includes('master password') ||
-        error.message.includes('authentication required') ||
-        error.message.includes(
-          'Encrypted data and master password are required'
-        )
+        error.message.includes('authentication required')
       ) {
-        console.log('Authentication error detected, redirecting to login');
+        console.log(
+          'Authentication error detected, providing user recovery options'
+        );
+        setAuthError('Authentication required. Your session may have expired.');
+
         Alert.alert(
           'Authentication Required',
-          'Your session has expired or the master password is not available. Please log in again.',
+          'Your session has expired or there was an authentication issue. Please log in again to access your vault.',
           [
             {
               text: 'Login Again',
@@ -169,18 +216,45 @@ const MyVaultScreen = ({ navigation, route }) => {
             },
           ]
         );
-      } else {
-        // For other errors, show error but don't redirect immediately
+      } else if (error.message.includes('Decryption failed')) {
+        console.log('Decryption error detected, offering recovery options');
+        setAuthError(
+          'Some passwords could not be decrypted. This might be due to data corruption or session issues.'
+        );
+
         Alert.alert(
-          'Error',
-          'Failed to load passwords. This might be a temporary issue.',
+          'Decryption Error',
+          'Some of your password entries could not be decrypted. This might be due to session issues or data corruption.',
+          [
+            {
+              text: 'Try Again',
+              onPress: () => loadPasswords(),
+            },
+            {
+              text: 'Re-authenticate',
+              onPress: () => {
+                vaultService.clearSession();
+                navigation.replace('Login');
+              },
+            },
+          ]
+        );
+      } else {
+        // For other errors, show error but offer retry option
+        console.log('General error loading passwords, offering retry options');
+        setAuthError(
+          'Failed to load passwords. This might be a temporary issue.'
+        );
+        Alert.alert(
+          'Error Loading Passwords',
+          'There was an error loading your passwords. This might be a temporary network or storage issue.',
           [
             {
               text: 'Retry',
               onPress: () => loadPasswords(),
             },
             {
-              text: 'Login Again',
+              text: 'Re-authenticate',
               onPress: () => {
                 vaultService.clearSession();
                 navigation.replace('Login');
