@@ -37,7 +37,6 @@ const MyVaultScreen = ({ navigation, route }) => {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('vault');
   const [authError, setAuthError] = useState(null); // New state for authentication errors
   // Get color scheme for theme support
   const colorScheme = useColorScheme();
@@ -318,25 +317,6 @@ const MyVaultScreen = ({ navigation, route }) => {
     setShowAddModal(false);
     updateActivity();
     navigation.navigate('Categories', { createNew: true });
-  };
-
-  const handleTabPress = tab => {
-    setActiveTab(tab);
-    updateActivity();
-
-    switch (tab) {
-      case 'generator':
-        navigation.navigate('PasswordGenerator');
-        break;
-      case 'categories':
-        navigation.navigate('Categories');
-        break;
-      case 'settings':
-        // navigation.navigate('Settings');
-        break;
-      default:
-        break;
-    }
   };
 
   const renderPasswordCard = ({ item }) => {
@@ -629,7 +609,7 @@ const MyVaultScreen = ({ navigation, route }) => {
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.background }]}
     >
-      {/* Header */}
+      {/* Password Count and Actions */}
       <View
         style={[
           styles.header,
@@ -639,9 +619,6 @@ const MyVaultScreen = ({ navigation, route }) => {
           },
         ]}
       >
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
-          My Vault
-        </Text>
         <Badge
           style={[styles.passwordCount, { backgroundColor: theme.primary }]}
         >
@@ -743,46 +720,6 @@ const MyVaultScreen = ({ navigation, route }) => {
         >
           <Icon name="plus" size={24} color="#fff" />
         </TouchableOpacity>
-      </View>
-
-      {/* Bottom Navigation */}
-      <View
-        style={[
-          styles.bottomNav,
-          { backgroundColor: theme.background, borderTopColor: theme.border },
-        ]}
-      >
-        {[
-          { key: 'vault', icon: 'shield-alt', label: 'My Vault' },
-          { key: 'categories', icon: 'folder', label: 'Categories' },
-          { key: 'generator', icon: 'key', label: 'Generator' },
-          { key: 'settings', icon: 'cog', label: 'Settings' },
-        ].map(tab => (
-          <TouchableOpacity
-            key={tab.key}
-            style={styles.bottomNavTab}
-            onPress={() => handleTabPress(tab.key)}
-          >
-            <Icon
-              name={tab.icon}
-              size={20}
-              color={
-                activeTab === tab.key ? theme.primary : theme.textSecondary
-              }
-            />
-            <Text
-              style={[
-                styles.bottomNavLabel,
-                {
-                  color:
-                    activeTab === tab.key ? theme.primary : theme.textSecondary,
-                },
-              ]}
-            >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
       </View>
 
       {/* Modals */}
@@ -926,7 +863,7 @@ const styles = StyleSheet.create({
   },
   fabContainer: {
     position: 'absolute',
-    bottom: 150, // Positioned above bottom nav
+    bottom: 100, // Positioned above tab navigator
     right: 20,
   },
   fab: {
@@ -940,23 +877,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 6,
   },
-  bottomNav: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    paddingHorizontal: 0,
-    paddingBottom: 15,
-    borderTopWidth: 1,
-    backgroundColor: '#fff',
-  },
-  bottomNavTab: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  bottomNavLabel: {
-    fontSize: 12,
-    marginTop: 4,
-  },
+
   // Modal Styles
   modalContainer: {
     flex: 1,

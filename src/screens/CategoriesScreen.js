@@ -92,7 +92,6 @@ const CategoriesScreen = ({ navigation, route }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [menuVisible, setMenuVisible] = useState({});
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [activeTab, setActiveTab] = useState('categories');
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
   const [showFABMenu, setShowFABMenu] = useState(false);
 
@@ -410,28 +409,6 @@ const CategoriesScreen = ({ navigation, route }) => {
   const handleFABPress = () => {
     setShowFABMenu(true);
     updateActivity();
-  };
-
-  const handleTabPress = tab => {
-    setActiveTab(tab);
-    updateActivity();
-
-    switch (tab) {
-      case 'vault':
-        navigation.navigate('MyVault');
-        break;
-      case 'generator':
-        navigation.navigate('PasswordGenerator');
-        break;
-      case 'categories':
-        // Already on categories screen
-        break;
-      case 'settings':
-        // navigation.navigate('Settings');
-        break;
-      default:
-        break;
-    }
   };
 
   const showSnackbar = message => {
@@ -865,46 +842,6 @@ const CategoriesScreen = ({ navigation, route }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Bottom Navigation */}
-      <View
-        style={[
-          styles.bottomNav,
-          { backgroundColor: theme.background, borderTopColor: theme.border },
-        ]}
-      >
-        {[
-          { key: 'vault', icon: 'shield-alt', label: 'My Vault' },
-          { key: 'categories', icon: 'folder', label: 'Categories' },
-          { key: 'generator', icon: 'key', label: 'Generator' },
-          { key: 'settings', icon: 'cog', label: 'Settings' },
-        ].map(tab => (
-          <TouchableOpacity
-            key={tab.key}
-            style={styles.bottomNavTab}
-            onPress={() => handleTabPress(tab.key)}
-          >
-            <Icon
-              name={tab.icon}
-              size={20}
-              color={
-                activeTab === tab.key ? theme.primary : theme.textSecondary
-              }
-            />
-            <Text
-              style={[
-                styles.bottomNavLabel,
-                {
-                  color:
-                    activeTab === tab.key ? theme.primary : theme.textSecondary,
-                },
-              ]}
-            >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
       {/* Edit Modal */}
       {renderEditModal()}
 
@@ -967,7 +904,7 @@ const styles = StyleSheet.create({
   },
   filterChipsContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 4,
+    paddingVertical: 0,
   },
   filterChipsContent: {
     paddingRight: 16,
@@ -978,7 +915,7 @@ const styles = StyleSheet.create({
   },
   sortContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 4,
+    paddingVertical: 0,
     alignItems: 'flex-end',
   },
   sortButton: {
@@ -1078,22 +1015,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 6,
   },
-  bottomNav: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    paddingHorizontal: 0,
-    paddingBottom: 15,
-    borderTopWidth: 1,
-  },
-  bottomNavTab: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  bottomNavLabel: {
-    fontSize: 12,
-    marginTop: 4,
-  },
+
   menuContent: {
     borderRadius: 8,
     elevation: 4,
