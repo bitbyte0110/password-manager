@@ -57,7 +57,7 @@ const SetMasterPasswordScreen = ({ navigation }) => {
         setIsVaultInitialized(true);
         // If vault is already initialized, navigate to main app
         if (navigation) {
-          navigation.replace('MainApp');
+          navigation.replace('MyVault');
         }
       }
     } catch (error) {

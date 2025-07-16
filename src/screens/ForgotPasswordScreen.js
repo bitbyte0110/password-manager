@@ -228,9 +228,9 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
       // Show success message
       showSnackbar('Password reset successfully!');
 
-      // Navigate to LoginScreen after delay
+      // Navigate to Login after delay
       setTimeout(() => {
-        navigation.replace('LoginScreen');
+        navigation.replace('Login');
       }, 1500);
     } catch (error) {
       console.error('Password reset error:', error);
@@ -270,7 +270,7 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
 
   const handleGoBack = () => {
     clearSensitiveData();
-    navigation.navigate('LoginScreen');
+    navigation.navigate('Login');
   };
 
   return (
