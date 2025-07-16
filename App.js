@@ -15,6 +15,7 @@ import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 import MyVaultScreen from './src/screens/MyVaultScreen';
 import PasswordGeneratorScreen from './src/screens/PasswordGeneratorScreen';
 import AddPasswordScreen from './src/screens/AddPasswordScreen';
+import AddCategoryScreen from './src/screens/AddCategoryScreen';
 import CategoriesScreen from './src/screens/CategoriesScreen';
 import EditCategoryScreen from './src/screens/EditCategoryScreen';
 
@@ -233,6 +234,7 @@ const AppNavigator = () => {
           component={PasswordGeneratorScreen}
         />
         <Stack.Screen name="AddPassword" component={AddPasswordScreen} />
+        <Stack.Screen name="AddCategory" component={AddCategoryScreen} />
         <Stack.Screen name="Categories" component={CategoriesScreen} />
         <Stack.Screen name="EditCategory" component={EditCategoryScreen} />
       </Stack.Navigator>

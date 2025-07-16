@@ -43,7 +43,7 @@ const FABActionMenu = ({
     if (onAddCategory) {
       onAddCategory();
     } else {
-      navigation.navigate('Categories', { createNew: true });
+      navigation.navigate('AddCategory');
     }
   };
 

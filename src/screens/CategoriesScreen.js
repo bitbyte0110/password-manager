@@ -90,7 +90,6 @@ const CategoriesScreen = ({ navigation, route }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [menuVisible, setMenuVisible] = useState({});
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [activeTab, setActiveTab] = useState('categories');
@@ -99,14 +98,6 @@ const CategoriesScreen = ({ navigation, route }) => {
 
   // Edit form state
   const [editForm, setEditForm] = useState({
-    name: '',
-    description: '',
-    icon: 'folder',
-    color: '#8e44ad',
-  });
-
-  // Create form state
-  const [createForm, setCreateForm] = useState({
     name: '',
     description: '',
     icon: 'folder',
@@ -143,18 +134,13 @@ const CategoriesScreen = ({ navigation, route }) => {
     useCallback(() => {
       loadCategories();
 
-      // Check if we should show create modal (from navigation params)
-      if (route?.params?.createNew) {
-        setShowCreateModal(true);
-        // Clear the parameter
-        navigation.setParams({ createNew: undefined });
-      }
-
-      // Handle refresh from EditCategoryScreen
+      // Handle refresh from AddCategoryScreen or EditCategoryScreen
       if (route?.params?.refresh) {
         loadCategories();
         // Show success message if available
-        if (route?.params?.updatedCategoryId) {
+        if (route?.params?.createdCategory) {
+          showSnackbar('Category created successfully');
+        } else if (route?.params?.updatedCategoryId) {
           showSnackbar('Category updated successfully');
         } else if (route?.params?.deletedCategoryId) {
           showSnackbar('Category deleted successfully');
@@ -162,13 +148,14 @@ const CategoriesScreen = ({ navigation, route }) => {
         // Clear the parameters
         navigation.setParams({
           refresh: undefined,
+          createdCategory: undefined,
           updatedCategoryId: undefined,
           deletedCategoryId: undefined,
         });
       }
     }, [
-      route?.params?.createNew,
       route?.params?.refresh,
+      route?.params?.createdCategory,
       route?.params?.updatedCategoryId,
       route?.params?.deletedCategoryId,
     ])
@@ -416,73 +403,13 @@ const CategoriesScreen = ({ navigation, route }) => {
   };
 
   const handleCreateCategory = () => {
-    setCreateForm({
-      name: '',
-      description: '',
-      icon: 'folder',
-      color: '#8e44ad',
-    });
-    setFormErrors({});
-    setShowCreateModal(true);
     updateActivity();
+    navigation.navigate('AddCategory');
   };
 
   const handleFABPress = () => {
     setShowFABMenu(true);
     updateActivity();
-  };
-
-  const validateCreateForm = () => {
-    const errors = {};
-
-    if (!createForm.name.trim()) {
-      errors.name = 'Category name is required';
-    } else if (createForm.name.trim().length < 2) {
-      errors.name = 'Category name must be at least 2 characters';
-    } else {
-      // Check for duplicate names
-      const duplicate = categories.find(
-        cat => cat.name.toLowerCase() === createForm.name.trim().toLowerCase()
-      );
-      if (duplicate) {
-        errors.name = 'A category with this name already exists';
-      }
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleSaveCreate = async () => {
-    if (!validateCreateForm()) return;
-
-    try {
-      const newCategory = {
-        name: createForm.name.trim(),
-        description: createForm.description.trim(),
-        icon: createForm.icon,
-        color: createForm.color,
-      };
-
-      await databaseService.createCategory(newCategory);
-      showSnackbar('Category created successfully');
-      setShowCreateModal(false);
-      await loadCategories();
-
-      // If coming from AddPasswordScreen, navigate back
-      if (route?.params?.returnScreen) {
-        navigation.navigate(route.params.returnScreen, {
-          shouldRefreshCategories: true,
-        });
-      }
-    } catch (error) {
-      console.error('Error creating category:', error);
-      if (error.message.includes('UNIQUE constraint failed')) {
-        setFormErrors({ name: 'A category with this name already exists' });
-      } else {
-        showSnackbar('Error creating category. Please try again.');
-      }
-    }
   };
 
   const handleTabPress = tab => {
@@ -828,197 +755,6 @@ const CategoriesScreen = ({ navigation, route }) => {
     </Modal>
   );
 
-  const renderCreateModal = () => (
-    <Modal
-      visible={showCreateModal}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={() => setShowCreateModal(false)}
-    >
-      <View style={styles.modalContainer}>
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowCreateModal(false)}
-        />
-        <View
-          style={[
-            styles.editModalContent,
-            { backgroundColor: theme.background },
-          ]}
-        >
-          <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>
-              Create Category
-            </Text>
-            <TouchableOpacity onPress={() => setShowCreateModal(false)}>
-              <Icon name="times" size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            style={styles.editForm}
-            showsVerticalScrollIndicator={false}
-          >
-            <TextInput
-              label="Category Name"
-              value={createForm.name}
-              onChangeText={text =>
-                setCreateForm(prev => ({ ...prev, name: text }))
-              }
-              style={styles.formInput}
-              error={!!formErrors.name}
-              mode="outlined"
-              theme={{ colors: { primary: theme.primary } }}
-            />
-            {formErrors.name && (
-              <Text style={[styles.errorText, { color: theme.error }]}>
-                {formErrors.name}
-              </Text>
-            )}
-
-            <TextInput
-              label="Description (Optional)"
-              value={createForm.description}
-              onChangeText={text =>
-                setCreateForm(prev => ({ ...prev, description: text }))
-              }
-              style={styles.formInput}
-              mode="outlined"
-              multiline
-              numberOfLines={3}
-              theme={{ colors: { primary: theme.primary } }}
-            />
-
-            <View style={styles.iconColorSection}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>
-                Icon
-              </Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.iconGrid}>
-                  {CATEGORY_ICONS.map(iconName => (
-                    <TouchableOpacity
-                      key={iconName}
-                      style={[
-                        styles.iconOption,
-                        {
-                          backgroundColor:
-                            createForm.icon === iconName
-                              ? theme.primary + '20'
-                              : theme.surface,
-                        },
-                      ]}
-                      onPress={() =>
-                        setCreateForm(prev => ({ ...prev, icon: iconName }))
-                      }
-                    >
-                      <Icon
-                        name={iconName}
-                        size={20}
-                        color={
-                          createForm.icon === iconName
-                            ? theme.primary
-                            : theme.textSecondary
-                        }
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-
-            <View style={styles.iconColorSection}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>
-                Color
-              </Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.colorGrid}>
-                  {CATEGORY_COLORS.map(color => (
-                    <TouchableOpacity
-                      key={color}
-                      style={[
-                        styles.colorOption,
-                        { backgroundColor: color },
-                        createForm.color === color && styles.selectedColor,
-                      ]}
-                      onPress={() =>
-                        setCreateForm(prev => ({ ...prev, color }))
-                      }
-                    >
-                      {createForm.color === color && (
-                        <Icon name="check" size={16} color="#fff" />
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-
-            <View style={styles.previewSection}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>
-                Preview
-              </Text>
-              <View
-                style={[
-                  styles.categoryCard,
-                  { backgroundColor: theme.surface },
-                ]}
-              >
-                <View style={styles.categoryCardContent}>
-                  <View style={styles.categoryCardLeft}>
-                    <View
-                      style={[
-                        styles.categoryIcon,
-                        { backgroundColor: createForm.color },
-                      ]}
-                    >
-                      <Icon name={createForm.icon} size={20} color="#fff" />
-                    </View>
-                    <View style={styles.categoryInfo}>
-                      <Text
-                        style={[styles.categoryName, { color: theme.text }]}
-                        numberOfLines={1}
-                      >
-                        {createForm.name || 'Category Name'}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.passwordCount,
-                          { color: theme.textSecondary },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        0 passwords
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-            </View>
-          </ScrollView>
-
-          <View style={styles.modalButtons}>
-            <Button
-              mode="outlined"
-              onPress={() => setShowCreateModal(false)}
-              style={[styles.modalButton, { borderColor: theme.border }]}
-              textColor={theme.textSecondary}
-            >
-              Cancel
-            </Button>
-            <Button
-              mode="contained"
-              onPress={handleSaveCreate}
-              style={[styles.modalButton, { backgroundColor: theme.primary }]}
-            >
-              Create Category
-            </Button>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-
   if (isLoading) {
     return (
       <SafeAreaView
@@ -1171,9 +907,6 @@ const CategoriesScreen = ({ navigation, route }) => {
 
       {/* Edit Modal */}
       {renderEditModal()}
-
-      {/* Create Modal */}
-      {renderCreateModal()}
 
       {/* FAB Action Menu */}
       <FABActionMenu
