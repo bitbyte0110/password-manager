@@ -321,15 +321,11 @@ class DatabaseService {
         );
       `);
 
-      // Password entries table (with encrypted fields)
+      // Password entries table (optimized with single encrypted payload)
       await this.execAsyncSafe(`
         CREATE TABLE IF NOT EXISTS passwords (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          title_encrypted TEXT NOT NULL,
-          username_encrypted TEXT,
-          password_encrypted TEXT NOT NULL,
-          url_encrypted TEXT,
-          notes_encrypted TEXT,
+          encrypted_payload TEXT NOT NULL,
           category_id INTEGER,
           is_favorite INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -338,6 +334,37 @@ class DatabaseService {
           FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE SET NULL
         );
       `);
+
+      // Add migration columns for backward compatibility (temporary)
+      await this.execAsyncSafe(
+        `
+        ALTER TABLE passwords ADD COLUMN title_encrypted TEXT;
+      `
+      ).catch(() => {}); // Ignore if column already exists
+
+      await this.execAsyncSafe(
+        `
+        ALTER TABLE passwords ADD COLUMN username_encrypted TEXT;
+      `
+      ).catch(() => {}); // Ignore if column already exists
+
+      await this.execAsyncSafe(
+        `
+        ALTER TABLE passwords ADD COLUMN password_encrypted TEXT;
+      `
+      ).catch(() => {}); // Ignore if column already exists
+
+      await this.execAsyncSafe(
+        `
+        ALTER TABLE passwords ADD COLUMN url_encrypted TEXT;
+      `
+      ).catch(() => {}); // Ignore if column already exists
+
+      await this.execAsyncSafe(
+        `
+        ALTER TABLE passwords ADD COLUMN notes_encrypted TEXT;
+      `
+      ).catch(() => {}); // Ignore if column already exists
 
       // Application settings table
       await this.execAsyncSafe(`
@@ -507,7 +534,7 @@ class DatabaseService {
   }
 
   /**
-   * Add a new password entry
+   * Add a new password entry (optimized)
    * @param {Object} passwordEntry - Password entry object
    * @param {string} masterPassword - Master password for encryption
    * @returns {Promise<number>} Inserted row ID
@@ -516,24 +543,20 @@ class DatabaseService {
     try {
       if (!this.db) throw new Error('Database not initialized');
 
-      // Encrypt the password entry
-      const encryptedEntry = encryptionService.encryptPasswordEntry(
+      // Encrypt the password entry using optimized method
+      const encryptedEntry = encryptionService.encryptPasswordEntryOptimized(
         passwordEntry,
         masterPassword
       );
 
       const result = await this.db.runAsync(
         `INSERT INTO passwords 
-         (title_encrypted, username_encrypted, password_encrypted, url_encrypted, notes_encrypted, category_id, is_favorite)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+         (encrypted_payload, category_id, is_favorite)
+         VALUES (?, ?, ?)`,
         [
-          JSON.stringify(encryptedEntry.title),
-          JSON.stringify(encryptedEntry.username),
-          JSON.stringify(encryptedEntry.password),
-          JSON.stringify(encryptedEntry.url),
-          JSON.stringify(encryptedEntry.notes),
-          encryptedEntry.categoryId,
-          passwordEntry.isFavorite ? 1 : 0,
+          JSON.stringify(encryptedEntry.encrypted_payload),
+          encryptedEntry.category_id,
+          encryptedEntry.is_favorite,
         ]
       );
 
@@ -767,7 +790,7 @@ class DatabaseService {
   }
 
   /**
-   * Get all password entries with enhanced error handling (alias for getAllPasswords)
+   * Get all password entries with enhanced error handling (optimized)
    * @param {Object} options - Query options
    * @returns {Promise<Array>} Array of encrypted password entries
    */
@@ -854,26 +877,21 @@ class DatabaseService {
         throw new Error(`Password entry with ID ${id} not found`);
       }
 
-      // Encrypt the updated entry
-      const encryptedEntry = encryptionService.encryptPasswordEntry(
+      // Encrypt the updated entry using optimized method
+      const encryptedEntry = encryptionService.encryptPasswordEntryOptimized(
         passwordEntry,
         masterPassword
       );
 
       const result = await this.db.runAsync(
         `UPDATE passwords 
-         SET title_encrypted = ?, username_encrypted = ?, password_encrypted = ?, 
-             url_encrypted = ?, notes_encrypted = ?, category_id = ?, 
+         SET encrypted_payload = ?, category_id = ?, 
              is_favorite = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
         [
-          JSON.stringify(encryptedEntry.title),
-          JSON.stringify(encryptedEntry.username),
-          JSON.stringify(encryptedEntry.password),
-          JSON.stringify(encryptedEntry.url),
-          JSON.stringify(encryptedEntry.notes),
-          encryptedEntry.categoryId,
-          passwordEntry.isFavorite ? 1 : 0,
+          JSON.stringify(encryptedEntry.encrypted_payload),
+          encryptedEntry.category_id,
+          encryptedEntry.is_favorite,
           id,
         ]
       );

@@ -238,6 +238,97 @@ class EncryptionService {
   }
 
   /**
+   * Encrypt password entry as single payload for optimal performance
+   * @param {Object} passwordEntry - Password entry object
+   * @param {string} masterPassword - User's master password
+   * @returns {Object} Encrypted password entry with single payload
+   */
+  encryptPasswordEntryOptimized(passwordEntry, masterPassword) {
+    try {
+      if (!passwordEntry || !masterPassword) {
+        throw new Error('Password entry and master password are required');
+      }
+
+      const { title, username, password, url, notes, categoryId, isFavorite } =
+        passwordEntry;
+
+      // Combine all sensitive fields into a single payload
+      const sensitiveData = {
+        title: title || '',
+        username: username || '',
+        password: password || '',
+        url: url || '',
+        notes: notes || '',
+      };
+
+      // Encrypt the entire payload as one operation
+      const encryptedPayload = this.encrypt(
+        JSON.stringify(sensitiveData),
+        masterPassword
+      );
+
+      return {
+        id: passwordEntry.id || null,
+        encrypted_payload: encryptedPayload,
+        category_id: categoryId || null,
+        is_favorite: isFavorite ? 1 : 0,
+        created_at: passwordEntry.createdAt || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+    } catch (error) {
+      throw new Error(
+        `Failed to encrypt password entry optimized: ${error.message}`
+      );
+    }
+  }
+
+  /**
+   * Decrypt password entry from single payload
+   * @param {Object} encryptedEntry - Encrypted password entry object with single payload
+   * @param {string} masterPassword - User's master password
+   * @returns {Object} Decrypted password entry
+   */
+  decryptPasswordEntryOptimized(encryptedEntry, masterPassword) {
+    try {
+      if (!encryptedEntry || !masterPassword) {
+        throw new Error('Encrypted entry and master password are required');
+      }
+
+      if (!encryptedEntry.encrypted_payload) {
+        throw new Error('No encrypted payload found');
+      }
+
+      // Single decryption operation
+      const decryptedPayload = this.decrypt(
+        encryptedEntry.encrypted_payload,
+        masterPassword
+      );
+      const sensitiveData = JSON.parse(decryptedPayload);
+
+      return {
+        id: encryptedEntry.id,
+        title: sensitiveData.title || '',
+        username: sensitiveData.username || '',
+        password: sensitiveData.password || '',
+        url: sensitiveData.url || '',
+        notes: sensitiveData.notes || '',
+        categoryId: encryptedEntry.category_id,
+        categoryName: encryptedEntry.category_name,
+        categoryColor: encryptedEntry.category_color,
+        categoryIcon: encryptedEntry.category_icon,
+        isFavorite: encryptedEntry.is_favorite === 1,
+        createdAt: encryptedEntry.created_at,
+        updatedAt: encryptedEntry.updated_at,
+        lastAccessed: encryptedEntry.last_accessed,
+      };
+    } catch (error) {
+      throw new Error(
+        `Failed to decrypt password entry optimized: ${error.message}`
+      );
+    }
+  }
+
+  /**
    * Validate master password strength
    * @param {string} password - Password to validate
    * @returns {Object} Validation result
