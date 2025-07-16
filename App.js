@@ -213,7 +213,7 @@ const AppNavigator = () => {
           options={{ gestureEnabled: false }}
         />
         <Stack.Screen
-          name="ShowRecoveryPhrase"
+          name="ShowRecoveryPhraseScreen"
           component={ShowRecoveryPhraseScreen}
           options={{ gestureEnabled: false }}
         />
