@@ -165,6 +165,12 @@ const AppNavigator = () => {
         console.log(
           `Session expired (${Math.round(timeDifference / 1000)}s ago), requiring authentication`
         );
+        // Clear any session tokens since session is expired
+        try {
+          await SecureStore.deleteItemAsync('vault_sessionToken');
+        } catch (error) {
+          console.error('Error clearing expired session token:', error);
+        }
         return 'Login';
       } else {
         // Session still valid, go directly to MyVault

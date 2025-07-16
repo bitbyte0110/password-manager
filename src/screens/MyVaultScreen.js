@@ -14,6 +14,7 @@ import {
 import { Searchbar, Badge, Menu, ActivityIndicator } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/FontAwesome5';
+import { useFocusEffect } from '@react-navigation/native';
 
 import vaultService from '../services/vaultService';
 
@@ -21,7 +22,7 @@ import vaultService from '../services/vaultService';
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
 const { height: screenHeight } = Dimensions.get('window');
 
-const MyVaultScreen = ({ navigation }) => {
+const MyVaultScreen = ({ navigation, route }) => {
   // State management
   const [passwords, setPasswords] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -49,6 +50,7 @@ const MyVaultScreen = ({ navigation }) => {
     textSecondary: isDarkMode ? '#b0b0b0' : '#666666',
     border: isDarkMode ? '#333333' : '#e0e0e0',
     modalBackground: 'rgba(0,0,0,0.5)',
+    error: '#e74c3c',
   };
 
   useEffect(() => {
@@ -59,20 +61,37 @@ const MyVaultScreen = ({ navigation }) => {
     applyFiltersAndSort();
   }, [passwords, searchQuery, selectedCategory, sortBy]);
 
+  // Refresh data when screen gains focus (e.g., returning from AddPasswordScreen)
+  useFocusEffect(
+    useCallback(() => {
+      // Check if we should refresh (from navigation params)
+      if (route?.params?.shouldRefresh) {
+        console.log('MyVaultScreen: Refreshing data due to navigation params');
+        loadPasswords();
+        // Clear the parameter
+        navigation.setParams({ shouldRefresh: undefined });
+      }
+    }, [route?.params?.shouldRefresh])
+  );
+
   const initializeVault = async () => {
     try {
       setIsLoading(true);
 
-      // Initialize vault service
+      // Initialize vault service (now includes authentication restoration)
       await vaultService.initialize();
 
-      // Check if user is authenticated
+      // Check if user is authenticated after initialization and potential restoration
       if (!vaultService.isUserAuthenticated()) {
-        console.log('User not authenticated, redirecting to login');
+        console.log(
+          'User not authenticated after initialization, redirecting to login'
+        );
         // Redirect to login if not authenticated
         navigation.replace('Login');
         return;
       }
+
+      console.log('Vault service authenticated successfully, loading data...');
 
       // Load data
       await Promise.all([
@@ -83,9 +102,25 @@ const MyVaultScreen = ({ navigation }) => {
       ]);
     } catch (error) {
       console.error('Error initializing vault:', error);
-      Alert.alert('Error', 'Failed to load vault data. Please try again.');
-      // Redirect to login on error
-      navigation.replace('Login');
+
+      // Handle authentication-specific errors
+      if (
+        error.message.includes('not authenticated') ||
+        error.message.includes('master password') ||
+        error.message.includes('session')
+      ) {
+        console.log(
+          'Authentication error during initialization, redirecting to login'
+        );
+        Alert.alert(
+          'Session Expired',
+          'Your session has expired. Please log in again.',
+          [{ text: 'OK', onPress: () => navigation.replace('Login') }]
+        );
+      } else {
+        Alert.alert('Error', 'Failed to load vault data. Please try again.');
+        navigation.replace('Login');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -93,15 +128,66 @@ const MyVaultScreen = ({ navigation }) => {
 
   const loadPasswords = async () => {
     try {
+      // Ensure vault service is authenticated before loading passwords
+      if (!vaultService.isUserAuthenticated()) {
+        console.log('Vault service not authenticated, redirecting to login');
+        navigation.replace('Login');
+        return;
+      }
+
+      console.log('Loading passwords...');
       const decryptedPasswords = await vaultService.getPasswordEntries({
         sortBy: 'last_accessed',
         sortOrder: 'DESC',
       });
+      console.log(`Loaded ${decryptedPasswords.length} password entries`);
       setPasswords(decryptedPasswords);
     } catch (error) {
       console.error('Error loading passwords:', error);
-      if (error.message.includes('not authenticated')) {
-        navigation.replace('Login');
+
+      // Handle specific error types
+      if (
+        error.message.includes('not authenticated') ||
+        error.message.includes('master password') ||
+        error.message.includes('authentication required') ||
+        error.message.includes(
+          'Encrypted data and master password are required'
+        )
+      ) {
+        console.log('Authentication error detected, redirecting to login');
+        Alert.alert(
+          'Authentication Required',
+          'Your session has expired or the master password is not available. Please log in again.',
+          [
+            {
+              text: 'Login Again',
+              onPress: () => {
+                // Clear any corrupted vault service state
+                vaultService.clearSession();
+                navigation.replace('Login');
+              },
+            },
+          ]
+        );
+      } else {
+        // For other errors, show error but don't redirect immediately
+        Alert.alert(
+          'Error',
+          'Failed to load passwords. This might be a temporary issue.',
+          [
+            {
+              text: 'Retry',
+              onPress: () => loadPasswords(),
+            },
+            {
+              text: 'Login Again',
+              onPress: () => {
+                vaultService.clearSession();
+                navigation.replace('Login');
+              },
+            },
+          ]
+        );
       }
     }
   };
@@ -139,21 +225,11 @@ const MyVaultScreen = ({ navigation }) => {
     try {
       let filtered = [...passwords];
 
-      // Apply category filter
-      if (selectedCategory !== 'all') {
-        if (selectedCategory === 'favorites') {
-          filtered = filtered.filter(entry => entry.isFavorite === true);
-        } else {
-          // Category ID filter
-          const categoryId = parseInt(selectedCategory);
-          filtered = filtered.filter(entry => entry.categoryId === categoryId);
-        }
-      }
-
-      // Apply search filter using vault service
+      // Apply search filter first if there's a search query
       if (searchQuery.trim()) {
         await saveRecentSearch(searchQuery.trim());
         try {
+          // Use vault service search with category filter
           filtered = await vaultService.searchPasswords(searchQuery, {
             categoryId:
               selectedCategory !== 'all' && selectedCategory !== 'favorites'
@@ -163,12 +239,44 @@ const MyVaultScreen = ({ navigation }) => {
           });
         } catch (searchError) {
           console.error('Search error:', searchError);
-          // Fall back to title search if vault service fails
+          // Fall back to client-side search
           filtered = filtered.filter(
             entry =>
               entry.title &&
               entry.title.toLowerCase().includes(searchQuery.toLowerCase())
           );
+        }
+      } else {
+        // Apply category filter when no search query
+        if (selectedCategory !== 'all') {
+          if (selectedCategory === 'favorites') {
+            filtered = filtered.filter(entry => entry.isFavorite === true);
+          } else {
+            // Category ID filter - ensure proper type matching
+            const categoryId = parseInt(selectedCategory);
+            console.log(`=== CATEGORY FILTER DEBUG ===`);
+            console.log('Selected category ID:', categoryId, typeof categoryId);
+            console.log('Total passwords:', passwords.length);
+            console.log(
+              'Password categoryIds:',
+              passwords.map(p => ({
+                id: p.id,
+                categoryId: p.categoryId,
+                type: typeof p.categoryId,
+              }))
+            );
+
+            filtered = filtered.filter(entry => {
+              const entryCategory = entry.categoryId;
+              const matches = entryCategory === categoryId;
+              console.log(
+                `Entry ${entry.id}: categoryId=${entryCategory} (${typeof entryCategory}) matches ${categoryId} (${typeof categoryId}) = ${matches}`
+              );
+              return matches;
+            });
+            console.log('Filtered results count:', filtered.length);
+            console.log(`=== END CATEGORY FILTER DEBUG ===`);
+          }
         }
       }
 
@@ -281,49 +389,108 @@ const MyVaultScreen = ({ navigation }) => {
     }
   };
 
-  const renderPasswordCard = ({ item }) => (
-    <TouchableOpacity
-      style={[styles.passwordCard, { backgroundColor: theme.surface }]}
-      onPress={() => handlePasswordPress(item)}
-    >
-      <View style={styles.passwordCardContent}>
-        <View style={styles.passwordCardLeft}>
-          <View
-            style={[
-              styles.categoryIcon,
-              { backgroundColor: item.category_color || theme.primary },
-            ]}
-          >
-            <Icon
-              name={item.category_icon || 'folder'}
-              size={16}
-              color="#fff"
-            />
+  const renderPasswordCard = ({ item }) => {
+    // Handle decryption errors
+    if (item.decryptionError) {
+      return (
+        <TouchableOpacity
+          style={[
+            styles.passwordCard,
+            styles.passwordCardError,
+            { backgroundColor: theme.surface, borderLeftColor: theme.error },
+          ]}
+          onPress={() => handlePasswordPress(item)}
+        >
+          <View style={styles.passwordCardContent}>
+            <View style={styles.passwordCardLeft}>
+              <View
+                style={[styles.categoryIcon, { backgroundColor: theme.error }]}
+              >
+                <Icon name="exclamation-triangle" size={16} color="#fff" />
+              </View>
+              <View style={styles.passwordInfo}>
+                <Text
+                  style={[styles.passwordTitle, { color: theme.error }]}
+                  numberOfLines={1}
+                >
+                  {item.title || 'Decryption Error'}
+                </Text>
+                <Text
+                  style={[
+                    styles.passwordSubtitle,
+                    { color: theme.textSecondary },
+                  ]}
+                  numberOfLines={1}
+                >
+                  Unable to decrypt entry
+                </Text>
+              </View>
+            </View>
+            <View style={styles.passwordCardRight}>
+              <Icon
+                name="chevron-right"
+                size={16}
+                color={theme.textSecondary}
+              />
+            </View>
           </View>
-          <View style={styles.passwordInfo}>
-            <Text
-              style={[styles.passwordTitle, { color: theme.text }]}
-              numberOfLines={1}
+        </TouchableOpacity>
+      );
+    }
+
+    // Display decrypted data according to user requirements:
+    // First line: Category name (from categories table)
+    // Second line: Password title or username/email
+    const displayTitle = item.categoryName || 'No Category';
+    const displaySubtitle = item.title || item.username || 'No title';
+
+    return (
+      <TouchableOpacity
+        style={[styles.passwordCard, { backgroundColor: theme.surface }]}
+        onPress={() => handlePasswordPress(item)}
+      >
+        <View style={styles.passwordCardContent}>
+          <View style={styles.passwordCardLeft}>
+            <View
+              style={[
+                styles.categoryIcon,
+                { backgroundColor: item.categoryColor || theme.primary },
+              ]}
             >
-              {item.title_encrypted ? '••••••••' : 'Encrypted Entry'}
-            </Text>
-            <Text
-              style={[styles.passwordSubtitle, { color: theme.textSecondary }]}
-              numberOfLines={1}
-            >
-              {item.username_encrypted ? '••••••••' : 'No username'}
-            </Text>
+              <Icon
+                name={item.categoryIcon || 'folder'}
+                size={16}
+                color="#fff"
+              />
+            </View>
+            <View style={styles.passwordInfo}>
+              <Text
+                style={[styles.passwordTitle, { color: theme.text }]}
+                numberOfLines={1}
+              >
+                {displayTitle}
+              </Text>
+              <Text
+                style={[
+                  styles.passwordSubtitle,
+                  { color: theme.textSecondary },
+                ]}
+                numberOfLines={1}
+              >
+                {displaySubtitle}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.passwordCardRight}>
+            {item.isFavorite && (
+              <Icon name="star" size={16} color="#FFD700" solid />
+            )}
+            <Icon name="chevron-right" size={16} color={theme.textSecondary} />
           </View>
         </View>
-        <View style={styles.passwordCardRight}>
-          {item.is_favorite === 1 && (
-            <Icon name="star" size={16} color="#FFD700" solid />
-          )}
-          <Icon name="chevron-right" size={16} color={theme.textSecondary} />
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
@@ -434,7 +601,7 @@ const MyVaultScreen = ({ navigation }) => {
               Favorites
             </Text>
             <Text style={[styles.filterCount, { color: theme.textSecondary }]}>
-              {passwords.filter(p => p.is_favorite === 1).length}
+              {passwords.filter(p => p.isFavorite === true).length}
             </Text>
           </TouchableOpacity>
 
@@ -718,8 +885,8 @@ const MyVaultScreen = ({ navigation }) => {
       >
         {[
           { key: 'vault', icon: 'shield-alt', label: 'My Vault' },
-          { key: 'generator', icon: 'key', label: 'Generator' },
           { key: 'categories', icon: 'folder', label: 'Categories' },
+          { key: 'generator', icon: 'key', label: 'Generator' },
           { key: 'settings', icon: 'cog', label: 'Settings' },
         ].map(tab => (
           <TouchableOpacity
@@ -833,6 +1000,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+  },
+  passwordCardError: {
+    borderLeftWidth: 4,
   },
   passwordCardContent: {
     flexDirection: 'row',

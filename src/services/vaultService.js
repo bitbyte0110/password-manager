@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import bcrypt from 'bcryptjs';
+import { Buffer } from 'buffer';
 import databaseService from './databaseService';
 import encryptionService from './encryptionService';
 
@@ -13,6 +14,7 @@ class VaultService {
     this.masterPassword = null; // Keep master password in memory during session
     this.isAuthenticated = false;
     this.sessionStartTime = null;
+    this.sessionToken = null; // For secure session restoration
   }
 
   /**
@@ -31,6 +33,10 @@ class VaultService {
       await this.dbService.initialize();
 
       console.log('VaultService: Database service initialized successfully');
+
+      // Try to restore authentication if session is valid
+      await this.tryRestoreAuthentication();
+
       return true;
     } catch (error) {
       console.error('VaultService initialization error:', error);
@@ -44,23 +50,131 @@ class VaultService {
   }
 
   /**
-   * Try to restore authentication session (for when user is already logged in)
-   * This is a placeholder - in a real app, you'd check session validity
-   * @param {string} masterPassword - Master password from login
-   * @returns {Promise<boolean>} Session restore success
+   * Try to restore authentication from stored session
+   * @returns {Promise<boolean>} Restoration success
    */
-  async restoreSession(masterPassword) {
+  async tryRestoreAuthentication() {
     try {
-      const isValid = await this.authenticate(masterPassword);
-      return isValid;
+      console.log('=== SESSION RESTORATION DEBUG ===');
+
+      // Check if we already have a master password in memory
+      if (this.isAuthenticated && this.masterPassword) {
+        console.log('VaultService: Already authenticated');
+        return true;
+      }
+
+      console.log('VaultService: Attempting to restore session...');
+
+      // Try to restore from session token
+      const sessionToken = await SecureStore.getItemAsync('vault_sessionToken');
+      if (!sessionToken) {
+        console.log('VaultService: No session token found');
+        return false;
+      }
+
+      console.log('VaultService: Session token found, parsing...');
+
+      // Verify session token is still valid (within 2 minutes)
+      let sessionData;
+      try {
+        sessionData = JSON.parse(sessionToken);
+      } catch (parseError) {
+        console.error(
+          'VaultService: Invalid session token format:',
+          parseError
+        );
+        await SecureStore.deleteItemAsync('vault_sessionToken');
+        return false;
+      }
+
+      const now = Date.now();
+      const sessionAge = now - sessionData.timestamp;
+      const SESSION_TIMEOUT = 2 * 60 * 1000; // 2 minutes
+
+      console.log(
+        `VaultService: Session age: ${Math.round(sessionAge / 1000)}s (timeout: ${SESSION_TIMEOUT / 1000}s)`
+      );
+
+      if (sessionAge > SESSION_TIMEOUT) {
+        console.log('VaultService: Session token expired');
+        await SecureStore.deleteItemAsync('vault_sessionToken');
+        return false;
+      }
+
+      console.log(
+        'VaultService: Session token is valid, decrypting master password...'
+      );
+
+      // Decrypt the master password from session token
+      let masterPassword;
+      try {
+        masterPassword = this.decryptSessionToken(
+          sessionData.encryptedPassword,
+          sessionData.salt
+        );
+        console.log(
+          'VaultService: Master password decrypted from session token'
+        );
+      } catch (decryptError) {
+        console.error(
+          'VaultService: Failed to decrypt session token:',
+          decryptError
+        );
+        await SecureStore.deleteItemAsync('vault_sessionToken');
+        return false;
+      }
+
+      // Verify the password is still valid
+      const storedHash = await SecureStore.getItemAsync('vault_masterHash');
+      if (!storedHash) {
+        console.log('VaultService: No master password hash found');
+        return false;
+      }
+
+      console.log(
+        'VaultService: Verifying master password against stored hash...'
+      );
+
+      const isValid = await bcrypt.compare(masterPassword, storedHash);
+      if (!isValid) {
+        console.log('VaultService: Session token contains invalid password');
+        await SecureStore.deleteItemAsync('vault_sessionToken');
+        return false;
+      }
+
+      // Restore authentication state
+      this.masterPassword = masterPassword;
+      this.isAuthenticated = true;
+      this.sessionStartTime = sessionData.timestamp;
+      this.sessionToken = sessionToken;
+
+      console.log(
+        'VaultService: Authentication restored from session token successfully'
+      );
+      console.log(
+        'VaultService: Master password length:',
+        this.masterPassword.length
+      );
+      console.log('=== END SESSION RESTORATION DEBUG ===');
+      return true;
     } catch (error) {
-      console.error('Session restore error:', error);
+      console.error('=== SESSION RESTORATION ERROR ===');
+      console.error('VaultService: Error restoring authentication:', error);
+      console.error('=== END SESSION RESTORATION ERROR ===');
+
+      // Clear potentially corrupted session token
+      try {
+        await SecureStore.deleteItemAsync('vault_sessionToken');
+      } catch (clearError) {
+        console.error('Failed to clear corrupted session token:', clearError);
+      }
+
       return false;
     }
   }
 
   /**
-   * Authenticate with master password
+   * Authenticate with master password and create session token
    * @param {string} password - Master password
    * @returns {Promise<boolean>} Authentication success
    */
@@ -76,11 +190,85 @@ class VaultService {
         this.masterPassword = password;
         this.isAuthenticated = true;
         this.sessionStartTime = Date.now();
+
+        // Create and store session token for restoration
+        await this.createSessionToken(password);
+
+        console.log(
+          'VaultService: Authentication successful, session token created'
+        );
         return true;
       }
       return false;
     } catch (error) {
       console.error('Authentication error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create encrypted session token for secure password storage
+   * @param {string} password - Master password
+   */
+  async createSessionToken(password) {
+    try {
+      const timestamp = Date.now();
+      const salt = encryptionService.generateSalt();
+      const encryptedPassword = this.encryptSessionToken(password, salt);
+
+      const sessionData = {
+        encryptedPassword,
+        salt,
+        timestamp,
+      };
+
+      this.sessionToken = JSON.stringify(sessionData);
+      await SecureStore.setItemAsync('vault_sessionToken', this.sessionToken);
+    } catch (error) {
+      console.error('Error creating session token:', error);
+      // Non-critical error, continue without session token
+    }
+  }
+
+  /**
+   * Encrypt password for session token (simple XOR with salt for demo)
+   * In production, use proper encryption
+   */
+  encryptSessionToken(password, salt) {
+    try {
+      // Simple XOR encryption for session token (in production, use AES)
+      let encrypted = '';
+      for (let i = 0; i < password.length; i++) {
+        encrypted += String.fromCharCode(
+          password.charCodeAt(i) ^ salt.charCodeAt(i % salt.length)
+        );
+      }
+      // Use Buffer instead of btoa for React Native compatibility
+      return Buffer.from(encrypted, 'binary').toString('base64');
+    } catch (error) {
+      console.error('Error encrypting session token:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Decrypt password from session token
+   */
+  decryptSessionToken(encryptedPassword, salt) {
+    try {
+      // Use Buffer instead of atob for React Native compatibility
+      const encrypted = Buffer.from(encryptedPassword, 'base64').toString(
+        'binary'
+      );
+      let decrypted = '';
+      for (let i = 0; i < encrypted.length; i++) {
+        decrypted += String.fromCharCode(
+          encrypted.charCodeAt(i) ^ salt.charCodeAt(i % salt.length)
+        );
+      }
+      return decrypted;
+    } catch (error) {
+      console.error('Error decrypting session token:', error);
       throw error;
     }
   }
@@ -96,10 +284,18 @@ class VaultService {
   /**
    * Clear authentication and sensitive data
    */
-  clearSession() {
+  async clearSession() {
     this.masterPassword = null;
     this.isAuthenticated = false;
     this.sessionStartTime = null;
+    this.sessionToken = null;
+
+    // Clear session token from storage
+    try {
+      await SecureStore.deleteItemAsync('vault_sessionToken');
+    } catch (error) {
+      console.error('Error clearing session token:', error);
+    }
   }
 
   /**
@@ -325,7 +521,32 @@ class VaultService {
       throw new Error('User not authenticated');
     }
 
+    console.log('=== DECRYPTION DEBUG ===');
+    console.log('Authentication status:', this.isAuthenticated);
+    console.log('Master password available:', !!this.masterPassword);
+    console.log(
+      'Master password length:',
+      this.masterPassword ? this.masterPassword.length : 'N/A'
+    );
+    console.log('Encrypted entry ID:', encryptedEntry.id);
+    console.log('Encrypted entry keys:', Object.keys(encryptedEntry));
+
     try {
+      // Verify master password is available
+      if (!this.masterPassword) {
+        console.error('CRITICAL: Master password is null or undefined!');
+        console.log('Attempting to restore authentication...');
+
+        // Try to restore authentication
+        const restored = await this.tryRestoreAuthentication();
+        if (!restored || !this.masterPassword) {
+          throw new Error(
+            'Master password not available - authentication required'
+          );
+        }
+        console.log('Authentication restored, master password now available');
+      }
+
       // Parse encrypted fields
       const decrypted = {
         id: encryptedEntry.id,
@@ -344,47 +565,101 @@ class VaultService {
         lastAccessed: encryptedEntry.last_accessed,
       };
 
+      console.log('Decrypting fields for entry:', encryptedEntry.id);
+
       // Decrypt each field if it exists
       if (encryptedEntry.title_encrypted) {
-        const titleData = JSON.parse(encryptedEntry.title_encrypted);
-        decrypted.title = encryptionService.decrypt(
-          titleData,
-          this.masterPassword
-        );
+        console.log('Decrypting title...');
+        try {
+          const titleData = JSON.parse(encryptedEntry.title_encrypted);
+          console.log('Title data structure:', titleData);
+          decrypted.title = encryptionService.decrypt(
+            titleData,
+            this.masterPassword
+          );
+          console.log('Title decrypted successfully:', decrypted.title);
+        } catch (titleError) {
+          console.error('Failed to decrypt title:', titleError);
+          decrypted.title = '[Title Decryption Failed]';
+        }
       }
 
       if (encryptedEntry.username_encrypted) {
-        const usernameData = JSON.parse(encryptedEntry.username_encrypted);
-        decrypted.username = encryptionService.decrypt(
-          usernameData,
-          this.masterPassword
-        );
+        console.log('Decrypting username...');
+        try {
+          const usernameData = JSON.parse(encryptedEntry.username_encrypted);
+          decrypted.username = encryptionService.decrypt(
+            usernameData,
+            this.masterPassword
+          );
+          console.log('Username decrypted successfully');
+        } catch (usernameError) {
+          console.error('Failed to decrypt username:', usernameError);
+          decrypted.username = '[Username Decryption Failed]';
+        }
       }
 
       if (encryptedEntry.password_encrypted) {
-        const passwordData = JSON.parse(encryptedEntry.password_encrypted);
-        decrypted.password = encryptionService.decrypt(
-          passwordData,
-          this.masterPassword
-        );
+        console.log('Decrypting password...');
+        try {
+          const passwordData = JSON.parse(encryptedEntry.password_encrypted);
+          decrypted.password = encryptionService.decrypt(
+            passwordData,
+            this.masterPassword
+          );
+          console.log('Password decrypted successfully');
+        } catch (passwordError) {
+          console.error('Failed to decrypt password:', passwordError);
+          decrypted.password = '[Password Decryption Failed]';
+        }
       }
 
       if (encryptedEntry.url_encrypted) {
-        const urlData = JSON.parse(encryptedEntry.url_encrypted);
-        decrypted.url = encryptionService.decrypt(urlData, this.masterPassword);
+        console.log('Decrypting URL...');
+        try {
+          const urlData = JSON.parse(encryptedEntry.url_encrypted);
+          decrypted.url = encryptionService.decrypt(
+            urlData,
+            this.masterPassword
+          );
+          console.log('URL decrypted successfully');
+        } catch (urlError) {
+          console.error('Failed to decrypt URL:', urlError);
+          decrypted.url = '[URL Decryption Failed]';
+        }
       }
 
       if (encryptedEntry.notes_encrypted) {
-        const notesData = JSON.parse(encryptedEntry.notes_encrypted);
-        decrypted.notes = encryptionService.decrypt(
-          notesData,
-          this.masterPassword
-        );
+        console.log('Decrypting notes...');
+        try {
+          const notesData = JSON.parse(encryptedEntry.notes_encrypted);
+          decrypted.notes = encryptionService.decrypt(
+            notesData,
+            this.masterPassword
+          );
+          console.log('Notes decrypted successfully');
+        } catch (notesError) {
+          console.error('Failed to decrypt notes:', notesError);
+          decrypted.notes = '[Notes Decryption Failed]';
+        }
       }
+
+      console.log('Final decrypted entry:', {
+        id: decrypted.id,
+        title: decrypted.title,
+        username: decrypted.username,
+        categoryId: decrypted.categoryId,
+        categoryName: decrypted.categoryName,
+      });
+      console.log('=== END DECRYPTION DEBUG ===');
 
       return decrypted;
     } catch (error) {
+      console.error('=== DECRYPTION ERROR ===');
       console.error('Error decrypting password entry:', error);
+      console.error('Authentication state:', this.isAuthenticated);
+      console.error('Master password available:', !!this.masterPassword);
+      console.error('=== END DECRYPTION ERROR ===');
       throw error;
     }
   }
