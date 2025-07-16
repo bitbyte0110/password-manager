@@ -7,12 +7,10 @@ import {
   ScrollView,
   TouchableOpacity,
   useColorScheme,
-  Dimensions,
 } from 'react-native';
 import {
   Card,
   TextInput,
-  Button,
   Checkbox,
   Snackbar,
   ProgressBar,
@@ -28,7 +26,7 @@ import { useNavigation } from '@react-navigation/native';
 // Constants for activity tracking
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
 
-const { width: screenWidth } = Dimensions.get('window');
+// const { width: screenWidth } = Dimensions.get('window'); // Unused
 
 const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
   const navigation = navProp || useNavigation();
@@ -219,7 +217,7 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
         navigation.navigate('MyVault');
         break;
       case 'categories':
-        // navigation.navigate('Categories');
+        navigation.navigate('Categories');
         break;
       case 'settings':
         // navigation.navigate('Settings');
