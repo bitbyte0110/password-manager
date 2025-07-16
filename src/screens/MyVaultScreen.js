@@ -316,7 +316,10 @@ const MyVaultScreen = ({ navigation, route }) => {
   const handleAddCategory = () => {
     setShowAddModal(false);
     updateActivity();
-    navigation.navigate('Categories', { createNew: true });
+    navigation.navigate('MainTabs', {
+      screen: 'Categories',
+      params: { createNew: true },
+    });
   };
 
   const renderPasswordCard = ({ item }) => {

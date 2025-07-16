@@ -265,9 +265,12 @@ const EditCategoryScreen = ({ navigation, route }) => {
 
       // Navigate back and refresh categories list
       setTimeout(() => {
-        navigation.navigate('Categories', {
-          refresh: true,
-          updatedCategoryId: category.id,
+        navigation.navigate('MainTabs', {
+          screen: 'Categories',
+          params: {
+            refresh: true,
+            updatedCategoryId: category.id,
+          },
         });
       }, 1000);
     } catch (error) {
@@ -333,9 +336,12 @@ const EditCategoryScreen = ({ navigation, route }) => {
 
       // Navigate back and refresh categories list
       setTimeout(() => {
-        navigation.navigate('Categories', {
-          refresh: true,
-          deletedCategoryId: category.id,
+        navigation.navigate('MainTabs', {
+          screen: 'Categories',
+          params: {
+            refresh: true,
+            deletedCategoryId: category.id,
+          },
         });
       }, 1000);
     } catch (error) {

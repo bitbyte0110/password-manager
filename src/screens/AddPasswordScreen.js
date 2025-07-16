@@ -189,9 +189,12 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
     if (category.id === 'create_new') {
       // Navigate to Categories screen to create new category
       setShowCategoryMenu(false);
-      navigation.navigate('Categories', {
-        createNew: true,
-        returnScreen: 'AddPassword',
+      navigation.navigate('MainTabs', {
+        screen: 'Categories',
+        params: {
+          createNew: true,
+          returnScreen: 'AddPassword',
+        },
       });
     } else {
       setFormData(prev => ({
@@ -273,8 +276,11 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
 
       // Navigate back to HomeScreen with refresh
       setTimeout(() => {
-        navigation.navigate('MyVault', {
-          shouldRefresh: true,
+        navigation.navigate('MainTabs', {
+          screen: 'MyVault',
+          params: {
+            shouldRefresh: true,
+          },
         });
       }, 1000);
     } catch (error) {
