@@ -387,9 +387,9 @@ const LoginScreen = ({ navigation }) => {
         setShowPasswordModal(false);
         setMasterPassword('');
         setMfaMode(false);
-        console.log('About to call navigation.replace("MyVault")');
-        navigation.replace('MyVault');
-        console.log('Navigation.replace("MyVault") called');
+        console.log('About to call navigation.replace("MainTabs")');
+        navigation.replace('MainTabs');
+        console.log('Navigation.replace("MainTabs") called');
       } else {
         await incrementFailedAttempts();
         if (mfaMode) {

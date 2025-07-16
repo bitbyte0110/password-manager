@@ -644,6 +644,9 @@ class VaultService {
    * @returns {Promise<number>} Number of entries migrated
    */
   async migrateLegacyEntries() {
+    if (!this.dbService.db) {
+      throw new Error('Database not initialized');
+    }
     if (!this.isUserAuthenticated()) {
       throw new Error('User not authenticated');
     }
