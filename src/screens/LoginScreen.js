@@ -371,6 +371,9 @@ const LoginScreen = ({ navigation }) => {
         await resetFailedAttempts();
         await resetBiometricFailedAttempts(); // Reset biometric attempts on successful password
 
+        // Clear any existing session before authenticating
+        await vaultService.clearSession();
+
         // Authenticate vault service with the master password
         try {
           await vaultService.authenticate(masterPassword);

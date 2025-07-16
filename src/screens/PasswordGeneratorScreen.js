@@ -546,8 +546,8 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
       >
         {[
           { key: 'vault', icon: 'shield-alt', label: 'My Vault' },
-          { key: 'generator', icon: 'key', label: 'Generator' },
           { key: 'categories', icon: 'folder', label: 'Categories' },
+          { key: 'generator', icon: 'key', label: 'Generator' },
           { key: 'settings', icon: 'cog', label: 'Settings' },
         ].map(tab => (
           <TouchableOpacity
