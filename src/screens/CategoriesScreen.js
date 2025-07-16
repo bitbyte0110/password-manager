@@ -90,7 +90,7 @@ const CategoriesScreen = ({ navigation, route }) => {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [menuVisible, setMenuVisible] = useState({});
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [activeTab, setActiveTab] = useState('categories');
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
@@ -147,7 +147,29 @@ const CategoriesScreen = ({ navigation, route }) => {
         // Clear the parameter
         navigation.setParams({ createNew: undefined });
       }
-    }, [route?.params?.createNew])
+
+      // Handle refresh from EditCategoryScreen
+      if (route?.params?.refresh) {
+        loadCategories();
+        // Show success message if available
+        if (route?.params?.updatedCategoryId) {
+          showSnackbar('Category updated successfully');
+        } else if (route?.params?.deletedCategoryId) {
+          showSnackbar('Category deleted successfully');
+        }
+        // Clear the parameters
+        navigation.setParams({
+          refresh: undefined,
+          updatedCategoryId: undefined,
+          deletedCategoryId: undefined,
+        });
+      }
+    }, [
+      route?.params?.createNew,
+      route?.params?.refresh,
+      route?.params?.updatedCategoryId,
+      route?.params?.deletedCategoryId,
+    ])
   );
 
   // Apply filters and sorting when data changes
@@ -284,29 +306,27 @@ const CategoriesScreen = ({ navigation, route }) => {
   const handleMoreOptions = (category, event) => {
     event.stopPropagation();
     setSelectedCategory(category);
-    setShowMoreMenu(true);
+    setMenuVisible({ [category.id]: true });
     updateActivity();
   };
 
   const handleEditCategory = () => {
     if (!selectedCategory) return;
 
-    setEditForm({
-      name: selectedCategory.name,
-      description: selectedCategory.description || '',
-      icon: selectedCategory.icon || 'folder',
-      color: selectedCategory.color || '#8e44ad',
-    });
-    setFormErrors({});
-    setShowMoreMenu(false);
-    setShowEditModal(true);
+    setMenuVisible({});
     updateActivity();
+
+    // Navigate to EditCategoryScreen with category data
+    navigation.navigate('EditCategory', {
+      categoryId: selectedCategory.id,
+      categoryData: selectedCategory,
+    });
   };
 
   const handleDeleteCategory = () => {
     if (!selectedCategory) return;
 
-    setShowMoreMenu(false);
+    setMenuVisible({});
 
     if (selectedCategory.password_count > 0) {
       Alert.alert(
@@ -492,46 +512,71 @@ const CategoriesScreen = ({ navigation, route }) => {
   };
 
   const renderCategoryCard = ({ item }) => (
-    <TouchableOpacity
-      style={[styles.categoryCard, { backgroundColor: theme.surface }]}
-      onPress={() => handleCategoryPress(item)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.categoryCardContent}>
-        <View style={styles.categoryCardLeft}>
-          <View
-            style={[
-              styles.categoryIcon,
-              { backgroundColor: item.color || theme.primary },
+    <View>
+      <TouchableOpacity
+        style={[styles.categoryCard, { backgroundColor: theme.surface }]}
+        onPress={() => handleCategoryPress(item)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.categoryCardContent}>
+          <View style={styles.categoryCardLeft}>
+            <View
+              style={[
+                styles.categoryIcon,
+                { backgroundColor: item.color || theme.primary },
+              ]}
+            >
+              <Icon name={item.icon || 'folder'} size={20} color="#fff" />
+            </View>
+            <View style={styles.categoryInfo}>
+              <Text
+                style={[styles.categoryName, { color: theme.text }]}
+                numberOfLines={1}
+              >
+                {item.name}
+              </Text>
+              <Text
+                style={[styles.passwordCount, { color: theme.textSecondary }]}
+                numberOfLines={1}
+              >
+                {item.password_count || 0} password
+                {(item.password_count || 0) !== 1 ? 's' : ''}
+              </Text>
+            </View>
+          </View>
+          <Menu
+            visible={menuVisible[item.id] || false}
+            onDismiss={() => setMenuVisible({})}
+            anchor={
+              <TouchableOpacity
+                style={styles.moreButton}
+                onPress={event => handleMoreOptions(item, event)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Icon name="ellipsis-v" size={16} color={theme.textSecondary} />
+              </TouchableOpacity>
+            }
+            contentStyle={[
+              styles.menuContent,
+              { backgroundColor: theme.surface },
             ]}
           >
-            <Icon name={item.icon || 'folder'} size={20} color="#fff" />
-          </View>
-          <View style={styles.categoryInfo}>
-            <Text
-              style={[styles.categoryName, { color: theme.text }]}
-              numberOfLines={1}
-            >
-              {item.name}
-            </Text>
-            <Text
-              style={[styles.passwordCount, { color: theme.textSecondary }]}
-              numberOfLines={1}
-            >
-              {item.password_count || 0} password
-              {(item.password_count || 0) !== 1 ? 's' : ''}
-            </Text>
-          </View>
+            <Menu.Item
+              onPress={handleEditCategory}
+              title="Edit Category"
+              leadingIcon="pencil"
+              titleStyle={{ color: theme.text }}
+            />
+            <Menu.Item
+              onPress={handleDeleteCategory}
+              title="Delete Category"
+              leadingIcon="trash"
+              titleStyle={{ color: theme.error }}
+            />
+          </Menu>
         </View>
-        <TouchableOpacity
-          style={styles.moreButton}
-          onPress={event => handleMoreOptions(item, event)}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Icon name="ellipsis-v" size={16} color={theme.textSecondary} />
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </View>
   );
 
   const renderEmptyState = () => (
@@ -1124,26 +1169,6 @@ const CategoriesScreen = ({ navigation, route }) => {
         ))}
       </View>
 
-      {/* More Options Menu */}
-      <Menu
-        visible={showMoreMenu}
-        onDismiss={() => setShowMoreMenu(false)}
-        anchor={<View />}
-        style={styles.moreMenu}
-      >
-        <Menu.Item
-          onPress={handleEditCategory}
-          title="Edit Category"
-          leadingIcon="pencil"
-        />
-        <Menu.Item
-          onPress={handleDeleteCategory}
-          title="Delete Category"
-          leadingIcon="trash"
-          titleStyle={{ color: theme.error }}
-        />
-      </Menu>
-
       {/* Edit Modal */}
       {renderEditModal()}
 
@@ -1329,8 +1354,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
-  moreMenu: {
-    marginTop: 50,
+  menuContent: {
+    borderRadius: 8,
+    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   // Modal Styles
   modalContainer: {
