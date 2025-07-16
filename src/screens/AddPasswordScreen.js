@@ -22,12 +22,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import vaultService from '../services/vaultService';
+import { usePasswords } from '../PasswordContext';
 
 // Constants for activity tracking
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
 
 const AddPasswordScreen = ({ navigation: navProp, route }) => {
   const navigation = navProp || useNavigation();
+  const { addPassword } = usePasswords();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -263,8 +265,10 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
       };
 
       // Save to database using existing vaultService
-      await vaultService.addPasswordEntry(passwordEntry);
-
+      const newId = await vaultService.addPasswordEntry(passwordEntry);
+      // Get the full decrypted entry (assume vaultService returns it or fetch it)
+      const decryptedEntry = { ...passwordEntry, id: newId };
+      addPassword(decryptedEntry);
       showSnackbar('Password saved successfully!');
 
       // Navigate back to HomeScreen with refresh

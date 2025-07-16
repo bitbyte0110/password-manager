@@ -26,7 +26,8 @@ const { height: screenHeight } = Dimensions.get('window');
 
 const MyVaultScreen = ({ navigation, route }) => {
   // State management
-  const { passwords, loading, error, loadPasswords } = usePasswords();
+  const { passwords, loading, error, loadPasswords, deletePassword } =
+    usePasswords();
   const [categories, setCategories] = useState([]);
   const [filteredPasswords, setFilteredPasswords] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -295,6 +296,16 @@ const MyVaultScreen = ({ navigation, route }) => {
     updateActivity();
     // Navigate to password details screen
     // navigation.navigate('PasswordDetails', { passwordId: item.id });
+  };
+
+  const handleDeletePassword = async id => {
+    try {
+      await vaultService.deletePasswordEntry(id);
+      deletePassword(id);
+      // Optionally show a snackbar or alert
+    } catch (error) {
+      // Handle error
+    }
   };
 
   const handleAddPassword = () => {
