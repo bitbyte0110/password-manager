@@ -1,5 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
-import CryptoJS from 'react-native-crypto-js';
+import CryptoJS from 'crypto-js';
 
 /**
  * Secure Storage Service for Password Manager

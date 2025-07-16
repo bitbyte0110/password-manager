@@ -1,4 +1,5 @@
-import CryptoJS from 'react-native-crypto-js';
+import CryptoJS from 'crypto-js';
+import 'react-native-get-random-values'; // Ensure crypto randomness is available
 
 /**
  * Encryption Service for Password Manager
