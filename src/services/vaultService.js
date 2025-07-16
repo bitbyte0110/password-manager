@@ -3,7 +3,6 @@ import bcrypt from 'bcryptjs';
 import { Buffer } from 'buffer';
 import databaseService from './databaseService';
 import encryptionService from './encryptionService';
-import { usePasswords } from '../PasswordContext';
 
 /**
  * Vault Service for handling master password and data operations
@@ -24,19 +23,42 @@ class VaultService {
    */
   async initialize() {
     try {
+      // Quick return if already fully initialized and authenticated
+      if (
+        this.dbService &&
+        this.dbService.isInitialized &&
+        this.isAuthenticated &&
+        this.masterPassword
+      ) {
+        console.log(
+          'VaultService: Already fully initialized and authenticated, skipping'
+        );
+        return true;
+      }
+
       console.log('VaultService: Starting initialization...');
 
       if (!this.dbService) {
         throw new Error('Database service is not available');
       }
 
-      console.log('VaultService: Initializing database service...');
-      await this.dbService.initialize();
-
-      console.log('VaultService: Database service initialized successfully');
+      // Only initialize database if not already done
+      if (!this.dbService.isInitialized) {
+        console.log('VaultService: Initializing database service...');
+        await this.dbService.initialize();
+        console.log('VaultService: Database service initialized successfully');
+      } else {
+        console.log('VaultService: Database service already initialized');
+      }
 
       // Try to restore authentication if session is valid
-      await this.tryRestoreAuthentication();
+      if (!this.isAuthenticated) {
+        await this.tryRestoreAuthentication();
+      } else {
+        console.log(
+          'VaultService: Already authenticated, skipping session restoration'
+        );
+      }
 
       return true;
     } catch (error) {

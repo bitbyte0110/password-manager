@@ -37,7 +37,6 @@ const MyVaultScreen = ({ navigation, route }) => {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('vault');
   const [authError, setAuthError] = useState(null); // New state for authentication errors
   // Get color scheme for theme support
   const colorScheme = useColorScheme();
@@ -79,20 +78,16 @@ const MyVaultScreen = ({ navigation, route }) => {
 
   const initializeVault = async () => {
     try {
-      // Initialize vault service (now includes authentication restoration)
-      await vaultService.initialize();
-
-      // Check if user is authenticated after initialization and potential restoration
+      // Quick authentication check since we're part of MainTabs (should already be authenticated)
       if (!vaultService.isUserAuthenticated()) {
         console.log(
-          'User not authenticated after initialization, redirecting to login'
+          'User not authenticated in tab navigator, redirecting to login'
         );
-        // Redirect to login if not authenticated
         navigation.replace('Login');
         return;
       }
 
-      console.log('Vault service authenticated successfully, loading data...');
+      console.log('Vault service authenticated, loading data...');
 
       // Load data
       await Promise.all([
@@ -107,7 +102,7 @@ const MyVaultScreen = ({ navigation, route }) => {
         updateActivity(),
       ]);
     } catch (error) {
-      console.error('Error initializing vault:', error);
+      console.error('Error loading vault data:', error);
 
       // Handle authentication-specific errors
       if (
@@ -115,9 +110,7 @@ const MyVaultScreen = ({ navigation, route }) => {
         error.message.includes('master password') ||
         error.message.includes('session')
       ) {
-        console.log(
-          'Authentication error during initialization, redirecting to login'
-        );
+        console.log('Authentication error in vault tab, redirecting to login');
         Alert.alert(
           'Session Expired',
           'Your session has expired. Please log in again.',
@@ -125,10 +118,7 @@ const MyVaultScreen = ({ navigation, route }) => {
         );
       } else {
         Alert.alert('Error', 'Failed to load vault data. Please try again.');
-        navigation.replace('Login');
       }
-    } finally {
-      // setIsLoading(false); // This line is removed as loading is now managed by context
     }
   };
 
@@ -318,25 +308,6 @@ const MyVaultScreen = ({ navigation, route }) => {
     setShowAddModal(false);
     updateActivity();
     navigation.navigate('Categories', { createNew: true });
-  };
-
-  const handleTabPress = tab => {
-    setActiveTab(tab);
-    updateActivity();
-
-    switch (tab) {
-      case 'generator':
-        navigation.navigate('PasswordGenerator');
-        break;
-      case 'categories':
-        navigation.navigate('Categories');
-        break;
-      case 'settings':
-        // navigation.navigate('Settings');
-        break;
-      default:
-        break;
-    }
   };
 
   const renderPasswordCard = ({ item }) => {
@@ -745,46 +716,6 @@ const MyVaultScreen = ({ navigation, route }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Bottom Navigation */}
-      <View
-        style={[
-          styles.bottomNav,
-          { backgroundColor: theme.background, borderTopColor: theme.border },
-        ]}
-      >
-        {[
-          { key: 'vault', icon: 'shield-alt', label: 'My Vault' },
-          { key: 'categories', icon: 'folder', label: 'Categories' },
-          { key: 'generator', icon: 'key', label: 'Generator' },
-          { key: 'settings', icon: 'cog', label: 'Settings' },
-        ].map(tab => (
-          <TouchableOpacity
-            key={tab.key}
-            style={styles.bottomNavTab}
-            onPress={() => handleTabPress(tab.key)}
-          >
-            <Icon
-              name={tab.icon}
-              size={20}
-              color={
-                activeTab === tab.key ? theme.primary : theme.textSecondary
-              }
-            />
-            <Text
-              style={[
-                styles.bottomNavLabel,
-                {
-                  color:
-                    activeTab === tab.key ? theme.primary : theme.textSecondary,
-                },
-              ]}
-            >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
       {/* Modals */}
       {renderFilterModal()}
       {renderAddModal()}
@@ -940,23 +871,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 6,
   },
-  bottomNav: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    paddingHorizontal: 0,
-    paddingBottom: 15,
-    borderTopWidth: 1,
-    backgroundColor: '#fff',
-  },
-  bottomNavTab: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  bottomNavLabel: {
-    fontSize: 12,
-    marginTop: 4,
-  },
+
   // Modal Styles
   modalContainer: {
     flex: 1,

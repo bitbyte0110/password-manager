@@ -285,6 +285,44 @@ class DatabaseService {
   }
 
   /**
+   * Add column to table if it doesn't exist (to prevent duplicate column errors)
+   * @param {string} tableName - Name of the table
+   * @param {string} columnName - Name of the column to add
+   * @param {string} columnType - SQL type of the column
+   * @returns {Promise<void>}
+   */
+  async addColumnIfNotExists(tableName, columnName, columnType) {
+    try {
+      if (!this.db) {
+        throw new Error('Database connection is null');
+      }
+
+      // Check if column exists by querying table info
+      const tableInfo = await this.db.getAllAsync(
+        `PRAGMA table_info(${tableName})`
+      );
+      const columnExists = tableInfo.some(column => column.name === columnName);
+
+      if (!columnExists) {
+        console.log(`Adding column ${columnName} to table ${tableName}`);
+        await this.execAsyncSafe(
+          `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnType};`
+        );
+      } else {
+        console.log(
+          `Column ${columnName} already exists in table ${tableName}, skipping`
+        );
+      }
+    } catch (error) {
+      console.error(
+        `Error adding column ${columnName} to table ${tableName}:`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Create all database tables
    * @returns {Promise<void>}
    */
@@ -336,35 +374,19 @@ class DatabaseService {
       `);
 
       // Add migration columns for backward compatibility (temporary)
-      await this.execAsyncSafe(
-        `
-        ALTER TABLE passwords ADD COLUMN title_encrypted TEXT;
-      `
-      ).catch(() => {}); // Ignore if column already exists
-
-      await this.execAsyncSafe(
-        `
-        ALTER TABLE passwords ADD COLUMN username_encrypted TEXT;
-      `
-      ).catch(() => {}); // Ignore if column already exists
-
-      await this.execAsyncSafe(
-        `
-        ALTER TABLE passwords ADD COLUMN password_encrypted TEXT;
-      `
-      ).catch(() => {}); // Ignore if column already exists
-
-      await this.execAsyncSafe(
-        `
-        ALTER TABLE passwords ADD COLUMN url_encrypted TEXT;
-      `
-      ).catch(() => {}); // Ignore if column already exists
-
-      await this.execAsyncSafe(
-        `
-        ALTER TABLE passwords ADD COLUMN notes_encrypted TEXT;
-      `
-      ).catch(() => {}); // Ignore if column already exists
+      await this.addColumnIfNotExists('passwords', 'title_encrypted', 'TEXT');
+      await this.addColumnIfNotExists(
+        'passwords',
+        'username_encrypted',
+        'TEXT'
+      );
+      await this.addColumnIfNotExists(
+        'passwords',
+        'password_encrypted',
+        'TEXT'
+      );
+      await this.addColumnIfNotExists('passwords', 'url_encrypted', 'TEXT');
+      await this.addColumnIfNotExists('passwords', 'notes_encrypted', 'TEXT');
 
       // Application settings table
       await this.execAsyncSafe(`

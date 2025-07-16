@@ -171,12 +171,11 @@ const CategoriesScreen = ({ navigation, route }) => {
       setIsLoading(true);
       updateActivity();
 
-      // Initialize vault service
-      await vaultService.initialize();
-
-      // Check if user is authenticated
+      // Quick authentication check since we're part of MainTabs
       if (!vaultService.isUserAuthenticated()) {
-        console.log('User not authenticated, redirecting to login');
+        console.log(
+          'User not authenticated in categories tab, redirecting to login'
+        );
         navigation.replace('Login');
         return;
       }
@@ -184,10 +183,8 @@ const CategoriesScreen = ({ navigation, route }) => {
       // Load categories
       await loadCategories();
     } catch (error) {
-      console.error('Error initializing CategoriesScreen:', error);
+      console.error('Error loading categories:', error);
       showSnackbar('Error loading categories. Please try again.');
-      // Navigate back if initialization fails
-      navigation.goBack();
     } finally {
       setIsLoading(false);
     }

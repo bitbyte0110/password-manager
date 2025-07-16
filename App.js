@@ -128,17 +128,37 @@ function MainTabs() {
           else if (route.name === 'Settings') iconName = 'cog';
           return <Icon name={iconName} size={size} color={color} />;
         },
+        headerShown: false,
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: '#666666',
+        tabBarStyle: {
+          backgroundColor: '#ffffff',
+          borderTopWidth: 1,
+          borderTopColor: '#e0e0e0',
+          paddingBottom: 5,
+          paddingTop: 5,
+          height: 60,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          marginTop: 4,
+        },
       })}
-      tabBarOptions={{
-        activeTintColor: theme.colors.primary,
-        inactiveTintColor: theme.colors.text,
-      }}
     >
-      <Tab.Screen name="MyVault" component={MyVaultScreen} />
-      <Tab.Screen name="Categories" component={CategoriesScreen} />
+      <Tab.Screen
+        name="MyVault"
+        component={MyVaultScreen}
+        options={{ tabBarLabel: 'My Vault' }}
+      />
+      <Tab.Screen
+        name="Categories"
+        component={CategoriesScreen}
+        options={{ tabBarLabel: 'Categories' }}
+      />
       <Tab.Screen
         name="PasswordGenerator"
         component={PasswordGeneratorScreen}
+        options={{ tabBarLabel: 'Generator' }}
       />
       {/* Add SettingsScreen if exists */}
     </Tab.Navigator>
@@ -207,13 +227,13 @@ const AppNavigator = () => {
         }
         return 'Login';
       } else {
-        // Session still valid, go directly to MyVault
+        // Session still valid, go directly to MainTabs
         console.log(
-          `Session valid (${Math.round(timeDifference / 1000)}s ago), accessing MyVault`
+          `Session valid (${Math.round(timeDifference / 1000)}s ago), accessing MainTabs`
         );
         // Update activity timestamp
         await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, Date.now().toString());
-        return 'MyVault';
+        return 'MainTabs';
       }
     } catch (error) {
       console.error('Error checking vault status:', error);
@@ -257,17 +277,12 @@ const AppNavigator = () => {
       />
       <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
       <Stack.Screen
-        name="MyVault"
-        component={MyVaultScreen}
+        name="MainTabs"
+        component={MainTabs}
         options={{ gestureEnabled: false }}
-      />
-      <Stack.Screen
-        name="PasswordGenerator"
-        component={PasswordGeneratorScreen}
       />
       <Stack.Screen name="AddPassword" component={AddPasswordScreen} />
       <Stack.Screen name="AddCategory" component={AddCategoryScreen} />
-      <Stack.Screen name="Categories" component={CategoriesScreen} />
       <Stack.Screen name="EditCategory" component={EditCategoryScreen} />
     </Stack.Navigator>
   );
