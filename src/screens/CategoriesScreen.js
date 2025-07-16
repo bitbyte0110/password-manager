@@ -337,14 +337,7 @@ const CategoriesScreen = ({ navigation, route }) => {
       return;
     }
 
-    if (selectedCategory.is_default) {
-      Alert.alert(
-        'Cannot Delete Category',
-        'Default categories cannot be deleted.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
+    // All categories can be deleted - removed default category restriction
 
     Alert.alert(
       'Delete Category',
@@ -1226,7 +1219,7 @@ const styles = StyleSheet.create({
   },
   filterChipsContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 2,
+    paddingVertical: 4,
   },
   filterChipsContent: {
     paddingRight: 16,
@@ -1237,8 +1230,7 @@ const styles = StyleSheet.create({
   },
   sortContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 2,
-    paddingBottom: 8,
+    paddingVertical: 4,
     alignItems: 'flex-end',
   },
   sortButton: {

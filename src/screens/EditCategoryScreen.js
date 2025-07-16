@@ -102,9 +102,11 @@ const EditCategoryScreen = ({ navigation, route }) => {
         return true;
       };
 
-      BackHandler.addEventListener('hardwareBackPress', onBackPress);
-      return () =>
-        BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+      const subscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        onBackPress
+      );
+      return () => subscription.remove();
     }, [])
   );
 
@@ -299,15 +301,7 @@ const EditCategoryScreen = ({ navigation, route }) => {
         return;
       }
 
-      // Check if it's a default category
-      if (category.is_default) {
-        Alert.alert(
-          'Cannot Delete Category',
-          'Default categories cannot be deleted.',
-          [{ text: 'OK' }]
-        );
-        return;
-      }
+      // All categories can be deleted - removed default category restriction
 
       // Show confirmation dialog
       Alert.alert(
