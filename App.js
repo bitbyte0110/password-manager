@@ -18,6 +18,7 @@ import AddPasswordScreen from './src/screens/AddPasswordScreen';
 import AddCategoryScreen from './src/screens/AddCategoryScreen';
 import CategoriesScreen from './src/screens/CategoriesScreen';
 import EditCategoryScreen from './src/screens/EditCategoryScreen';
+import { PasswordProvider } from './src/PasswordContext';
 
 // Create Stack Navigator
 const Stack = createStackNavigator();
@@ -199,56 +200,58 @@ const AppNavigator = () => {
   }
 
   return (
-    <SessionManager>
-      <Stack.Navigator
-        initialRouteName={initialRoute}
-        screenOptions={{
-          headerShown: false,
-          gestureEnabled: false,
-          animationTypeForReplace: 'push',
-        }}
-      >
-        <Stack.Screen
-          name="SetMasterPassword"
-          component={SetMasterPasswordScreen}
-          options={{ gestureEnabled: false }}
-        />
-        <Stack.Screen
-          name="ShowRecoveryPhraseScreen"
-          component={ShowRecoveryPhraseScreen}
-          options={{ gestureEnabled: false }}
-        />
-        <Stack.Screen
-          name="Login"
-          component={LoginScreen}
-          options={{ gestureEnabled: false }}
-        />
-        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-        <Stack.Screen
-          name="MyVault"
-          component={MyVaultScreen}
-          options={{ gestureEnabled: false }}
-        />
-        <Stack.Screen
-          name="PasswordGenerator"
-          component={PasswordGeneratorScreen}
-        />
-        <Stack.Screen name="AddPassword" component={AddPasswordScreen} />
-        <Stack.Screen name="AddCategory" component={AddCategoryScreen} />
-        <Stack.Screen name="Categories" component={CategoriesScreen} />
-        <Stack.Screen name="EditCategory" component={EditCategoryScreen} />
-      </Stack.Navigator>
-    </SessionManager>
+    <Stack.Navigator
+      initialRouteName={initialRoute}
+      screenOptions={{
+        headerShown: false,
+        gestureEnabled: false,
+        animationTypeForReplace: 'push',
+      }}
+    >
+      <Stack.Screen
+        name="SetMasterPassword"
+        component={SetMasterPasswordScreen}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="ShowRecoveryPhraseScreen"
+        component={ShowRecoveryPhraseScreen}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="Login"
+        component={LoginScreen}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <Stack.Screen
+        name="MyVault"
+        component={MyVaultScreen}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="PasswordGenerator"
+        component={PasswordGeneratorScreen}
+      />
+      <Stack.Screen name="AddPassword" component={AddPasswordScreen} />
+      <Stack.Screen name="AddCategory" component={AddCategoryScreen} />
+      <Stack.Screen name="Categories" component={CategoriesScreen} />
+      <Stack.Screen name="EditCategory" component={EditCategoryScreen} />
+    </Stack.Navigator>
   );
 };
 
 export default function App() {
   return (
     <PaperProvider theme={theme}>
-      <NavigationContainer>
-        <AppNavigator />
-        <StatusBar style="auto" />
-      </NavigationContainer>
+      <PasswordProvider>
+        <NavigationContainer>
+          <SessionManager>
+            <AppNavigator />
+            <StatusBar style="auto" />
+          </SessionManager>
+        </NavigationContainer>
+      </PasswordProvider>
     </PaperProvider>
   );
 }

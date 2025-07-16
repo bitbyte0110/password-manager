@@ -18,6 +18,7 @@ import { useFocusEffect } from '@react-navigation/native';
 
 import vaultService from '../services/vaultService';
 import FABActionMenu from '../components/FABActionMenu';
+import { usePasswords } from '../PasswordContext';
 
 // Constants for activity tracking
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
@@ -25,13 +26,12 @@ const { height: screenHeight } = Dimensions.get('window');
 
 const MyVaultScreen = ({ navigation, route }) => {
   // State management
-  const [passwords, setPasswords] = useState([]);
+  const { passwords, loading, error, loadPasswords } = usePasswords();
   const [categories, setCategories] = useState([]);
   const [filteredPasswords, setFilteredPasswords] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState('recently_used');
-  const [isLoading, setIsLoading] = useState(true);
   const [recentSearches, setRecentSearches] = useState([]);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -78,8 +78,6 @@ const MyVaultScreen = ({ navigation, route }) => {
 
   const initializeVault = async () => {
     try {
-      setIsLoading(true);
-
       // Initialize vault service (now includes authentication restoration)
       await vaultService.initialize();
 
@@ -97,7 +95,12 @@ const MyVaultScreen = ({ navigation, route }) => {
 
       // Load data
       await Promise.all([
-        loadPasswords(),
+        loadPasswords(() =>
+          vaultService.getPasswordEntries({
+            sortBy: 'last_accessed',
+            sortOrder: 'DESC',
+          })
+        ),
         loadCategories(),
         loadRecentSearches(),
         updateActivity(),
@@ -124,146 +127,7 @@ const MyVaultScreen = ({ navigation, route }) => {
         navigation.replace('Login');
       }
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadPasswords = async () => {
-    try {
-      setAuthError(null);
-      console.log(
-        'MyVaultScreen: Loading passwords with enhanced error handling...'
-      );
-
-      // Ensure vault service is authenticated before loading passwords
-      if (!vaultService.isUserAuthenticated()) {
-        console.log('Vault service not authenticated, redirecting to login');
-        navigation.replace('Login');
-        return;
-      }
-
-      console.log(
-        'Loading passwords with comprehensive decryption error handling...'
-      );
-      const decryptedPasswords = await vaultService.getPasswordEntries({
-        sortBy: 'last_accessed',
-        sortOrder: 'DESC',
-      });
-
-      console.log(
-        `Successfully loaded ${decryptedPasswords.length} password entries`
-      );
-
-      // Filter out entries that had critical decryption failures vs those with partial failures
-      const validEntries = decryptedPasswords.filter(entry => {
-        // Allow entries with optional field decryption failures (URL, notes)
-        // but exclude entries where core fields (title, username, password) failed
-        if (entry.decryptionError) {
-          console.log(
-            `Entry ${entry.id} has decryption error, excluding from display`
-          );
-          return false;
-        }
-        return true;
-      });
-
-      const failedEntries = decryptedPasswords.length - validEntries.length;
-      if (failedEntries > 0) {
-        console.log(
-          `${failedEntries} entries had critical decryption failures and were excluded`
-        );
-      }
-
-      console.log(
-        'Password entries sample:',
-        validEntries.slice(0, 2).map(p => ({
-          id: p.id,
-          title: p.title,
-          username: p.username,
-          url: p.url ? 'has URL' : 'no URL',
-          notes: p.notes ? 'has notes' : 'no notes',
-          categoryId: p.categoryId,
-          categoryName: p.categoryName,
-          decryptionError: p.decryptionError,
-        }))
-      );
-
-      setPasswords(validEntries);
-    } catch (error) {
-      console.error('Error loading passwords:', error);
-
-      // Handle specific error types with better user guidance
-      if (
-        error.message.includes('not authenticated') ||
-        error.message.includes('master password') ||
-        error.message.includes('authentication required')
-      ) {
-        console.log(
-          'Authentication error detected, providing user recovery options'
-        );
-        setAuthError('Authentication required. Your session may have expired.');
-
-        Alert.alert(
-          'Authentication Required',
-          'Your session has expired or there was an authentication issue. Please log in again to access your vault.',
-          [
-            {
-              text: 'Login Again',
-              onPress: () => {
-                // Clear any corrupted vault service state
-                vaultService.clearSession();
-                navigation.replace('Login');
-              },
-            },
-          ]
-        );
-      } else if (error.message.includes('Decryption failed')) {
-        console.log('Decryption error detected, offering recovery options');
-        setAuthError(
-          'Some passwords could not be decrypted. This might be due to data corruption or session issues.'
-        );
-
-        Alert.alert(
-          'Decryption Error',
-          'Some of your password entries could not be decrypted. This might be due to session issues or data corruption.',
-          [
-            {
-              text: 'Try Again',
-              onPress: () => loadPasswords(),
-            },
-            {
-              text: 'Re-authenticate',
-              onPress: () => {
-                vaultService.clearSession();
-                navigation.replace('Login');
-              },
-            },
-          ]
-        );
-      } else {
-        // For other errors, show error but offer retry option
-        console.log('General error loading passwords, offering retry options');
-        setAuthError(
-          'Failed to load passwords. This might be a temporary issue.'
-        );
-        Alert.alert(
-          'Error Loading Passwords',
-          'There was an error loading your passwords. This might be a temporary network or storage issue.',
-          [
-            {
-              text: 'Retry',
-              onPress: () => loadPasswords(),
-            },
-            {
-              text: 'Re-authenticate',
-              onPress: () => {
-                vaultService.clearSession();
-                navigation.replace('Login');
-              },
-            },
-          ]
-        );
-      }
+      // setIsLoading(false); // This line is removed as loading is now managed by context
     }
   };
 
@@ -735,7 +599,7 @@ const MyVaultScreen = ({ navigation, route }) => {
     />
   );
 
-  if (isLoading) {
+  if (loading) {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: theme.background }]}
