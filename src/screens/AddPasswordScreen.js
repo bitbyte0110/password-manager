@@ -9,11 +9,9 @@ import {
   useColorScheme,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
 import {
   TextInput,
-  Button,
   Snackbar,
   Menu,
   Divider,
@@ -44,7 +42,7 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
 
   // UI state
   const [categories, setCategories] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
@@ -70,9 +68,35 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
   };
 
   useEffect(() => {
-    updateActivity();
-    loadCategories();
+    initializeScreen();
   }, []);
+
+  const initializeScreen = async () => {
+    try {
+      setIsInitializing(true);
+      updateActivity();
+
+      // Initialize vault service and database
+      await vaultService.initialize();
+
+      // Check if user is authenticated
+      if (!vaultService.isUserAuthenticated()) {
+        console.log('User not authenticated, redirecting to login');
+        navigation.replace('Login');
+        return;
+      }
+
+      // Load categories after database is initialized
+      await loadCategories();
+    } catch (error) {
+      console.error('Error initializing AddPasswordScreen:', error);
+      showSnackbar('Error initializing screen. Please try again.');
+      // Navigate back if initialization fails
+      navigation.goBack();
+    } finally {
+      setIsInitializing(false);
+    }
+  };
 
   // Handle returned password from PasswordGeneratorScreen
   useEffect(() => {
@@ -201,6 +225,31 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
     setIsSaving(true);
 
     try {
+      // Ensure vault service and database are initialized
+      if (!vaultService.isUserAuthenticated()) {
+        console.log('User not authenticated, re-initializing vault service');
+        await vaultService.initialize();
+
+        if (!vaultService.isUserAuthenticated()) {
+          showSnackbar('Authentication error. Please log in again.');
+          navigation.replace('Login');
+          return;
+        }
+      }
+
+      // Double-check database connection
+      const dbStats = await vaultService.getVaultStats();
+      if (!dbStats.isInitialized) {
+        throw new Error('Database not properly initialized');
+      }
+    } catch (initError) {
+      console.error('Error during save initialization:', initError);
+      showSnackbar('Database connection error. Please try again.');
+      setIsSaving(false);
+      return;
+    }
+
+    try {
       // Prepare password entry for database
       const passwordEntry = {
         title: formData.title.trim(),
@@ -267,6 +316,22 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
       isCreateNew: true,
     },
   ];
+
+  // Show loading screen while initializing
+  if (isInitializing) {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: theme.background }]}
+      >
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.primary} />
+          <Text style={[styles.loadingText, { color: theme.text }]}>
+            Initializing secure vault...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView
@@ -718,6 +783,17 @@ const styles = StyleSheet.create({
   },
   snackbar: {
     backgroundColor: '#333',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    textAlign: 'center',
   },
 });
 
