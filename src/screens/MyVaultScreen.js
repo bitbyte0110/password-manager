@@ -17,6 +17,7 @@ import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useFocusEffect } from '@react-navigation/native';
 
 import vaultService from '../services/vaultService';
+import FABActionMenu from '../components/FABActionMenu';
 
 // Constants for activity tracking
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
@@ -441,7 +442,7 @@ const MyVaultScreen = ({ navigation, route }) => {
   const handleAddCategory = () => {
     setShowAddModal(false);
     updateActivity();
-    // navigation.navigate('AddCategory');
+    navigation.navigate('Categories', { createNew: true });
   };
 
   const handleTabPress = tab => {
@@ -727,92 +728,11 @@ const MyVaultScreen = ({ navigation, route }) => {
   );
 
   const renderAddModal = () => (
-    <Modal
+    <FABActionMenu
       visible={showAddModal}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={() => setShowAddModal(false)}
-    >
-      <View style={styles.modalContainer}>
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowAddModal(false)}
-        />
-        <View
-          style={[
-            styles.addModalContent,
-            { backgroundColor: theme.background },
-          ]}
-        >
-          <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>
-              Add New
-            </Text>
-            <TouchableOpacity onPress={() => setShowAddModal(false)}>
-              <Icon name="times" size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity
-            style={styles.addOption}
-            onPress={() => {
-              setShowAddModal(false);
-              handleAddPassword();
-            }}
-          >
-            <View
-              style={[styles.addOptionIcon, { backgroundColor: theme.primary }]}
-            >
-              <Icon name="key" size={20} color="#fff" />
-            </View>
-            <View style={styles.addOptionContent}>
-              <Text style={[styles.addOptionTitle, { color: theme.text }]}>
-                Add Password
-              </Text>
-              <Text
-                style={[
-                  styles.addOptionSubtitle,
-                  { color: theme.textSecondary },
-                ]}
-              >
-                Store a new login credential
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.addOption}
-            onPress={() => {
-              setShowAddModal(false);
-              handleAddCategory();
-            }}
-          >
-            <View
-              style={[
-                styles.addOptionIcon,
-                { backgroundColor: theme.secondary },
-              ]}
-            >
-              <Icon name="folder-plus" size={20} color="#fff" />
-            </View>
-            <View style={styles.addOptionContent}>
-              <Text style={[styles.addOptionTitle, { color: theme.text }]}>
-                Add Category
-              </Text>
-              <Text
-                style={[
-                  styles.addOptionSubtitle,
-                  { color: theme.textSecondary },
-                ]}
-              >
-                Create a new category
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
+      onClose={() => setShowAddModal(false)}
+      navigation={navigation}
+    />
   );
 
   if (isLoading) {
@@ -1177,11 +1097,7 @@ const styles = StyleSheet.create({
     maxHeight: screenHeight * 0.6,
     paddingBottom: 20,
   },
-  addModalContent: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingBottom: 20,
-  },
+
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1215,31 +1131,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  addOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    gap: 12,
-  },
-  addOptionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addOptionContent: {
-    flex: 1,
-  },
-  addOptionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  addOptionSubtitle: {
-    fontSize: 14,
   },
 });
 

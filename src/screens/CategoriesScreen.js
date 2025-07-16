@@ -28,6 +28,7 @@ import { useFocusEffect } from '@react-navigation/native';
 
 import vaultService from '../services/vaultService';
 import databaseService from '../services/databaseService';
+import FABActionMenu from '../components/FABActionMenu';
 
 // Constants for activity tracking
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
@@ -94,6 +95,7 @@ const CategoriesScreen = ({ navigation, route }) => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [activeTab, setActiveTab] = useState('categories');
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
+  const [showFABMenu, setShowFABMenu] = useState(false);
 
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -422,6 +424,11 @@ const CategoriesScreen = ({ navigation, route }) => {
     });
     setFormErrors({});
     setShowCreateModal(true);
+    updateActivity();
+  };
+
+  const handleFABPress = () => {
+    setShowFABMenu(true);
     updateActivity();
   };
 
@@ -1116,7 +1123,7 @@ const CategoriesScreen = ({ navigation, route }) => {
       <View style={styles.fabContainer}>
         <TouchableOpacity
           style={[styles.fab, { backgroundColor: theme.primary }]}
-          onPress={handleCreateCategory}
+          onPress={handleFABPress}
         >
           <Icon name="plus" size={24} color="#fff" />
         </TouchableOpacity>
@@ -1167,6 +1174,14 @@ const CategoriesScreen = ({ navigation, route }) => {
 
       {/* Create Modal */}
       {renderCreateModal()}
+
+      {/* FAB Action Menu */}
+      <FABActionMenu
+        visible={showFABMenu}
+        onClose={() => setShowFABMenu(false)}
+        navigation={navigation}
+        onAddCategory={handleCreateCategory}
+      />
 
       {/* Snackbar */}
       <Snackbar
