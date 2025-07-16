@@ -20,6 +20,7 @@ import AddPasswordScreen from './src/screens/AddPasswordScreen';
 import AddCategoryScreen from './src/screens/AddCategoryScreen';
 import CategoriesScreen from './src/screens/CategoriesScreen';
 import EditCategoryScreen from './src/screens/EditCategoryScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
 import { PasswordProvider } from './src/PasswordContext';
 
 // Create Stack Navigator
@@ -120,6 +121,7 @@ function MainTabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
+        headerShown: false,
         tabBarIcon: ({ color, size }) => {
           let iconName;
           if (route.name === 'MyVault') iconName = 'shield-alt';
@@ -128,19 +130,33 @@ function MainTabs() {
           else if (route.name === 'Settings') iconName = 'cog';
           return <Icon name={iconName} size={size} color={color} />;
         },
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: '#666666',
+        tabBarStyle: {
+          backgroundColor: theme.colors.surface,
+        },
       })}
-      tabBarOptions={{
-        activeTintColor: theme.colors.primary,
-        inactiveTintColor: theme.colors.text,
-      }}
     >
-      <Tab.Screen name="MyVault" component={MyVaultScreen} />
-      <Tab.Screen name="Categories" component={CategoriesScreen} />
+      <Tab.Screen
+        name="MyVault"
+        component={MyVaultScreen}
+        options={{ tabBarLabel: 'My Vault' }}
+      />
+      <Tab.Screen
+        name="Categories"
+        component={CategoriesScreen}
+        options={{ tabBarLabel: 'Categories' }}
+      />
       <Tab.Screen
         name="PasswordGenerator"
         component={PasswordGeneratorScreen}
+        options={{ tabBarLabel: 'Generator' }}
       />
-      {/* Add SettingsScreen if exists */}
+      <Tab.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{ tabBarLabel: 'Settings' }}
+      />
     </Tab.Navigator>
   );
 }

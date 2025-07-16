@@ -43,7 +43,6 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
   // UI state
   const [isLoading, setIsLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
-  const [activeTab, setActiveTab] = useState('generator');
 
   // Get color scheme for theme support
   const colorScheme = useColorScheme();
@@ -205,25 +204,6 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
     } catch (error) {
       console.error('Error copying to clipboard:', error);
       showSnackbar('Error copying password');
-    }
-  };
-
-  const handleTabPress = tab => {
-    setActiveTab(tab);
-    updateActivity();
-
-    switch (tab) {
-      case 'vault':
-        navigation.navigate('MyVault');
-        break;
-      case 'categories':
-        navigation.navigate('Categories');
-        break;
-      case 'settings':
-        // navigation.navigate('Settings');
-        break;
-      default:
-        break;
     }
   };
 
@@ -537,46 +517,6 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
         </Card>
       </ScrollView>
 
-      {/* Bottom Navigation */}
-      <View
-        style={[
-          styles.bottomNav,
-          { backgroundColor: theme.background, borderTopColor: theme.border },
-        ]}
-      >
-        {[
-          { key: 'vault', icon: 'shield-alt', label: 'My Vault' },
-          { key: 'categories', icon: 'folder', label: 'Categories' },
-          { key: 'generator', icon: 'key', label: 'Generator' },
-          { key: 'settings', icon: 'cog', label: 'Settings' },
-        ].map(tab => (
-          <TouchableOpacity
-            key={tab.key}
-            style={styles.bottomNavTab}
-            onPress={() => handleTabPress(tab.key)}
-          >
-            <Icon
-              name={tab.icon}
-              size={20}
-              color={
-                activeTab === tab.key ? theme.primary : theme.textSecondary
-              }
-            />
-            <Text
-              style={[
-                styles.bottomNavLabel,
-                {
-                  color:
-                    activeTab === tab.key ? theme.primary : theme.textSecondary,
-                },
-              ]}
-            >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
       {/* Snackbar */}
       <Snackbar
         visible={snackbar.visible}
@@ -725,22 +665,7 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.6,
   },
-  bottomNav: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    paddingHorizontal: 0,
-    paddingBottom: 15,
-    borderTopWidth: 1,
-  },
-  bottomNavTab: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  bottomNavLabel: {
-    fontSize: 12,
-    marginTop: 4,
-  },
+
   snackbar: {
     backgroundColor: '#333',
   },
