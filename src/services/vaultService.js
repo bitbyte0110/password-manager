@@ -194,6 +194,22 @@ class VaultService {
         // Create and store session token for restoration
         await this.createSessionToken(password);
 
+        // Auto-migrate legacy entries on successful authentication
+        try {
+          const migratedCount = await this.migrateLegacyEntries();
+          if (migratedCount > 0) {
+            console.log(
+              `Auto-migrated ${migratedCount} entries to optimized format`
+            );
+          }
+        } catch (migrationError) {
+          console.warn(
+            'Migration failed, but continuing with authentication:',
+            migrationError
+          );
+          // Don't fail authentication if migration fails
+        }
+
         console.log(
           'VaultService: Authentication successful, session token created'
         );
@@ -512,7 +528,7 @@ class VaultService {
   }
 
   /**
-   * Decrypt a password entry with enhanced null handling and error recovery
+   * Decrypt a password entry using optimized single-payload approach
    * @param {Object} encryptedEntry - Encrypted password entry
    * @returns {Promise<Object>} Decrypted password entry
    */
@@ -521,33 +537,52 @@ class VaultService {
       throw new Error('User not authenticated');
     }
 
-    console.log('=== DECRYPTION DEBUG ===');
-    console.log('Authentication status:', this.isAuthenticated);
-    console.log('Master password available:', !!this.masterPassword);
-    console.log(
-      'Master password length:',
-      this.masterPassword ? this.masterPassword.length : 'N/A'
-    );
-    console.log('Encrypted entry ID:', encryptedEntry.id);
-    console.log('Encrypted entry keys:', Object.keys(encryptedEntry));
-
     try {
       // Verify master password is available
       if (!this.masterPassword) {
-        console.error('CRITICAL: Master password is null or undefined!');
         console.log('Attempting to restore authentication...');
-
-        // Try to restore authentication
         const restored = await this.tryRestoreAuthentication();
         if (!restored || !this.masterPassword) {
           throw new Error(
             'Master password not available - authentication required'
           );
         }
-        console.log('Authentication restored, master password now available');
       }
 
-      // Parse encrypted fields with enhanced null handling
+      // Check if this is legacy format (has individual encrypted fields)
+      if (encryptedEntry.title_encrypted && !encryptedEntry.encrypted_payload) {
+        return await this.decryptPasswordEntryLegacy(encryptedEntry);
+      }
+
+      // Use optimized single-payload decryption
+      if (!encryptedEntry.encrypted_payload) {
+        throw new Error('No encrypted payload found in entry');
+      }
+
+      const parsedPayload = JSON.parse(encryptedEntry.encrypted_payload);
+      return encryptionService.decryptPasswordEntryOptimized(
+        {
+          ...encryptedEntry,
+          encrypted_payload: parsedPayload,
+        },
+        this.masterPassword
+      );
+    } catch (error) {
+      console.error('Error decrypting password entry:', error);
+      console.error('Entry ID:', encryptedEntry.id);
+      throw error;
+    }
+  }
+
+  /**
+   * Decrypt password entry using legacy format (for backward compatibility)
+   * @param {Object} encryptedEntry - Encrypted password entry in legacy format
+   * @returns {Promise<Object>} Decrypted password entry
+   */
+  async decryptPasswordEntryLegacy(encryptedEntry) {
+    try {
+      console.log('Using legacy decryption for entry:', encryptedEntry.id);
+
       const decrypted = {
         id: encryptedEntry.id,
         title: '',
@@ -565,195 +600,27 @@ class VaultService {
         lastAccessed: encryptedEntry.last_accessed,
       };
 
-      console.log('Decrypting fields for entry:', encryptedEntry.id);
-
-      // Helper function to safely decrypt a field with comprehensive null handling
-      const safeDecryptField = (
-        fieldName,
-        encryptedData,
-        isOptional = false
-      ) => {
-        console.log(`\n--- Attempting to decrypt ${fieldName} ---`);
-        console.log(`${fieldName} raw data:`, encryptedData);
-        console.log(`${fieldName} data type:`, typeof encryptedData);
-
+      // Safely decrypt each field
+      const decryptField = fieldData => {
+        if (!fieldData || fieldData === 'null' || fieldData === '') return '';
         try {
-          // CRITICAL: Never attempt to decrypt if data is null, undefined, or empty
-          // This prevents the "Encrypted data and master password are required" error
-          if (encryptedData === null) {
-            console.log(
-              `${fieldName}: Value is null - treating as empty field`
-            );
-            return '';
-          }
-
-          if (encryptedData === undefined) {
-            console.log(
-              `${fieldName}: Value is undefined - treating as empty field`
-            );
-            return '';
-          }
-
-          if (encryptedData === '') {
-            console.log(
-              `${fieldName}: Value is empty string - treating as empty field`
-            );
-            return '';
-          }
-
-          // Handle string "null" values from database (legacy data)
-          if (encryptedData === 'null') {
-            console.log(
-              `${fieldName}: Found string "null" - treating as empty field`
-            );
-            return '';
-          }
-
-          if (encryptedData === '"null"') {
-            console.log(
-              `${fieldName}: Found JSON string "null" - treating as empty field`
-            );
-            return '';
-          }
-
-          // Verify master password is available before attempting decryption
-          if (!this.masterPassword) {
-            console.error(
-              `${fieldName}: Master password not available during decryption`
-            );
-            return isOptional ? '' : `[${fieldName} Error: No Key]`;
-          }
-
-          // Attempt to parse the encrypted data as JSON
-          console.log(`${fieldName}: Parsing JSON data...`);
-          let parsedData;
-          try {
-            parsedData = JSON.parse(encryptedData);
-          } catch (parseError) {
-            console.error(
-              `${fieldName}: JSON parse failed - data may be corrupted`
-            );
-            console.error(`${fieldName}: Parse error:`, parseError.message);
-            console.error(`${fieldName}: Raw data:`, encryptedData);
-            return isOptional ? '' : `[${fieldName} Error: Invalid Data]`;
-          }
-
-          // Validate that parsed data has the required encryption structure
-          if (!parsedData || typeof parsedData !== 'object') {
-            console.error(
-              `${fieldName}: Parsed data is not an object - invalid encryption format`
-            );
-            return isOptional ? '' : `[${fieldName} Error: Invalid Format]`;
-          }
-
-          // Check for required encryption properties
-          if (!parsedData.ciphertext || !parsedData.salt || !parsedData.iv) {
-            console.error(
-              `${fieldName}: Missing required encryption properties (ciphertext, salt, iv)`
-            );
-            console.error(
-              `${fieldName}: Available properties:`,
-              Object.keys(parsedData)
-            );
-            return isOptional
-              ? ''
-              : `[${fieldName} Error: Incomplete Encryption]`;
-          }
-
-          console.log(
-            `${fieldName}: Valid encryption structure found - attempting decryption`
-          );
-
-          // SAFE: Now we know we have valid data and master password - attempt decryption
-          const decryptedValue = encryptionService.decrypt(
-            parsedData,
-            this.masterPassword
-          );
-
-          console.log(
-            `${fieldName}: Decryption successful - length: ${decryptedValue ? decryptedValue.length : 0}`
-          );
-
-          // Return the decrypted value or empty string if null
-          return decryptedValue || '';
+          const parsed = JSON.parse(fieldData);
+          return encryptionService.decrypt(parsed, this.masterPassword);
         } catch (error) {
-          console.error(
-            `\n!!! CRITICAL ${fieldName.toUpperCase()} DECRYPTION ERROR !!!`
-          );
-          console.error(`Error type: ${error.constructor.name}`);
-          console.error(`Error message: ${error.message}`);
-          console.error(`Original encrypted data: ${encryptedData}`);
-          console.error(`Data type: ${typeof encryptedData}`);
-          console.error(`Master password available: ${!!this.masterPassword}`);
-          console.error(`Is optional field: ${isOptional}`);
-
-          // For optional fields (URL, notes), always return empty string to prevent UI errors
-          if (isOptional) {
-            console.log(
-              `${fieldName} is optional - returning empty string to prevent app failure`
-            );
-            return '';
-          }
-
-          // For required fields, return a clear error indicator
-          console.log(`${fieldName} is required - returning error indicator`);
-          return `[${fieldName} Decryption Failed]`;
+          console.warn('Failed to decrypt field:', error.message);
+          return '';
         }
       };
 
-      // Decrypt each field with proper optional field handling
-      console.log('\n=== STARTING FIELD DECRYPTION ===');
-
-      // Required fields
-      decrypted.title = safeDecryptField(
-        'title',
-        encryptedEntry.title_encrypted,
-        false
-      );
-      decrypted.username = safeDecryptField(
-        'username',
-        encryptedEntry.username_encrypted,
-        false
-      );
-      decrypted.password = safeDecryptField(
-        'password',
-        encryptedEntry.password_encrypted,
-        false
-      );
-
-      // Optional fields - these should never cause errors, just return empty strings
-      decrypted.url = safeDecryptField(
-        'url',
-        encryptedEntry.url_encrypted,
-        true
-      );
-      decrypted.notes = safeDecryptField(
-        'notes',
-        encryptedEntry.notes_encrypted,
-        true
-      );
-
-      console.log('\n=== DECRYPTION COMPLETE ===');
-      console.log('Final decrypted entry:', {
-        id: decrypted.id,
-        title: decrypted.title,
-        username: decrypted.username,
-        url: decrypted.url,
-        notes: decrypted.notes,
-        categoryId: decrypted.categoryId,
-        categoryName: decrypted.categoryName,
-      });
-      console.log('=== END DECRYPTION DEBUG ===');
+      decrypted.title = decryptField(encryptedEntry.title_encrypted);
+      decrypted.username = decryptField(encryptedEntry.username_encrypted);
+      decrypted.password = decryptField(encryptedEntry.password_encrypted);
+      decrypted.url = decryptField(encryptedEntry.url_encrypted);
+      decrypted.notes = decryptField(encryptedEntry.notes_encrypted);
 
       return decrypted;
     } catch (error) {
-      console.error('=== CRITICAL DECRYPTION ERROR ===');
-      console.error('Error decrypting password entry:', error);
-      console.error('Authentication state:', this.isAuthenticated);
-      console.error('Master password available:', !!this.masterPassword);
-      console.error('Entry ID:', encryptedEntry.id);
-      console.error('Entry keys:', Object.keys(encryptedEntry));
-      console.error('=== END CRITICAL DECRYPTION ERROR ===');
+      console.error('Legacy decryption failed:', error);
       throw error;
     }
   }
@@ -768,6 +635,76 @@ class VaultService {
       await this.dbService.getPasswordById(id); // This automatically updates last_accessed
     } catch (error) {
       console.error('Error updating last accessed:', error);
+    }
+  }
+
+  /**
+   * Migrate legacy password entries to optimized format
+   * @returns {Promise<number>} Number of entries migrated
+   */
+  async migrateLegacyEntries() {
+    if (!this.isUserAuthenticated()) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      console.log('Starting migration of legacy password entries...');
+
+      // Get all entries that have legacy format (title_encrypted exists but not encrypted_payload)
+      const legacyEntries = await this.dbService.db.getAllAsync(
+        `SELECT * FROM passwords WHERE title_encrypted IS NOT NULL AND encrypted_payload IS NULL`
+      );
+
+      let migratedCount = 0;
+
+      for (const entry of legacyEntries) {
+        try {
+          console.log(`Migrating entry ${entry.id}...`);
+
+          // Decrypt using legacy method
+          const decryptedEntry = await this.decryptPasswordEntryLegacy(entry);
+
+          // Re-encrypt using optimized method
+          const optimizedEntry =
+            encryptionService.encryptPasswordEntryOptimized(
+              {
+                title: decryptedEntry.title,
+                username: decryptedEntry.username,
+                password: decryptedEntry.password,
+                url: decryptedEntry.url,
+                notes: decryptedEntry.notes,
+                categoryId: decryptedEntry.categoryId,
+                isFavorite: decryptedEntry.isFavorite,
+              },
+              this.masterPassword
+            );
+
+          // Update database with new format
+          await this.dbService.db.runAsync(
+            `UPDATE passwords 
+             SET encrypted_payload = ?, 
+                 title_encrypted = NULL, username_encrypted = NULL, 
+                 password_encrypted = NULL, url_encrypted = NULL, notes_encrypted = NULL,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?`,
+            [JSON.stringify(optimizedEntry.encrypted_payload), entry.id]
+          );
+
+          migratedCount++;
+          console.log(`Successfully migrated entry ${entry.id}`);
+        } catch (error) {
+          console.error(`Failed to migrate entry ${entry.id}:`, error);
+          // Continue with other entries even if one fails
+        }
+      }
+
+      console.log(
+        `Migration completed: ${migratedCount}/${legacyEntries.length} entries migrated`
+      );
+      return migratedCount;
+    } catch (error) {
+      console.error('Migration failed:', error);
+      throw error;
     }
   }
 }
