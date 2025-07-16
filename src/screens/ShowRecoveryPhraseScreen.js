@@ -69,7 +69,7 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
               setShowSuccessScreen(true);
               setTimeout(() => {
                 if (navigation) {
-                  navigation.replace('MyVault');
+                  navigation.replace('MainTabs');
                 }
               }, 2500);
             }
@@ -113,7 +113,7 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
     setShowSuccessScreen(true);
     setTimeout(() => {
       if (navigation) {
-        navigation.replace('MyVault');
+        navigation.replace('MainTabs');
       }
     }, 2500);
   };

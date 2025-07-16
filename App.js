@@ -207,13 +207,13 @@ const AppNavigator = () => {
         }
         return 'Login';
       } else {
-        // Session still valid, go directly to MyVault
+        // Session still valid, go directly to MainTabs
         console.log(
-          `Session valid (${Math.round(timeDifference / 1000)}s ago), accessing MyVault`
+          `Session valid (${Math.round(timeDifference / 1000)}s ago), accessing MainTabs`
         );
         // Update activity timestamp
         await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, Date.now().toString());
-        return 'MyVault';
+        return 'MainTabs';
       }
     } catch (error) {
       console.error('Error checking vault status:', error);
@@ -257,17 +257,12 @@ const AppNavigator = () => {
       />
       <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
       <Stack.Screen
-        name="MyVault"
-        component={MyVaultScreen}
+        name="MainTabs"
+        component={MainTabs}
         options={{ gestureEnabled: false }}
-      />
-      <Stack.Screen
-        name="PasswordGenerator"
-        component={PasswordGeneratorScreen}
       />
       <Stack.Screen name="AddPassword" component={AddPasswordScreen} />
       <Stack.Screen name="AddCategory" component={AddCategoryScreen} />
-      <Stack.Screen name="Categories" component={CategoriesScreen} />
       <Stack.Screen name="EditCategory" component={EditCategoryScreen} />
     </Stack.Navigator>
   );
