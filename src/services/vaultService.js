@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { Buffer } from 'buffer';
 import databaseService from './databaseService';
 import encryptionService from './encryptionService';
+import { usePasswords } from '../PasswordContext';
 
 /**
  * Vault Service for handling master password and data operations

@@ -4,6 +4,8 @@ import { Provider as PaperProvider, DefaultTheme } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import Icon from 'react-native-vector-icons/FontAwesome5';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -22,6 +24,7 @@ import { PasswordProvider } from './src/PasswordContext';
 
 // Create Stack Navigator
 const Stack = createStackNavigator();
+const Tab = createBottomTabNavigator();
 
 const theme = {
   ...DefaultTheme,
@@ -112,6 +115,35 @@ const SessionManager = ({ children }) => {
     </View>
   );
 };
+
+function MainTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ color, size }) => {
+          let iconName;
+          if (route.name === 'MyVault') iconName = 'shield-alt';
+          else if (route.name === 'Categories') iconName = 'folder';
+          else if (route.name === 'PasswordGenerator') iconName = 'key';
+          else if (route.name === 'Settings') iconName = 'cog';
+          return <Icon name={iconName} size={size} color={color} />;
+        },
+      })}
+      tabBarOptions={{
+        activeTintColor: theme.colors.primary,
+        inactiveTintColor: theme.colors.text,
+      }}
+    >
+      <Tab.Screen name="MyVault" component={MyVaultScreen} />
+      <Tab.Screen name="Categories" component={CategoriesScreen} />
+      <Tab.Screen
+        name="PasswordGenerator"
+        component={PasswordGeneratorScreen}
+      />
+      {/* Add SettingsScreen if exists */}
+    </Tab.Navigator>
+  );
+}
 
 // Main App Navigator
 const AppNavigator = () => {
