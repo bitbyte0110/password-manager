@@ -20,11 +20,10 @@ import {
   TextInput,
   Button,
   Chip,
-  FAB,
 } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/FontAwesome5';
-import { LinearGradient } from 'expo-linear-gradient';
+// import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 
 import vaultService from '../services/vaultService';
@@ -73,7 +72,7 @@ const CATEGORY_COLORS = [
   '#16a085',
   '#27ae60',
   '#2980b9',
-  '#8e44ad',
+  '#e91e63',
   '#c0392b',
   '#d35400',
   '#7f8c8d',
@@ -1069,22 +1068,21 @@ const CategoriesScreen = ({ navigation, route }) => {
         refreshing={isRefreshing}
         onRefresh={loadCategories}
         contentContainerStyle={
-          filteredCategories.length === 0 ? styles.emptyListContainer : null
+          filteredCategories.length === 0
+            ? styles.emptyListContainer
+            : { paddingTop: 4 }
         }
       />
 
       {/* Floating Action Button */}
-      <LinearGradient
-        colors={['#7E57C2', '#26A69A']}
-        style={styles.fabGradient}
-      >
-        <FAB
-          icon="plus"
-          style={[styles.fab, { backgroundColor: 'transparent' }]}
+      <View style={styles.fabContainer}>
+        <TouchableOpacity
+          style={[styles.fab, { backgroundColor: theme.primary }]}
           onPress={handleCreateCategory}
-          color="#fff"
-        />
-      </LinearGradient>
+        >
+          <Icon name="plus" size={24} color="#fff" />
+        </TouchableOpacity>
+      </View>
 
       {/* Bottom Navigation */}
       <View
@@ -1193,28 +1191,29 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
   searchBar: {
     elevation: 0,
     shadowOpacity: 0,
-    borderRadius: 25,
+    borderRadius: 8,
     height: 50,
   },
   filterChipsContainer: {
     paddingHorizontal: 16,
-    marginBottom: 8,
+    paddingVertical: 2,
   },
   filterChipsContent: {
     paddingRight: 16,
   },
   filterChip: {
     marginRight: 8,
-    height: 36,
+    height: 32,
   },
   sortContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 2,
+    paddingBottom: 8,
     alignItems: 'flex-end',
   },
   sortButton: {
@@ -1230,14 +1229,15 @@ const styles = StyleSheet.create({
   },
   categoriesList: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
   },
   emptyListContainer: {
-    flexGrow: 1,
+    paddingTop: 20,
   },
   categoryCard: {
     borderRadius: 12,
     marginVertical: 4,
+    marginHorizontal: 16,
     elevation: 2,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1281,10 +1281,10 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   emptyState: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 80,
+    paddingTop: 20,
+    paddingHorizontal: 20,
   },
   emptyStateTitle: {
     fontSize: 20,
@@ -1297,14 +1297,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 40,
   },
-  fabGradient: {
+  fabContainer: {
     position: 'absolute',
-    bottom: 80,
+    bottom: 150,
     right: 20,
-    borderRadius: 28,
   },
   fab: {
-    margin: 0,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 6,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
   bottomNav: {
     flexDirection: 'row',
