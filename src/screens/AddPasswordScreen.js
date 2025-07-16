@@ -185,10 +185,11 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
 
   const handleCategorySelect = category => {
     if (category.id === 'create_new') {
-      // Navigate to AddCategoryScreen
+      // Navigate to Categories screen to create new category
       setShowCategoryMenu(false);
-      navigation.navigate('AddCategoryScreen', {
-        returnScreen: 'AddPasswordScreen',
+      navigation.navigate('Categories', {
+        createNew: true,
+        returnScreen: 'AddPassword',
       });
     } else {
       setFormData(prev => ({

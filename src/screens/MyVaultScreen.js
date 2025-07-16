@@ -271,7 +271,7 @@ const MyVaultScreen = ({ navigation }) => {
         navigation.navigate('PasswordGenerator');
         break;
       case 'categories':
-        // navigation.navigate('Categories');
+        navigation.navigate('Categories');
         break;
       case 'settings':
         // navigation.navigate('Settings');
