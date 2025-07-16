@@ -241,9 +241,12 @@ const AddCategoryScreen = ({ navigation, route }) => {
 
       // Navigate back to Categories screen with refresh
       setTimeout(() => {
-        navigation.navigate('Categories', {
-          refresh: true,
-          createdCategory: true,
+        navigation.navigate('MainTabs', {
+          screen: 'Categories',
+          params: {
+            refresh: true,
+            createdCategory: true,
+          },
         });
       }, 1000);
     } catch (error) {
