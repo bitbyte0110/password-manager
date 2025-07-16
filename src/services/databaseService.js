@@ -12,6 +12,8 @@ class DatabaseService {
     this.dbVersion = '1.0';
     this.currentSchemaVersion = 1;
     this.isInitialized = false;
+    this.isInitializing = false; // Add initialization lock
+    this.initializationPromise = null; // Store the initialization promise
     this.maxRetries = 3;
     this.retryDelay = 1000; // 1 second
   }
@@ -166,35 +168,121 @@ class DatabaseService {
    * @returns {Promise<boolean>} Initialization success status
    */
   async initialize() {
-    return await this.executeWithRetry(async () => {
-      if (this.isInitialized) {
+    // If already initialized, return immediately
+    if (this.isInitialized && this.db) {
+      console.log('Database already initialized');
+      return true;
+    }
+
+    // If initialization is in progress, wait for it to complete
+    if (this.isInitializing && this.initializationPromise) {
+      console.log('Database initialization already in progress, waiting...');
+      return await this.initializationPromise;
+    }
+
+    // Start initialization
+    this.isInitializing = true;
+    this.initializationPromise = this.executeWithRetry(async () => {
+      if (this.isInitialized && this.db) {
+        console.log('Database already initialized (double-check)');
         return true;
       }
 
-      // Open database connection
-      this.db = await SQLite.openDatabaseAsync(this.dbName);
+      console.log('Starting database initialization...');
 
-      // Configure database settings
-      await this.db.execAsync('PRAGMA foreign_keys = ON;');
-      await this.db.execAsync('PRAGMA journal_mode = WAL;');
-      await this.db.execAsync('PRAGMA synchronous = NORMAL;');
+      try {
+        // Close any existing connection
+        if (this.db) {
+          await this.db.closeAsync();
+          this.db = null;
+        }
 
-      // Create tables
-      await this.createTables();
+        // Open database connection
+        console.log(`Opening database: ${this.dbName}`);
+        this.db = await SQLite.openDatabaseAsync(this.dbName);
 
-      // Run migrations
-      await this.runMigrations();
+        if (!this.db) {
+          throw new Error('Failed to open database - connection is null');
+        }
 
-      // Create indexes
-      await this.createIndexes();
+        console.log('Database opened successfully, configuring settings...');
 
-      // Insert default data
-      await this.insertDefaultCategories();
+        // Configure database settings with null checks
+        await this.execAsyncSafe('PRAGMA foreign_keys = ON;');
+        await this.execAsyncSafe('PRAGMA journal_mode = WAL;');
+        await this.execAsyncSafe('PRAGMA synchronous = NORMAL;');
 
-      this.isInitialized = true;
-      console.log('Database initialized successfully');
-      return true;
+        console.log('Database settings configured, creating tables...');
+
+        // Create tables
+        await this.createTables();
+
+        console.log('Tables created, running migrations...');
+
+        // Run migrations
+        await this.runMigrations();
+
+        console.log('Migrations complete, creating indexes...');
+
+        // Create indexes
+        await this.createIndexes();
+
+        console.log('Indexes created, inserting default data...');
+
+        // Insert default data
+        await this.insertDefaultCategories();
+
+        this.isInitialized = true;
+        console.log('Database initialization completed successfully');
+        return true;
+      } catch (error) {
+        console.error('Database initialization failed:', error);
+        // Clean up on failure
+        if (this.db) {
+          try {
+            await this.db.closeAsync();
+          } catch (closeError) {
+            console.error('Error closing database after failure:', closeError);
+          }
+          this.db = null;
+        }
+        this.isInitialized = false;
+        throw error;
+      } finally {
+        // Always clean up initialization state
+        this.isInitializing = false;
+        this.initializationPromise = null;
+      }
     }, 'Database initialization');
+
+    try {
+      const result = await this.initializationPromise;
+      return result;
+    } catch (error) {
+      // Clean up on error
+      this.isInitializing = false;
+      this.initializationPromise = null;
+      throw error;
+    }
+  }
+
+  /**
+   * Safe execAsync wrapper with null checks and better error handling
+   * @param {string} sql - SQL statement to execute
+   * @returns {Promise<void>}
+   */
+  async execAsyncSafe(sql) {
+    if (!this.db) {
+      throw new Error('Database connection is null - cannot execute SQL');
+    }
+
+    try {
+      console.log(`Executing SQL: ${sql.substring(0, 50)}...`);
+      await this.db.execAsync(sql);
+    } catch (error) {
+      console.error(`Failed to execute SQL: ${sql.substring(0, 50)}...`, error);
+      throw error;
+    }
   }
 
   /**
@@ -203,8 +291,12 @@ class DatabaseService {
    */
   async createTables() {
     try {
+      if (!this.db) {
+        throw new Error('Database connection is null in createTables');
+      }
+
       // User authentication table
-      await this.db.execAsync(`
+      await this.execAsyncSafe(`
         CREATE TABLE IF NOT EXISTS user_auth (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           master_password_hash TEXT NOT NULL,
@@ -217,7 +309,7 @@ class DatabaseService {
       `);
 
       // Categories table
-      await this.db.execAsync(`
+      await this.execAsyncSafe(`
         CREATE TABLE IF NOT EXISTS categories (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           name TEXT NOT NULL UNIQUE,
@@ -231,7 +323,7 @@ class DatabaseService {
       `);
 
       // Password entries table (with encrypted fields)
-      await this.db.execAsync(`
+      await this.execAsyncSafe(`
         CREATE TABLE IF NOT EXISTS passwords (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           title_encrypted TEXT NOT NULL,
@@ -249,7 +341,7 @@ class DatabaseService {
       `);
 
       // Application settings table
-      await this.db.execAsync(`
+      await this.execAsyncSafe(`
         CREATE TABLE IF NOT EXISTS settings (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           key TEXT NOT NULL UNIQUE,
@@ -262,7 +354,7 @@ class DatabaseService {
       `);
 
       // Password history table (for tracking changes)
-      await this.db.execAsync(`
+      await this.execAsyncSafe(`
         CREATE TABLE IF NOT EXISTS password_history (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           password_id INTEGER NOT NULL,
@@ -273,7 +365,7 @@ class DatabaseService {
       `);
 
       // Audit log table (for security tracking)
-      await this.db.execAsync(`
+      await this.execAsyncSafe(`
         CREATE TABLE IF NOT EXISTS audit_log (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           action TEXT NOT NULL,
@@ -324,8 +416,12 @@ class DatabaseService {
         'CREATE INDEX IF NOT EXISTS idx_audit_log_created_at ON audit_log (created_at DESC);',
       ];
 
+      if (!this.db) {
+        throw new Error('Database connection is null in createIndexes');
+      }
+
       for (const indexQuery of indexes) {
-        await this.db.execAsync(indexQuery);
+        await this.execAsyncSafe(indexQuery);
       }
 
       console.log('All indexes created successfully');
@@ -340,6 +436,12 @@ class DatabaseService {
    */
   async insertDefaultCategories() {
     try {
+      if (!this.db) {
+        throw new Error(
+          'Database connection is null in insertDefaultCategories'
+        );
+      }
+
       const defaultCategories = [
         {
           name: 'General',
@@ -1005,7 +1107,7 @@ class DatabaseService {
       }
 
       const result = await this.db.runAsync(
-        'DELETE FROM categories WHERE id = ? AND is_default = 0',
+        'DELETE FROM categories WHERE id = ?',
         [id]
       );
 
@@ -1040,7 +1142,6 @@ class DatabaseService {
       if (!this.db) throw new Error('Database not initialized');
 
       const {
-        includeDefault = true,
         includePasswordCount = true,
         sortBy = 'name',
         sortOrder = 'ASC',
@@ -1058,9 +1159,7 @@ class DatabaseService {
       const conditions = [];
       const params = [];
 
-      if (!includeDefault) {
-        conditions.push('is_default = 0');
-      }
+      // All categories are now included - removed default category exclusion
 
       if (conditions.length > 0) {
         query += ' WHERE ' + conditions.join(' AND ');
@@ -1163,10 +1262,7 @@ class DatabaseService {
         throw new Error(`Category with ID ${id} not found`);
       }
 
-      // Check if it's a default category
-      if (category.is_default) {
-        throw new Error('Cannot delete default category');
-      }
+      // All categories can be deleted - removed default category restriction
 
       // Check if category has passwords
       const passwordCount = await this.db.getFirstAsync(
@@ -1180,24 +1276,12 @@ class DatabaseService {
         );
       }
 
-      // If force delete, move passwords to default category
+      // If force delete, set passwords to have no category (NULL)
       if (passwordCount.count > 0 && forceDelete) {
-        const defaultCategory = await this.db.getFirstAsync(
-          'SELECT id FROM categories WHERE is_default = 1 LIMIT 1'
+        await this.db.runAsync(
+          'UPDATE passwords SET category_id = NULL WHERE category_id = ?',
+          [id]
         );
-
-        if (defaultCategory) {
-          await this.db.runAsync(
-            'UPDATE passwords SET category_id = ? WHERE category_id = ?',
-            [defaultCategory.id, id]
-          );
-        } else {
-          // If no default category, set to null
-          await this.db.runAsync(
-            'UPDATE passwords SET category_id = NULL WHERE category_id = ?',
-            [id]
-          );
-        }
       }
 
       const result = await this.db.runAsync(
@@ -1345,13 +1429,21 @@ class DatabaseService {
   async close() {
     try {
       if (this.db) {
+        console.log('Closing database connection...');
         await this.db.closeAsync();
         this.db = null;
         this.isInitialized = false;
-        console.log('Database connection closed');
+        this.isInitializing = false;
+        this.initializationPromise = null;
+        console.log('Database connection closed successfully');
       }
     } catch (error) {
       console.error('Failed to close database:', error);
+      // Force cleanup even if close failed
+      this.db = null;
+      this.isInitialized = false;
+      this.isInitializing = false;
+      this.initializationPromise = null;
     }
   }
 

@@ -21,10 +21,24 @@ class VaultService {
    */
   async initialize() {
     try {
+      console.log('VaultService: Starting initialization...');
+
+      if (!this.dbService) {
+        throw new Error('Database service is not available');
+      }
+
+      console.log('VaultService: Initializing database service...');
       await this.dbService.initialize();
+
+      console.log('VaultService: Database service initialized successfully');
       return true;
     } catch (error) {
       console.error('VaultService initialization error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
       throw error;
     }
   }
