@@ -2,14 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, AppState } from 'react-native';
 import { Provider as PaperProvider, DefaultTheme } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Import all screens
 import SetMasterPasswordScreen from './src/screens/SetMasterPasswordScreen';
 import ShowRecoveryPhraseScreen from './src/screens/ShowRecoveryPhraseScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 import MyVaultScreen from './src/screens/MyVaultScreen';
 import PasswordGeneratorScreen from './src/screens/PasswordGeneratorScreen';
+import AddPasswordScreen from './src/screens/AddPasswordScreen';
+
+// Create Stack Navigator
+const Stack = createStackNavigator();
 
 const theme = {
   ...DefaultTheme,
@@ -25,8 +33,8 @@ const ACTIVITY_TIMEOUT = 2 * 60 * 1000; // 2 minutes in milliseconds
 const ACTIVITY_CHECK_INTERVAL = 30 * 1000; // 30 seconds
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
 
-// Enhanced MainApp component with activity tracking and auto-logout
-const MainApp = ({ navigation }) => {
+// Session Management Component
+const SessionManager = ({ children }) => {
   const [appState, setAppState] = useState(AppState.currentState);
 
   useEffect(() => {
@@ -63,8 +71,7 @@ const MainApp = ({ navigation }) => {
       const lastActiveTime = await AsyncStorage.getItem(LAST_ACTIVE_TIME_KEY);
 
       if (!lastActiveTime) {
-        // No activity recorded, trigger logout
-        triggerAutoLogout();
+        // No activity recorded, but don't trigger logout in session manager
         return;
       }
 
@@ -73,23 +80,12 @@ const MainApp = ({ navigation }) => {
       const timeDifference = now - lastActive;
 
       if (timeDifference > ACTIVITY_TIMEOUT) {
-        triggerAutoLogout();
+        // Session expired - this will be handled by individual screens
+        console.log('Session expired due to inactivity');
       }
     } catch (error) {
       console.error('Error checking inactivity:', error);
-      // On error, assume session expired for security
-      triggerAutoLogout();
     }
-  };
-
-  const triggerAutoLogout = () => {
-    console.log('Auto-logout triggered due to inactivity');
-
-    // Clear any sensitive data from memory if needed
-    // Note: SecureStore data persists for re-authentication
-
-    // Navigate to LoginScreen (not SetMasterPasswordScreen since master password exists)
-    navigation.replace('LoginScreen');
   };
 
   const handleAppStateChange = async nextAppState => {
@@ -106,31 +102,17 @@ const MainApp = ({ navigation }) => {
     setAppState(nextAppState);
   };
 
-  // Create enhanced navigation object that includes activity tracking
-  const enhancedNavigation = {
-    ...navigation,
-    replace: (screenName, params = {}) => {
-      updateActivity();
-      navigation.replace(screenName, params);
-    },
-    navigate: (screenName, params = {}) => {
-      updateActivity();
-      navigation.navigate(screenName, params);
-    },
-  };
-
   return (
-    <View style={styles.container} onTouchStart={updateActivity}>
-      <MyVaultScreen navigation={enhancedNavigation} />
-      <StatusBar style="auto" />
+    <View style={styles.sessionContainer} onTouchStart={updateActivity}>
+      {children}
     </View>
   );
 };
 
-export default function App() {
-  const [currentScreen, setCurrentScreen] = useState('loading');
-  const [screenParams, setScreenParams] = useState({});
-  const [isInitializing, setIsInitializing] = useState(true);
+// Main App Navigator
+const AppNavigator = () => {
+  const [initialRoute, setInitialRoute] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     initializeApp();
@@ -138,14 +120,15 @@ export default function App() {
 
   const initializeApp = async () => {
     try {
-      setIsInitializing(true);
-      await checkVaultStatus();
+      setIsLoading(true);
+      const route = await checkVaultStatus();
+      setInitialRoute(route);
     } catch (error) {
       console.error('Error initializing app:', error);
       // On error, default to SetMasterPasswordScreen for safety
-      setCurrentScreen('SetMasterPassword');
+      setInitialRoute('SetMasterPassword');
     } finally {
-      setIsInitializing(false);
+      setIsLoading(false);
     }
   };
 
@@ -157,8 +140,7 @@ export default function App() {
       if (!existingHash) {
         // No master password set, show SetMasterPasswordScreen
         console.log('No master password found, showing setup screen');
-        setCurrentScreen('SetMasterPassword');
-        return;
+        return 'SetMasterPassword';
       }
 
       // Step 2: Master password exists, check session validity
@@ -168,8 +150,7 @@ export default function App() {
       if (!lastActiveTime) {
         // No activity timestamp, require authentication
         console.log('No activity timestamp found, requiring authentication');
-        setCurrentScreen('LoginScreen');
-        return;
+        return 'Login';
       }
 
       // Step 3: Check if session is still valid (within 2 minutes)
@@ -182,117 +163,87 @@ export default function App() {
         console.log(
           `Session expired (${Math.round(timeDifference / 1000)}s ago), requiring authentication`
         );
-        setCurrentScreen('LoginScreen');
+        return 'Login';
       } else {
-        // Session still valid, go directly to MainApp
+        // Session still valid, go directly to MyVault
         console.log(
-          `Session valid (${Math.round(timeDifference / 1000)}s ago), accessing MainApp`
+          `Session valid (${Math.round(timeDifference / 1000)}s ago), accessing MyVault`
         );
-        setCurrentScreen('MainApp');
+        // Update activity timestamp
+        await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, Date.now().toString());
+        return 'MyVault';
       }
     } catch (error) {
       console.error('Error checking vault status:', error);
       // On error, require authentication for security
-      setCurrentScreen('LoginScreen');
+      return 'Login';
     }
   };
 
-  // Enhanced navigation object with session management
-  const navigation = {
-    replace: (screenName, params = {}) => {
-      console.log(`Navigating to: ${screenName}`);
-      setCurrentScreen(screenName);
-      setScreenParams(params);
-
-      // Update activity when navigating to MainApp
-      if (screenName === 'MainApp') {
-        updateActivityTimestamp();
-      }
-    },
-    navigate: (screenName, params = {}) => {
-      console.log(`Navigating to: ${screenName}`);
-      setCurrentScreen(screenName);
-      setScreenParams(params);
-
-      // Update activity when navigating to MainApp
-      if (screenName === 'MainApp') {
-        updateActivityTimestamp();
-      }
-    },
-  };
-
-  const updateActivityTimestamp = async () => {
-    try {
-      const timestamp = Date.now().toString();
-      await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, timestamp);
-    } catch (error) {
-      console.error('Error updating activity timestamp:', error);
-    }
-  };
-
-  if (isInitializing) {
+  if (isLoading || !initialRoute) {
     return (
-      <PaperProvider theme={theme}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>SecureVault</Text>
-          <Text style={styles.loadingSubtext}>
-            Initializing secure vault...
-          </Text>
-        </View>
-      </PaperProvider>
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>SecureVault</Text>
+        <Text style={styles.loadingSubtext}>Initializing secure vault...</Text>
+      </View>
     );
   }
 
-  const renderScreen = () => {
-    switch (currentScreen) {
-      case 'SetMasterPassword':
-        return <SetMasterPasswordScreen navigation={navigation} />;
-      case 'ShowRecoveryPhraseScreen':
-        return (
-          <ShowRecoveryPhraseScreen
-            navigation={navigation}
-            route={{ params: screenParams }}
-          />
-        );
-      case 'LoginScreen':
-        return <LoginScreen navigation={navigation} />;
-      case 'ForgotPasswordScreen':
-        return <ForgotPasswordScreen navigation={navigation} />;
-      case 'MainApp':
-        return <MainApp navigation={navigation} />;
-      case 'PasswordGeneratorScreen':
-        return <PasswordGeneratorScreen navigation={navigation} />;
-      case 'RecoveryScreen':
-        // TODO: Add RecoveryScreen component when implemented
-        return (
-          <View style={styles.container}>
-            <Text style={styles.welcomeText}>Recovery Screen</Text>
-            <Text style={styles.subText}>Coming Soon</Text>
-          </View>
-        );
-      case 'ResetVaultScreen':
-        // TODO: Add ResetVaultScreen component when implemented
-        return (
-          <View style={styles.container}>
-            <Text style={styles.welcomeText}>Reset Vault Screen</Text>
-            <Text style={styles.subText}>Coming Soon</Text>
-          </View>
-        );
-      default:
-        return <SetMasterPasswordScreen navigation={navigation} />;
-    }
-  };
+  return (
+    <SessionManager>
+      <Stack.Navigator
+        initialRouteName={initialRoute}
+        screenOptions={{
+          headerShown: false,
+          gestureEnabled: false,
+          animationTypeForReplace: 'push',
+        }}
+      >
+        <Stack.Screen
+          name="SetMasterPassword"
+          component={SetMasterPasswordScreen}
+          options={{ gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="ShowRecoveryPhrase"
+          component={ShowRecoveryPhraseScreen}
+          options={{ gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
+          options={{ gestureEnabled: false }}
+        />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+        <Stack.Screen
+          name="MyVault"
+          component={MyVaultScreen}
+          options={{ gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="PasswordGenerator"
+          component={PasswordGeneratorScreen}
+        />
+        <Stack.Screen name="AddPassword" component={AddPasswordScreen} />
+      </Stack.Navigator>
+    </SessionManager>
+  );
+};
 
-  return <PaperProvider theme={theme}>{renderScreen()}</PaperProvider>;
+export default function App() {
+  return (
+    <PaperProvider theme={theme}>
+      <NavigationContainer>
+        <AppNavigator />
+        <StatusBar style="auto" />
+      </NavigationContainer>
+    </PaperProvider>
+  );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  sessionContainer: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
   },
   loadingContainer: {
     flex: 1,
@@ -310,18 +261,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
-  },
-  welcomeText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#8e44ad',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  subText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 12,
   },
 });

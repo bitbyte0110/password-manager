@@ -30,7 +30,7 @@ const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const PasswordGeneratorScreen = ({ navigation: navProp }) => {
+const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
   const navigation = navProp || useNavigation();
 
   // State for password generation options
@@ -216,7 +216,7 @@ const PasswordGeneratorScreen = ({ navigation: navProp }) => {
 
     switch (tab) {
       case 'vault':
-        navigation.navigate('MainApp');
+        navigation.navigate('MyVault');
         break;
       case 'categories':
         // navigation.navigate('Categories');
@@ -226,6 +226,19 @@ const PasswordGeneratorScreen = ({ navigation: navProp }) => {
         break;
       default:
         break;
+    }
+  };
+
+  const handleReturnWithPassword = () => {
+    if (
+      route?.params?.returnScreen &&
+      route?.params?.returnPassword &&
+      generatedPassword
+    ) {
+      updateActivity();
+      navigation.navigate(route.params.returnScreen, {
+        generatedPassword: generatedPassword,
+      });
     }
   };
 
@@ -501,6 +514,28 @@ const PasswordGeneratorScreen = ({ navigation: navProp }) => {
               )}
             </LinearGradient>
           </TouchableOpacity>
+
+          {/* Use Password Button (when in return mode) */}
+          {route?.params?.returnPassword && generatedPassword && (
+            <TouchableOpacity
+              style={[styles.generateButton, styles.usePasswordButton]}
+              onPress={handleReturnWithPassword}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={['#27ae60', '#2ecc71']}
+                style={styles.generateGradient}
+              >
+                <Icon
+                  name="check"
+                  size={16}
+                  color="#fff"
+                  style={styles.generateIcon}
+                />
+                <Text style={styles.generateButtonText}>Use This Password</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
         </Card>
       </ScrollView>
 
@@ -669,6 +704,9 @@ const styles = StyleSheet.create({
   generateButton: {
     borderRadius: 25,
     overflow: 'hidden',
+  },
+  usePasswordButton: {
+    marginTop: 12,
   },
   generateGradient: {
     flexDirection: 'row',

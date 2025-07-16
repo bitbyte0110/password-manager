@@ -70,7 +70,7 @@ const MyVaultScreen = ({ navigation }) => {
       if (!vaultService.isUserAuthenticated()) {
         console.log('User not authenticated, redirecting to login');
         // Redirect to login if not authenticated
-        navigation.replace('LoginScreen');
+        navigation.replace('Login');
         return;
       }
 
@@ -85,7 +85,7 @@ const MyVaultScreen = ({ navigation }) => {
       console.error('Error initializing vault:', error);
       Alert.alert('Error', 'Failed to load vault data. Please try again.');
       // Redirect to login on error
-      navigation.replace('LoginScreen');
+      navigation.replace('Login');
     } finally {
       setIsLoading(false);
     }
@@ -101,7 +101,7 @@ const MyVaultScreen = ({ navigation }) => {
     } catch (error) {
       console.error('Error loading passwords:', error);
       if (error.message.includes('not authenticated')) {
-        navigation.replace('LoginScreen');
+        navigation.replace('Login');
       }
     }
   };
@@ -253,7 +253,7 @@ const MyVaultScreen = ({ navigation }) => {
   const handleAddPassword = () => {
     setShowAddModal(false);
     updateActivity();
-    // navigation.navigate('AddPassword');
+    navigation.navigate('AddPassword');
   };
 
   const handleAddCategory = () => {
@@ -268,7 +268,7 @@ const MyVaultScreen = ({ navigation }) => {
 
     switch (tab) {
       case 'generator':
-        navigation.navigate('PasswordGeneratorScreen');
+        navigation.navigate('PasswordGenerator');
         break;
       case 'categories':
         // navigation.navigate('Categories');

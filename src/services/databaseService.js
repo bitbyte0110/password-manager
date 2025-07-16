@@ -423,8 +423,8 @@ class DatabaseService {
 
       const result = await this.db.runAsync(
         `INSERT INTO passwords 
-         (title_encrypted, username_encrypted, password_encrypted, url_encrypted, notes_encrypted, category_id)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+         (title_encrypted, username_encrypted, password_encrypted, url_encrypted, notes_encrypted, category_id, is_favorite)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           JSON.stringify(encryptedEntry.title),
           JSON.stringify(encryptedEntry.username),
@@ -432,6 +432,7 @@ class DatabaseService {
           JSON.stringify(encryptedEntry.url),
           JSON.stringify(encryptedEntry.notes),
           encryptedEntry.categoryId,
+          passwordEntry.isFavorite ? 1 : 0,
         ]
       );
 

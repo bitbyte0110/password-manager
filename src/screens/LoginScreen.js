@@ -309,21 +309,15 @@ const LoginScreen = ({ navigation }) => {
             'Biometric authentication successful. Please enter your master password.'
           );
         } else {
-          console.log('MFA disabled, navigating to MainApp');
-          console.log('Navigation object:', navigation);
-          // MFA disabled: Go directly to MainApp
-          await resetFailedAttempts(); // Reset password attempts too
-          console.log('About to call navigation.replace("MainApp")');
-
-          // Note: For biometric-only login without MFA, we'll use a placeholder approach
-          // In a real implementation, you'd store the password encrypted with biometric key
           console.log(
-            'Biometric login successful, but cannot authenticate vault service without password'
+            'MFA disabled, requesting master password for vault access'
           );
-          showSnackbar('Biometric authentication successful');
-
-          navigation.replace('MainApp');
-          console.log('Navigation.replace("MainApp") called');
+          // MFA disabled: Need master password for vault service authentication
+          setMfaMode(false); // Not MFA, just vault authentication
+          setShowPasswordModal(true);
+          showSnackbar(
+            'Biometric authentication successful. Please enter master password to access vault.'
+          );
         }
       } else {
         if (result.error === 'user_cancel') {
@@ -390,9 +384,9 @@ const LoginScreen = ({ navigation }) => {
         setShowPasswordModal(false);
         setMasterPassword('');
         setMfaMode(false);
-        console.log('About to call navigation.replace("MainApp")');
-        navigation.replace('MainApp');
-        console.log('Navigation.replace("MainApp") called');
+        console.log('About to call navigation.replace("MyVault")');
+        navigation.replace('MyVault');
+        console.log('Navigation.replace("MyVault") called');
       } else {
         await incrementFailedAttempts();
         if (mfaMode) {
@@ -628,15 +622,14 @@ const LoginScreen = ({ navigation }) => {
             <Text style={styles.modalTitle}>
               {mfaMode
                 ? 'Multi-Factor Authentication'
-                : 'Enter Master Password'}
+                : 'Vault Access Required'}
             </Text>
 
-            {mfaMode && (
-              <Text style={styles.modalSubtitle}>
-                Biometric authentication successful. Please enter your master
-                password to complete login.
-              </Text>
-            )}
+            <Text style={styles.modalSubtitle}>
+              {mfaMode
+                ? 'Biometric authentication successful. Please enter your master password to complete login.'
+                : 'Biometric authentication successful. Please enter your master password to access vault data.'}
+            </Text>
 
             <TextInput
               label="Master Password"
