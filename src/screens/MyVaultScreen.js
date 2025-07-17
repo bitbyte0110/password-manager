@@ -291,10 +291,10 @@ const MyVaultScreen = ({ navigation, route }) => {
     updateActivity();
   };
 
-  const handlePasswordPress = () => {
+  const handlePasswordPress = item => {
     updateActivity();
     // Navigate to password details screen
-    // navigation.navigate('PasswordDetails', { passwordId: item.id });
+    navigation.navigate('PasswordDetails', { id: item.id });
   };
 
   const handleDeletePassword = async id => {
