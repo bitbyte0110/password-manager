@@ -612,7 +612,7 @@ const MyVaultScreen = ({ navigation, route }) => {
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.background }]}
     >
-      {/* Password Count and Actions */}
+      {/* Header with Title and Password Count */}
       <View
         style={[
           styles.header,
@@ -622,11 +622,32 @@ const MyVaultScreen = ({ navigation, route }) => {
           },
         ]}
       >
-        <Badge
-          style={[styles.passwordCount, { backgroundColor: theme.primary }]}
+        <View
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+          }}
         >
-          {passwords.length}
-        </Badge>
+          <Text
+            style={[
+              styles.headerTitle,
+              { color: theme.text, fontSize: 20, fontWeight: '600' },
+            ]}
+          >
+            My Vault
+          </Text>
+          {/* Keep the badge right-aligned, visually similar to AddPasswordScreen's headerRight */}
+          <View style={{ position: 'absolute', right: 0 }}>
+            <Badge
+              style={[styles.passwordCount, { backgroundColor: theme.primary }]}
+            >
+              {passwords.length}
+            </Badge>
+          </View>
+        </View>
       </View>
 
       {/* Search Bar */}
