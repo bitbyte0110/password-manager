@@ -21,6 +21,7 @@ import AddCategoryScreen from './src/screens/AddCategoryScreen';
 import CategoriesScreen from './src/screens/CategoriesScreen';
 import EditCategoryScreen from './src/screens/EditCategoryScreen';
 import PasswordDetailsScreen from './src/screens/PasswordDetailsScreen';
+import CategoryDetailsScreen from './src/screens/CategoryDetailsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import { PasswordProvider } from './src/PasswordContext';
 
@@ -282,6 +283,7 @@ const AppNavigator = () => {
       <Stack.Screen name="AddCategory" component={AddCategoryScreen} />
       <Stack.Screen name="EditCategory" component={EditCategoryScreen} />
       <Stack.Screen name="PasswordDetails" component={PasswordDetailsScreen} />
+      <Stack.Screen name="CategoryDetails" component={CategoryDetailsScreen} />
     </Stack.Navigator>
   );
 };

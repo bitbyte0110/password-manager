@@ -122,6 +122,18 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
     }, [route?.params?.shouldRefreshCategories])
   );
 
+  // Handle pre-selected category from navigation params
+  useEffect(() => {
+    if (route?.params?.categoryId && categories.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        categoryId: route.params.categoryId,
+      }));
+      // Clear the parameter to prevent re-setting
+      navigation.setParams({ categoryId: undefined });
+    }
+  }, [route?.params?.categoryId, categories]);
+
   const updateActivity = async () => {
     try {
       const timestamp = Date.now().toString();
