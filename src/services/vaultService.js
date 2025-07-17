@@ -354,6 +354,32 @@ class VaultService {
   }
 
   /**
+   * Get a single password entry by ID with decryption
+   * @param {number} id - Entry ID
+   * @returns {Promise<Object>} Decrypted password entry
+   */
+  async getPasswordEntry(id) {
+    if (!this.isUserAuthenticated()) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      const encryptedEntry = await this.dbService.getPasswordById(id);
+
+      if (!encryptedEntry) {
+        throw new Error('Password entry not found');
+      }
+
+      // Decrypt and return the entry
+      const decrypted = await this.decryptPasswordEntry(encryptedEntry);
+      return decrypted;
+    } catch (error) {
+      console.error('Error getting password entry:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Search password entries by title, username, URL, or notes
    * @param {string} searchTerm - Search term
    * @param {Object} options - Additional filter options
