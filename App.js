@@ -22,6 +22,14 @@ import CategoriesScreen from './src/screens/CategoriesScreen';
 import EditCategoryScreen from './src/screens/EditCategoryScreen';
 import PasswordDetailsScreen from './src/screens/PasswordDetailsScreen';
 import CategoryDetailsScreen from './src/screens/CategoryDetailsScreen';
+import ChangeMasterPasswordScreen from './src/screens/ChangeMasterPasswordScreen';
+import AutoLockSettingsScreen from './src/screens/AutoLockSettingsScreen';
+import MFASettingsScreen from './src/screens/MFASettingsScreen';
+import BiometricSettingsScreen from './src/screens/BiometricSettingsScreen';
+import ClipboardSettingsScreen from './src/screens/ClipboardSettingsScreen';
+import ResetVaultScreen from './src/screens/ResetVaultScreen';
+import AppearanceSettingsScreen from './src/screens/AppearanceSettingsScreen';
+import AboutScreen from './src/screens/AboutScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import { PasswordProvider } from './src/PasswordContext';
 
@@ -284,6 +292,29 @@ const AppNavigator = () => {
       <Stack.Screen name="EditCategory" component={EditCategoryScreen} />
       <Stack.Screen name="PasswordDetails" component={PasswordDetailsScreen} />
       <Stack.Screen name="CategoryDetails" component={CategoryDetailsScreen} />
+      <Stack.Screen
+        name="ChangeMasterPassword"
+        component={ChangeMasterPasswordScreen}
+      />
+      <Stack.Screen
+        name="AutoLockSettings"
+        component={AutoLockSettingsScreen}
+      />
+      <Stack.Screen name="MFASettings" component={MFASettingsScreen} />
+      <Stack.Screen
+        name="BiometricSettings"
+        component={BiometricSettingsScreen}
+      />
+      <Stack.Screen
+        name="ClipboardSettings"
+        component={ClipboardSettingsScreen}
+      />
+      <Stack.Screen name="ResetVault" component={ResetVaultScreen} />
+      <Stack.Screen
+        name="AppearanceSettings"
+        component={AppearanceSettingsScreen}
+      />
+      <Stack.Screen name="About" component={AboutScreen} />
     </Stack.Navigator>
   );
 };
