@@ -287,8 +287,13 @@ const CategoriesScreen = ({ navigation, route }) => {
 
   const handleCategoryPress = category => {
     updateActivity();
-    // Navigate to category password list or details
-    // navigation.navigate('CategoryPasswords', { categoryId: category.id });
+    // Navigate to category details screen
+    navigation.navigate('CategoryDetails', {
+      categoryId: category.id,
+      categoryName: category.name,
+      categoryColor: category.color,
+      categoryIcon: category.icon,
+    });
   };
 
   const handleMoreOptions = (category, event) => {
@@ -448,38 +453,34 @@ const CategoriesScreen = ({ navigation, route }) => {
               </Text>
             </View>
           </View>
-          <Menu
-            visible={menuVisible[item.id] || false}
-            onDismiss={() => setMenuVisible({})}
-            anchor={
-              <TouchableOpacity
-                style={styles.moreButton}
-                onPress={event => handleMoreOptions(item, event)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Icon name="ellipsis-v" size={16} color={theme.textSecondary} />
-              </TouchableOpacity>
-            }
-            contentStyle={[
-              styles.menuContent,
-              { backgroundColor: theme.surface },
-            ]}
+          <TouchableOpacity
+            style={styles.moreButton}
+            onPress={event => handleMoreOptions(item, event)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Menu.Item
-              onPress={handleEditCategory}
-              title="Edit Category"
-              leadingIcon="pencil"
-              titleStyle={{ color: theme.text }}
-            />
-            <Menu.Item
-              onPress={handleDeleteCategory}
-              title="Delete Category"
-              leadingIcon="trash"
-              titleStyle={{ color: theme.error }}
-            />
-          </Menu>
+            <Icon name="ellipsis-v" size={16} color={theme.textSecondary} />
+          </TouchableOpacity>
         </View>
       </TouchableOpacity>
+      <Menu
+        visible={menuVisible[item.id] || false}
+        onDismiss={() => setMenuVisible({})}
+        anchor={<View style={{ position: 'absolute', top: 16, right: 16 }} />}
+        contentStyle={[styles.menuContent, { backgroundColor: theme.surface }]}
+      >
+        <Menu.Item
+          onPress={handleEditCategory}
+          title="Edit Category"
+          leadingIcon="pencil"
+          titleStyle={{ color: theme.text }}
+        />
+        <Menu.Item
+          onPress={handleDeleteCategory}
+          title="Delete Category"
+          leadingIcon="trash"
+          titleStyle={{ color: theme.error }}
+        />
+      </Menu>
     </View>
   );
 
