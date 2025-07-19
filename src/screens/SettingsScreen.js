@@ -27,7 +27,7 @@ const SettingsScreen = () => {
     mfaEnabled: false,
     autoLockTimeout: 120, // seconds
     clipboardTimeout: 30, // seconds
-    theme: 'system',
+    theme: 'light',
   });
 
   // Get color scheme for theme support
@@ -259,11 +259,8 @@ const SettingsScreen = () => {
         {renderSection(
           'APPEARANCE',
           <>
-            {renderSettingItem(
-              'Theme',
-              'Dark, Light, or System',
-              'paint-brush',
-              () => handleSettingPress('AppearanceSettings', false)
+            {renderSettingItem('Theme', 'Dark or Light', 'paint-brush', () =>
+              handleSettingPress('AppearanceSettings', false)
             )}
           </>
         )}

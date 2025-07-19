@@ -6,7 +6,6 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  useColorScheme,
   Alert,
 } from 'react-native';
 import { Button, RadioButton } from 'react-native-paper';
@@ -16,14 +15,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AppearanceSettingsScreen = () => {
   const navigation = useNavigation();
-  const [selectedTheme, setSelectedTheme] = useState('system');
+  const [selectedTheme, setSelectedTheme] = useState('light');
   const [isLoading, setIsLoading] = useState(false);
-  const systemColorScheme = useColorScheme();
 
   const getEffectiveTheme = themeChoice => {
-    if (themeChoice === 'system') {
-      return systemColorScheme === 'dark';
-    }
     return themeChoice === 'dark';
   };
 
@@ -54,17 +49,6 @@ const AppearanceSettingsScreen = () => {
       icon: 'moon',
       colors: { bg: '#121212', text: '#ffffff', accent: '#8e44ad' },
     },
-    {
-      value: 'system',
-      label: 'System Default',
-      description: 'Follow device theme setting',
-      icon: 'mobile-alt',
-      colors: {
-        bg: systemColorScheme === 'dark' ? '#121212' : '#ffffff',
-        text: systemColorScheme === 'dark' ? '#ffffff' : '#333333',
-        accent: '#8e44ad',
-      },
-    },
   ];
 
   useEffect(() => {
@@ -76,7 +60,11 @@ const AppearanceSettingsScreen = () => {
       const settings = await AsyncStorage.getItem('userSettings');
       if (settings) {
         const parsedSettings = JSON.parse(settings);
-        setSelectedTheme(parsedSettings.theme || 'system');
+        // If the saved theme is 'system', default to 'light'
+        const savedTheme = parsedSettings.theme;
+        setSelectedTheme(
+          savedTheme === 'system' ? 'light' : savedTheme || 'light'
+        );
       }
     } catch (error) {
       console.error('Error loading theme settings:', error);
