@@ -16,7 +16,7 @@ import {
   ProgressBar,
 } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Clipboard from 'expo-clipboard';
+import clipboardService from '../services/clipboardService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
 import Icon from 'react-native-vector-icons/FontAwesome5';
@@ -198,8 +198,15 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
     }
 
     try {
-      await Clipboard.setStringAsync(generatedPassword);
-      showSnackbar('Password copied to clipboard!');
+      const success = await clipboardService.copyToClipboard(
+        generatedPassword,
+        true
+      );
+      if (success) {
+        showSnackbar('Password copied to clipboard!');
+      } else {
+        showSnackbar('Error copying password');
+      }
       updateActivity();
     } catch (error) {
       console.error('Error copying to clipboard:', error);

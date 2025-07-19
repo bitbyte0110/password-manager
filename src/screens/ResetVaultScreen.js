@@ -9,12 +9,18 @@ import {
   useColorScheme,
   Alert,
 } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TextInput, Button } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useNavigation } from '@react-navigation/native';
+import vaultService from '../services/vaultService';
+import databaseService from '../services/databaseService';
+import { usePasswords } from '../PasswordContext';
 
 const ResetVaultScreen = () => {
   const navigation = useNavigation();
+  const { clearPasswords } = usePasswords();
   const [confirmationText, setConfirmationText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -58,33 +64,46 @@ const ResetVaultScreen = () => {
   const performVaultReset = async () => {
     setIsLoading(true);
     try {
-      // In a real app, this would:
-      // 1. Delete all password entries from database
-      // 2. Clear all encrypted data
-      // 3. Reset all settings
-      // 4. Clear secure storage
-      // 5. Navigate back to setup/login
+      // First, authenticate the user
+      const isAuthenticated = vaultService.isUserAuthenticated();
+      if (!isAuthenticated) {
+        Alert.alert(
+          'Authentication Required',
+          'Please authenticate to reset your vault.'
+        );
+        setIsLoading(false);
+        return;
+      }
 
-      // Simulate reset process
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Clear all vault data
+      console.log('Starting vault reset...');
 
-      Alert.alert(
-        'Vault Reset Complete',
-        'All data has been permanently deleted. You will now be returned to the setup screen.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Navigate to setup or login screen
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'SetMasterPassword' }],
-              });
-            },
-          },
-        ]
-      );
+      // 1. Clear password context
+      clearPasswords();
+
+      // 2. Reset database (delete all tables and recreate)
+      await databaseService.resetDatabase();
+
+      // 3. Clear vault service session
+      await vaultService.clearSession();
+
+      // 4. Clear all secure storage
+      await SecureStore.deleteItemAsync('vault_masterHash');
+      await SecureStore.deleteItemAsync('vault_sessionToken');
+      await SecureStore.deleteItemAsync('vault_recoveryPhrase');
+
+      // 5. Clear AsyncStorage
+      await AsyncStorage.clear();
+
+      console.log('Vault reset completed successfully');
+
+      // Navigate directly to SetMasterPasswordScreen without any loading screen
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'SetMasterPassword' }],
+      });
     } catch (error) {
+      console.error('Error during vault reset:', error);
       Alert.alert('Error', 'Failed to reset vault. Please try again.');
     } finally {
       setIsLoading(false);

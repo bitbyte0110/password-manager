@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Card, Button, Snackbar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Clipboard from 'expo-clipboard';
+import clipboardService from '../services/clipboardService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import BiometricSetupModal from '../components/BiometricSetupModal';
@@ -30,8 +30,15 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
 
   const copyRecoveryPhrase = async () => {
     try {
-      await Clipboard.setStringAsync(recoveryPhrase);
-      showSnackbar('Recovery phrase copied to clipboard');
+      const success = await clipboardService.copyToClipboard(
+        recoveryPhrase,
+        false
+      );
+      if (success) {
+        showSnackbar('Recovery phrase copied to clipboard');
+      } else {
+        showSnackbar('Failed to copy recovery phrase');
+      }
     } catch (error) {
       console.error('Error copying to clipboard:', error);
       showSnackbar('Failed to copy recovery phrase');
