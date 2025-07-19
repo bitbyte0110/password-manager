@@ -56,13 +56,27 @@ const MFASettingsScreen = () => {
   const loadCurrentSetting = async () => {
     try {
       const settings = await AsyncStorage.getItem('userSettings');
+      const defaults = {
+        mfaEnabled: false,
+        biometricEnabled: false,
+      };
+      
       if (settings) {
         const parsedSettings = JSON.parse(settings);
-        setMfaEnabled(parsedSettings.mfaEnabled || false);
-        setBiometricEnabled(parsedSettings.biometricEnabled || false);
+        // Merge with defaults to ensure no undefined values
+        const merged = { ...defaults, ...parsedSettings };
+        setMfaEnabled(merged.mfaEnabled);
+        setBiometricEnabled(merged.biometricEnabled);
+      } else {
+        // No settings found, use defaults
+        setMfaEnabled(defaults.mfaEnabled);
+        setBiometricEnabled(defaults.biometricEnabled);
       }
     } catch (error) {
       console.error('Error loading MFA settings:', error);
+      // On error, use defaults
+      setMfaEnabled(false);
+      setBiometricEnabled(false);
     }
   };
 

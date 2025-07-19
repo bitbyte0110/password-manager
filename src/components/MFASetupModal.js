@@ -23,12 +23,23 @@ const MFASetupModal = ({ visible, onComplete }) => {
       await AsyncStorage.setItem('userSettings', JSON.stringify(updatedSettings));
       await SecureStore.setItemAsync('vault_mfaEnabled', 'true');
       
-      console.log('MFA enabled during initial setup');
-      onComplete(true);
+      console.log('✅ MFA enabled during initial setup - settings saved successfully');
+      
+      // Verify settings were saved correctly
+      const verification = await AsyncStorage.getItem('userSettings');
+      const verifiedSettings = verification ? JSON.parse(verification) : {};
+      
+      if (verifiedSettings.mfaEnabled === true) {
+        console.log('✅ MFA setting verified in storage');
+        onComplete(true);
+      } else {
+        console.error('❌ MFA setting verification failed');
+        onComplete(false);
+      }
     } catch (error) {
-      console.error('Error enabling MFA:', error);
-      // Still proceed even if storage fails
-      onComplete(true);
+      console.error('❌ Error enabling MFA:', error);
+      // On storage failure, default to disabled for consistency
+      onComplete(false);
     } finally {
       setIsLoading(false);
     }
@@ -49,11 +60,23 @@ const MFASetupModal = ({ visible, onComplete }) => {
       await AsyncStorage.setItem('userSettings', JSON.stringify(updatedSettings));
       await SecureStore.setItemAsync('vault_mfaEnabled', 'false');
       
-      console.log('MFA skipped during initial setup');
-      onComplete(false);
+      console.log('✅ MFA skipped during initial setup - settings saved successfully');
+      
+      // Verify settings were saved correctly
+      const verification = await AsyncStorage.getItem('userSettings');
+      const verifiedSettings = verification ? JSON.parse(verification) : {};
+      
+      if (verifiedSettings.mfaEnabled === false) {
+        console.log('✅ MFA disabled setting verified in storage');
+        onComplete(false);
+      } else {
+        console.error('❌ MFA disabled setting verification failed');
+        // Force disable if verification fails
+        onComplete(false);
+      }
     } catch (error) {
-      console.error('Error skipping MFA:', error);
-      // Still proceed even if storage fails
+      console.error('❌ Error skipping MFA:', error);
+      // On storage failure, default to disabled for consistency
       onComplete(false);
     } finally {
       setIsLoading(false);

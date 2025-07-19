@@ -52,6 +52,7 @@ const LoginScreen = ({ navigation: navProp }) => {
   const [biometricLockoutEnd, setBiometricLockoutEnd] = useState(null);
   const [isAutoAuthenticating, setIsAutoAuthenticating] = useState(false);
   const [mfaMode, setMfaMode] = useState(false); // When waiting for password after biometric success
+  const [biometricSucceeded, setBiometricSucceeded] = useState(false); // Track if biometric auth succeeded
 
   useEffect(() => {
     initializeScreen();
@@ -339,6 +340,7 @@ const LoginScreen = ({ navigation: navProp }) => {
       if (result.success) {
         console.log('Biometric authentication successful');
         await resetBiometricFailedAttempts();
+        setBiometricSucceeded(true);
 
         // Check if MFA is enabled
         if (mfaEnabled) {
@@ -428,6 +430,7 @@ const LoginScreen = ({ navigation: navProp }) => {
         setShowPasswordModal(false);
         setMasterPassword('');
         setMfaMode(false);
+        setBiometricSucceeded(false);
         console.log('About to call navigation.replace("MainTabs")');
         navigation.replace('MainTabs');
         console.log('Navigation.replace("MainTabs") called');
@@ -474,12 +477,14 @@ const LoginScreen = ({ navigation: navProp }) => {
   const handleForgotPassword = () => {
     setShowPasswordModal(false);
     setMfaMode(false);
+    setBiometricSucceeded(false);
     navigation.navigate('ForgotPasswordScreen');
   };
 
   const handleResetVault = () => {
     setShowPasswordModal(false);
     setMfaMode(false);
+    setBiometricSucceeded(false);
     Alert.alert(
       'Reset Vault',
       'This will permanently delete all stored data. Are you sure?',
@@ -499,6 +504,7 @@ const LoginScreen = ({ navigation: navProp }) => {
     setMasterPassword('');
     setShowPassword(false);
     setMfaMode(false);
+    setBiometricSucceeded(false);
   };
 
   const showSnackbar = message => {
@@ -673,8 +679,12 @@ const LoginScreen = ({ navigation: navProp }) => {
 
             <Text style={styles.modalSubtitle}>
               {mfaMode
-                ? 'Biometric authentication successful. Please enter your master password to complete login.'
-                : 'Biometric authentication successful. Please enter your master password to access vault data.'}
+                ? biometricSucceeded 
+                  ? 'Biometric authentication successful. Please enter your master password to complete login.'
+                  : 'Please enter your master password to complete multi-factor authentication.'
+                : biometricSucceeded
+                  ? 'Biometric authentication successful. Please enter your master password to access vault data.'
+                  : 'Please enter your master password to access vault data.'}
             </Text>
 
             <TextInput

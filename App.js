@@ -1,3 +1,4 @@
+import 'react-native-get-random-values';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, AppState } from 'react-native';
 import { Provider as PaperProvider, DefaultTheme } from 'react-native-paper';
@@ -18,6 +19,7 @@ import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 import MyVaultScreen from './src/screens/MyVaultScreen';
 import PasswordGeneratorScreen from './src/screens/PasswordGeneratorScreen';
 import AddPasswordScreen from './src/screens/AddPasswordScreen';
+import EditPasswordScreen from './src/screens/EditPasswordScreen';
 import AddCategoryScreen from './src/screens/AddCategoryScreen';
 import CategoriesScreen from './src/screens/CategoriesScreen';
 import EditCategoryScreen from './src/screens/EditCategoryScreen';
@@ -61,8 +63,13 @@ const SessionManager = ({ children, navigationRef }) => {
     // Update activity on mount
     updateActivity();
 
-    // Set up activity monitoring - check every 10 seconds for better responsiveness
-    const activityTimer = setInterval(checkInactivity, 10000);
+    let activityTimer;
+
+    // Wait a bit for NavigationContainer to be ready before starting activity monitoring
+    const initTimer = setTimeout(() => {
+      // Set up activity monitoring - check every 10 seconds for better responsiveness
+      activityTimer = setInterval(checkInactivity, 10000);
+    }, 1000);
 
     // Set up app state monitoring
     const appStateSubscription = AppState.addEventListener(
@@ -72,7 +79,10 @@ const SessionManager = ({ children, navigationRef }) => {
 
     // Cleanup on unmount
     return () => {
-      clearInterval(activityTimer);
+      clearTimeout(initTimer);
+      if (activityTimer) {
+        clearInterval(activityTimer);
+      }
       appStateSubscription?.remove();
     };
   }, []);
@@ -146,13 +156,13 @@ const SessionManager = ({ children, navigationRef }) => {
       await SecureStore.deleteItemAsync('vault_sessionToken');
       
       // Navigate directly to login without confirmation
-      if (navigationRef.current) {
+      if (navigationRef.current && navigationRef.current.replace) {
         navigationRef.current.replace('Login');
       }
     } catch (error) {
       console.error('Error handling session expiry:', error);
       // Even on error, try to navigate to login
-      if (navigationRef.current) {
+      if (navigationRef.current && navigationRef.current.replace) {
         navigationRef.current.replace('Login');
       }
     }
@@ -353,6 +363,7 @@ const AppNavigator = () => {
         options={{ gestureEnabled: false }}
       />
       <Stack.Screen name="AddPassword" component={AddPasswordScreen} />
+      <Stack.Screen name="EditPasswordScreen" component={EditPasswordScreen} />
       <Stack.Screen name="AddCategory" component={AddCategoryScreen} />
       <Stack.Screen name="EditCategory" component={EditCategoryScreen} />
       <Stack.Screen name="PasswordDetails" component={PasswordDetailsScreen} />
