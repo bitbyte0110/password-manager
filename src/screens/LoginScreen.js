@@ -15,6 +15,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import bcrypt from 'bcryptjs';
 import Icon from 'react-native-vector-icons/FontAwesome5';
+import { useNavigation } from '@react-navigation/native';
 import vaultService from '../services/vaultService';
 
 // Password lockout constants
@@ -29,8 +30,8 @@ const MAX_FAILED_ATTEMPTS = 3;
 const LOCKOUT_DURATION = 30 * 60 * 1000; // 30 minutes
 const BIOMETRIC_TIMEOUT_DURATION = 30 * 1000; // 30 seconds
 
-const LoginScreen = ({ navigation }) => {
-  // const navigation = navProp || useNavigation(); // REMOVE THIS LINE
+const LoginScreen = ({ navigation: navProp }) => {
+  const navigation = navProp || useNavigation();
 
   // State management
   const [masterPassword, setMasterPassword] = useState('');
@@ -55,6 +56,16 @@ const LoginScreen = ({ navigation }) => {
   useEffect(() => {
     initializeScreen();
   }, []);
+
+  // Reload preferences when screen comes into focus (important for settings changes)
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      console.log('LoginScreen focused - reloading user preferences');
+      loadUserPreferences();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   useEffect(() => {
     let interval;
@@ -97,27 +108,57 @@ const LoginScreen = ({ navigation }) => {
     const biometricHWAvailable = await checkBiometricAvailability();
     await loadUserPreferences();
 
-    // Auto-trigger biometric if enabled and available
+    // Auto-trigger biometric if enabled in settings, available, and not locked
     if (biometricHWAvailable && biometricEnabled && !biometricLocked) {
+      console.log('Auto-triggering biometric authentication (enabled in settings)');
       setIsAutoAuthenticating(true);
       setTimeout(() => {
         handleBiometricLogin(true);
       }, 500); // Small delay for better UX
+    } else {
+      console.log('Biometric auto-trigger skipped:', {
+        hwAvailable: biometricHWAvailable,
+        enabled: biometricEnabled,
+        locked: biometricLocked
+      });
     }
   };
 
   const loadUserPreferences = async () => {
     try {
-      const biometricEnabledValue = await SecureStore.getItemAsync(
-        'vault_biometricEnabled'
-      );
-      const mfaEnabledValue =
-        await SecureStore.getItemAsync('vault_mfaEnabled');
+      console.log('Loading user preferences from storage...');
+      
+      // Load from AsyncStorage (primary source) and SecureStore (fallback)
+      const settings = await AsyncStorage.getItem('userSettings');
+      let biometricEnabledValue = false;
+      let mfaEnabledValue = false;
 
-      setBiometricEnabled(biometricEnabledValue === 'true');
-      setMfaEnabled(mfaEnabledValue === 'true');
+      if (settings) {
+        const parsedSettings = JSON.parse(settings);
+        biometricEnabledValue = parsedSettings.biometricEnabled || false;
+        mfaEnabledValue = parsedSettings.mfaEnabled || false;
+        console.log('Loaded settings from AsyncStorage:', { biometricEnabledValue, mfaEnabledValue });
+      } else {
+        // Fallback to SecureStore
+        const biometricSecure = await SecureStore.getItemAsync('vault_biometricEnabled');
+        const mfaSecure = await SecureStore.getItemAsync('vault_mfaEnabled');
+        biometricEnabledValue = biometricSecure === 'true';
+        mfaEnabledValue = mfaSecure === 'true';
+        console.log('Loaded settings from SecureStore:', { biometricEnabledValue, mfaEnabledValue });
+      }
+
+      setBiometricEnabled(biometricEnabledValue);
+      setMfaEnabled(mfaEnabledValue);
+      
+      console.log('Final login options:', { 
+        biometricEnabled: biometricEnabledValue, 
+        mfaEnabled: mfaEnabledValue 
+      });
     } catch (error) {
       console.error('Error loading user preferences:', error);
+      // Default to false on error for security
+      setBiometricEnabled(false);
+      setMfaEnabled(false);
     }
   };
 
@@ -537,19 +578,20 @@ const LoginScreen = ({ navigation }) => {
 
           {/* Login Buttons */}
           <View style={styles.buttonContainer}>
-            {/* Biometric Login Button */}
-            <TouchableOpacity
-              style={styles.loginButton}
-              onPress={() => handleBiometricLogin(false)}
-              disabled={
-                isLoading ||
-                isLocked ||
-                !biometricAvailable ||
-                biometricLocked ||
-                isAutoAuthenticating
-              }
-              activeOpacity={0.8}
-            >
+            {/* Biometric Login Button - Only show if biometric is enabled in settings */}
+            {biometricEnabled && (
+              <TouchableOpacity
+                style={styles.loginButton}
+                onPress={() => handleBiometricLogin(false)}
+                disabled={
+                  isLoading ||
+                  isLocked ||
+                  !biometricAvailable ||
+                  biometricLocked ||
+                  isAutoAuthenticating
+                }
+                activeOpacity={0.8}
+              >
               <LinearGradient
                 colors={['#3366cc', '#3B82F6']}
                 style={[
@@ -567,6 +609,7 @@ const LoginScreen = ({ navigation }) => {
                 <Text style={styles.buttonText}>Login with Biometric</Text>
               </LinearGradient>
             </TouchableOpacity>
+            )}
 
             {/* Password Login Button */}
             <TouchableOpacity

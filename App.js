@@ -134,6 +134,8 @@ const SessionManager = ({ children, navigationRef }) => {
 
   const handleSessionExpiry = async () => {
     try {
+      console.log('Auto-logout triggered - redirecting to login');
+      
       // Clear vault service session
       await vaultService.clearSession();
       
@@ -143,12 +145,16 @@ const SessionManager = ({ children, navigationRef }) => {
       // Clear session token
       await SecureStore.deleteItemAsync('vault_sessionToken');
       
-      // Navigate to login if navigation ref is available
+      // Navigate directly to login without confirmation
       if (navigationRef.current) {
         navigationRef.current.replace('Login');
       }
     } catch (error) {
       console.error('Error handling session expiry:', error);
+      // Even on error, try to navigate to login
+      if (navigationRef.current) {
+        navigationRef.current.replace('Login');
+      }
     }
   };
 
