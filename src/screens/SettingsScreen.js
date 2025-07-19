@@ -51,11 +51,34 @@ const SettingsScreen = () => {
     try {
       // Load settings from storage
       const settings = await AsyncStorage.getItem('userSettings');
+      const defaults = {
+        biometricEnabled: false,
+        mfaEnabled: false,
+        autoLockTimeout: 120, // seconds (2 minutes default)
+        clipboardTimeout: 30, // seconds default
+        theme: 'light',
+      };
+      
       if (settings) {
-        setUserSettings(JSON.parse(settings));
+        // Merge loaded settings with defaults to ensure no undefined values
+        const parsed = JSON.parse(settings);
+        setUserSettings({ ...defaults, ...parsed });
+      } else {
+        // No settings exist, use defaults and save them
+        setUserSettings(defaults);
+        await AsyncStorage.setItem('userSettings', JSON.stringify(defaults));
+        console.log('Created default user settings');
       }
     } catch (error) {
       console.error('Error loading settings:', error);
+      // On error, fallback to defaults
+      setUserSettings({
+        biometricEnabled: false,
+        mfaEnabled: false,
+        autoLockTimeout: 120,
+        clipboardTimeout: 30,
+        theme: 'light',
+      });
     }
   };
 

@@ -27,6 +27,7 @@ const AuthenticationModal = ({
   const [authMethod, setAuthMethod] = useState('password'); // 'password', 'biometric', 'mfa'
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [mfaStep, setMfaStep] = useState(1); // 1 = biometric, 2 = password
+  const [biometricSucceeded, setBiometricSucceeded] = useState(false);
 
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
@@ -50,6 +51,7 @@ const AuthenticationModal = ({
       setPassword('');
       setError('');
       setMfaStep(1);
+      setBiometricSucceeded(false);
     }
   }, [visible]);
 
@@ -103,6 +105,7 @@ const AuthenticationModal = ({
       });
 
       if (result.success) {
+        setBiometricSucceeded(true);
         if (authMethod === 'mfa') {
           // Move to password step for MFA
           setMfaStep(2);
@@ -171,7 +174,9 @@ const AuthenticationModal = ({
     if (authMethod === 'mfa') {
       return mfaStep === 1 
         ? 'Complete biometric authentication first' 
-        : 'Biometric authentication successful. Now enter your master password.';
+        : biometricSucceeded 
+          ? 'Biometric authentication successful. Now enter your master password.'
+          : 'Please enter your master password to continue.';
     }
     return message;
   };

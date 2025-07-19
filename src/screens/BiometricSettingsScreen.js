@@ -54,12 +54,23 @@ const BiometricSettingsScreen = () => {
   const loadCurrentSetting = async () => {
     try {
       const settings = await AsyncStorage.getItem('userSettings');
+      const defaults = {
+        biometricEnabled: false,
+      };
+      
       if (settings) {
         const parsedSettings = JSON.parse(settings);
-        setBiometricEnabled(parsedSettings.biometricEnabled || false);
+        // Merge with defaults to ensure no undefined values
+        const merged = { ...defaults, ...parsedSettings };
+        setBiometricEnabled(merged.biometricEnabled);
+      } else {
+        // No settings found, use defaults
+        setBiometricEnabled(defaults.biometricEnabled);
       }
     } catch (error) {
       console.error('Error loading biometric settings:', error);
+      // On error, use defaults
+      setBiometricEnabled(false);
     }
   };
 
@@ -174,9 +185,9 @@ const BiometricSettingsScreen = () => {
   const getBiometricLabel = () => {
     switch (biometricType) {
       case 'face':
-        return 'Face Recognition';
+        return 'Biometric Login';
       case 'fingerprint':
-        return 'Fingerprint';
+        return 'Biometric Login';
       default:
         return 'Not Available';
     }
