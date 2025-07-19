@@ -237,14 +237,14 @@ const SettingsScreen = () => {
               'Auto-Lock',
               `${userSettings.autoLockTimeout === 0 ? 'Never' : `${userSettings.autoLockTimeout}s`}`,
               'lock',
-              () => handleSettingPress('AutoLockSettings')
+              () => handleSettingPress('AutoLockSettings', false)
             )}
             {renderDivider()}
             {renderSettingItem(
               'Clipboard Auto-Clear',
               `${userSettings.clipboardTimeout === 0 ? 'Never' : `${userSettings.clipboardTimeout}s`}`,
               'clipboard',
-              () => handleSettingPress('ClipboardSettings')
+              () => handleSettingPress('ClipboardSettings', false)
             )}
           </>
         )}

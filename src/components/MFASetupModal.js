@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 
 const MFASetupModal = ({ visible, onComplete }) => {
@@ -10,7 +11,19 @@ const MFASetupModal = ({ visible, onComplete }) => {
   const handleEnable = async () => {
     setIsLoading(true);
     try {
+      // Save to both AsyncStorage and SecureStore for consistency
+      const settings = await AsyncStorage.getItem('userSettings');
+      const parsedSettings = settings ? JSON.parse(settings) : {};
+      
+      const updatedSettings = {
+        ...parsedSettings,
+        mfaEnabled: true,
+      };
+      
+      await AsyncStorage.setItem('userSettings', JSON.stringify(updatedSettings));
       await SecureStore.setItemAsync('vault_mfaEnabled', 'true');
+      
+      console.log('MFA enabled during initial setup');
       onComplete(true);
     } catch (error) {
       console.error('Error enabling MFA:', error);
@@ -24,7 +37,19 @@ const MFASetupModal = ({ visible, onComplete }) => {
   const handleSkip = async () => {
     setIsLoading(true);
     try {
+      // Save to both AsyncStorage and SecureStore for consistency
+      const settings = await AsyncStorage.getItem('userSettings');
+      const parsedSettings = settings ? JSON.parse(settings) : {};
+      
+      const updatedSettings = {
+        ...parsedSettings,
+        mfaEnabled: false,
+      };
+      
+      await AsyncStorage.setItem('userSettings', JSON.stringify(updatedSettings));
       await SecureStore.setItemAsync('vault_mfaEnabled', 'false');
+      
+      console.log('MFA skipped during initial setup');
       onComplete(false);
     } catch (error) {
       console.error('Error skipping MFA:', error);
