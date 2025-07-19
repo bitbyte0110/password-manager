@@ -13,11 +13,15 @@ import { Button, Switch } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import * as LocalAuthentication from 'expo-local-authentication';
 
 const MFASettingsScreen = () => {
   const navigation = useNavigation();
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
 
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
@@ -36,7 +40,18 @@ const MFASettingsScreen = () => {
 
   useEffect(() => {
     loadCurrentSetting();
+    checkBiometricStatus();
   }, []);
+
+  // Reload settings when screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadCurrentSetting();
+      checkBiometricStatus();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   const loadCurrentSetting = async () => {
     try {
@@ -44,14 +59,54 @@ const MFASettingsScreen = () => {
       if (settings) {
         const parsedSettings = JSON.parse(settings);
         setMfaEnabled(parsedSettings.mfaEnabled || false);
+        setBiometricEnabled(parsedSettings.biometricEnabled || false);
       }
     } catch (error) {
       console.error('Error loading MFA settings:', error);
     }
   };
 
+  const checkBiometricStatus = async () => {
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      setBiometricAvailable(hasHardware && isEnrolled);
+    } catch (error) {
+      console.error('Error checking biometric status:', error);
+      setBiometricAvailable(false);
+    }
+  };
+
   const handleToggleMFA = () => {
-    if (mfaEnabled) {
+    // Check if biometric is available and enabled before allowing MFA
+    if (!mfaEnabled) {
+      if (!biometricAvailable) {
+        Alert.alert(
+          'Biometric Not Available',
+          'Multi-factor authentication requires biometric authentication to be available on your device. Please set up fingerprint or face recognition in your device settings.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      if (!biometricEnabled) {
+        Alert.alert(
+          'Biometric Login Required',
+          'Multi-factor authentication requires biometric login to be enabled first. Please enable biometric login in the settings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Enable Biometric Login',
+              onPress: () => navigation.navigate('BiometricSettings'),
+            },
+          ]
+        );
+        return;
+      }
+
+      // All requirements met, enable MFA
+      handleSetupMFA();
+    } else {
       // Show confirmation dialog for disabling
       Alert.alert(
         'Disable Multi-Factor Authentication',
@@ -65,9 +120,6 @@ const MFASettingsScreen = () => {
           },
         ]
       );
-    } else {
-      // Navigate to MFA setup
-      handleSetupMFA();
     }
   };
 
@@ -101,18 +153,19 @@ const MFASettingsScreen = () => {
         mfaEnabled: enabled,
       };
 
-      await AsyncStorage.setItem(
-        'userSettings',
-        JSON.stringify(updatedSettings)
-      );
+      // Save to both AsyncStorage and SecureStore for consistency
+      await AsyncStorage.setItem('userSettings', JSON.stringify(updatedSettings));
+      await SecureStore.setItemAsync('vault_mfaEnabled', enabled.toString());
+
       setMfaEnabled(enabled);
 
       Alert.alert(
         'Settings Saved',
-        `Multi-Factor Authentication has been ${enabled ? 'enabled' : 'disabled'}`,
+        `Multi-Factor Authentication has been ${enabled ? 'enabled' : 'disabled'}.${enabled ? ' You will now need both biometric and password authentication to access your vault.' : ''}`,
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error) {
+      console.error('Error saving MFA settings:', error);
       Alert.alert('Error', 'Failed to save MFA settings');
     } finally {
       setIsLoading(false);

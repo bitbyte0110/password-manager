@@ -8,6 +8,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import vaultService from './src/services/vaultService';
 
 // Import all screens
 import SetMasterPasswordScreen from './src/screens/SetMasterPasswordScreen';
@@ -32,6 +33,7 @@ import AppearanceSettingsScreen from './src/screens/AppearanceSettingsScreen';
 import AboutScreen from './src/screens/AboutScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import { PasswordProvider } from './src/PasswordContext';
+import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 
 // Create Stack Navigator
 const Stack = createStackNavigator();
@@ -52,15 +54,15 @@ const ACTIVITY_CHECK_INTERVAL = 30 * 1000; // 30 seconds
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
 
 // Session Management Component
-const SessionManager = ({ children }) => {
+const SessionManager = ({ children, navigationRef }) => {
   const [appState, setAppState] = useState(AppState.currentState);
 
   useEffect(() => {
     // Update activity on mount
     updateActivity();
 
-    // Set up activity monitoring
-    const activityTimer = setInterval(checkInactivity, ACTIVITY_CHECK_INTERVAL);
+    // Set up activity monitoring - check every 10 seconds for better responsiveness
+    const activityTimer = setInterval(checkInactivity, 10000);
 
     // Set up app state monitoring
     const appStateSubscription = AppState.addEventListener(
@@ -84,26 +86,33 @@ const SessionManager = ({ children }) => {
     }
   };
 
+  const getActivityTimeout = async () => {
+    try {
+      const settings = await AsyncStorage.getItem('userSettings');
+      if (settings) {
+        const parsedSettings = JSON.parse(settings);
+        const userTimeout = parsedSettings.autoLockTimeout || 120;
+        return userTimeout * 1000;
+      }
+    } catch (error) {
+      console.error('Error loading auto-lock settings:', error);
+    }
+    return DEFAULT_ACTIVITY_TIMEOUT;
+  };
+
   const checkInactivity = async () => {
     try {
       const lastActiveTime = await AsyncStorage.getItem(LAST_ACTIVE_TIME_KEY);
 
       if (!lastActiveTime) {
-        // No activity recorded, but don't trigger logout in session manager
         return;
       }
 
-      // Get user's auto-lock timeout preference
-      let activityTimeout = DEFAULT_ACTIVITY_TIMEOUT;
-      try {
-        const settings = await AsyncStorage.getItem('userSettings');
-        if (settings) {
-          const parsedSettings = JSON.parse(settings);
-          const userTimeout = parsedSettings.autoLockTimeout || 120; // Default 120 seconds
-          activityTimeout = userTimeout * 1000; // Convert to milliseconds
-        }
-      } catch (error) {
-        console.error('Error loading auto-lock settings:', error);
+      const activityTimeout = await getActivityTimeout();
+      
+      // Skip auto-logout if timeout is 0 (Never)
+      if (activityTimeout === 0) {
+        return;
       }
 
       const lastActive = parseInt(lastActiveTime, 10);
@@ -111,23 +120,43 @@ const SessionManager = ({ children }) => {
       const timeDifference = now - lastActive;
 
       if (timeDifference > activityTimeout) {
-        // Session expired - this will be handled by individual screens
         console.log(
           `Session expired due to inactivity (${Math.round(timeDifference / 1000)}s > ${activityTimeout / 1000}s)`
         );
+        
+        // Clear session and navigate to login
+        await handleSessionExpiry();
       }
     } catch (error) {
       console.error('Error checking inactivity:', error);
     }
   };
 
+  const handleSessionExpiry = async () => {
+    try {
+      // Clear vault service session
+      await vaultService.clearSession();
+      
+      // Clear activity timestamp
+      await AsyncStorage.removeItem(LAST_ACTIVE_TIME_KEY);
+      
+      // Clear session token
+      await SecureStore.deleteItemAsync('vault_sessionToken');
+      
+      // Navigate to login if navigation ref is available
+      if (navigationRef.current) {
+        navigationRef.current.replace('Login');
+      }
+    } catch (error) {
+      console.error('Error handling session expiry:', error);
+    }
+  };
+
   const handleAppStateChange = async nextAppState => {
     if (appState.match(/inactive|background/) && nextAppState === 'active') {
-      // App came to foreground, check if session expired
       console.log('App came to foreground, checking session validity');
       await checkInactivity();
     } else if (nextAppState.match(/inactive|background/)) {
-      // App going to background, update activity timestamp
       console.log('App going to background, updating activity timestamp');
       await updateActivity();
     }
@@ -143,6 +172,8 @@ const SessionManager = ({ children }) => {
 };
 
 function MainTabs() {
+  const { theme: appTheme } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -155,10 +186,10 @@ function MainTabs() {
           else if (route.name === 'Settings') iconName = 'cog';
           return <Icon name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: '#666666',
+        tabBarActiveTintColor: appTheme.colors.tabBarActive,
+        tabBarInactiveTintColor: appTheme.colors.tabBarInactive,
         tabBarStyle: {
-          backgroundColor: theme.colors.surface,
+          backgroundColor: appTheme.colors.tabBar,
         },
       })}
     >
@@ -347,18 +378,45 @@ const AppNavigator = () => {
   );
 };
 
-export default function App() {
+// Wrapper component to use dynamic theme with PaperProvider
+const AppWithTheme = () => {
+  const navigationRef = React.useRef();
+  const { theme: appTheme } = useTheme();
+
+  // Convert our theme to React Native Paper theme format
+  const paperTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      primary: appTheme.colors.primary,
+      accent: appTheme.colors.secondary,
+      background: appTheme.colors.background,
+      surface: appTheme.colors.surface,
+      text: appTheme.colors.text,
+      placeholder: appTheme.colors.textSecondary,
+      backdrop: appTheme.colors.modalOverlay,
+    },
+  };
+
   return (
-    <PaperProvider theme={theme}>
+    <PaperProvider theme={paperTheme}>
       <PasswordProvider>
-        <NavigationContainer>
-          <SessionManager>
+        <NavigationContainer ref={navigationRef}>
+          <SessionManager navigationRef={navigationRef}>
             <AppNavigator />
-            <StatusBar style="auto" />
+            <StatusBar style={appTheme.isDark ? "light" : "dark"} />
           </SessionManager>
         </NavigationContainer>
       </PasswordProvider>
     </PaperProvider>
+  );
+};
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppWithTheme />
+    </ThemeProvider>
   );
 }
 
