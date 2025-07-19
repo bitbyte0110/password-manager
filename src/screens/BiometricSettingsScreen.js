@@ -234,25 +234,6 @@ const BiometricSettingsScreen = () => {
 
             <View style={styles.compatibilityList}>
               <View style={styles.compatibilityItem}>
-                <Icon
-                  name={
-                    biometricType !== 'none' ? 'check-circle' : 'times-circle'
-                  }
-                  size={16}
-                  color={biometricType !== 'none' ? theme.success : theme.error}
-                />
-                <Text
-                  style={[
-                    styles.compatibilityText,
-                    { color: theme.textSecondary },
-                  ]}
-                >
-                  Biometric hardware:{' '}
-                  {biometricType !== 'none' ? 'Available' : 'Not detected'}
-                </Text>
-              </View>
-
-              <View style={styles.compatibilityItem}>
                 <Icon name="info-circle" size={16} color={theme.primary} />
                 <Text
                   style={[
