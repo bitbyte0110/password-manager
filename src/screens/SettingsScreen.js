@@ -14,11 +14,13 @@ import Icon from 'react-native-vector-icons/FontAwesome5';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import vaultService from '../services/vaultService';
+import { usePasswords } from '../PasswordContext';
 
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
 
 const SettingsScreen = () => {
   const navigation = useNavigation();
+  const { clearPasswords } = usePasswords();
   const [appVersion] = useState('1.0.0');
   const [userSettings, setUserSettings] = useState({
     biometricEnabled: false,
@@ -81,6 +83,41 @@ const SettingsScreen = () => {
     } else {
       navigation.navigate(screenName);
     }
+  };
+
+  const handleLogOut = async () => {
+    Alert.alert(
+      'Log Out',
+      'Are you sure you want to log out? You will need to authenticate again to access your vault.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Log Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Clear vault service session
+              await vaultService.clearSession();
+
+              // Clear password context
+              clearPasswords();
+
+              // Clear activity timestamp
+              await AsyncStorage.removeItem(LAST_ACTIVE_TIME_KEY);
+
+              // Navigate to login screen
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            } catch (error) {
+              console.error('Error during logout:', error);
+              Alert.alert('Error', 'Failed to log out. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const renderSettingItem = (
@@ -240,6 +277,14 @@ const SettingsScreen = () => {
               appVersion,
               'info-circle',
               () => handleSettingPress('About', false),
+              false
+            )}
+            {renderDivider()}
+            {renderSettingItem(
+              'Log Out',
+              'Sign out of your vault',
+              'sign-out-alt',
+              handleLogOut,
               false
             )}
           </>

@@ -10,7 +10,7 @@ import {
 import { Snackbar, IconButton } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Clipboard from 'expo-clipboard';
+import clipboardService from '../services/clipboardService';
 import vaultService from '../services/vaultService';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
@@ -47,8 +47,15 @@ const CategoryDetailsScreen = () => {
 
   const handleCopyUsername = async username => {
     try {
-      await Clipboard.setStringAsync(username || '');
-      setSnackbar({ visible: true, message: 'Username copied' });
+      const success = await clipboardService.copyToClipboard(
+        username || '',
+        false
+      );
+      if (success) {
+        setSnackbar({ visible: true, message: 'Username copied' });
+      } else {
+        setSnackbar({ visible: true, message: 'Copy failed' });
+      }
     } catch (error) {
       setSnackbar({ visible: true, message: 'Copy failed' });
     }

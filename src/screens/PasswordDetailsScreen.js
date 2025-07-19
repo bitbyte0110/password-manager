@@ -11,7 +11,7 @@ import {
 import { Button, IconButton, Snackbar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/FontAwesome5';
-import * as Clipboard from 'expo-clipboard';
+import clipboardService from '../services/clipboardService';
 import vaultService from '../services/vaultService';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
@@ -62,10 +62,14 @@ const PasswordDetailsScreen = () => {
     }
   };
 
-  const handleCopy = async value => {
+  const handleCopy = async (value, isPassword = false) => {
     try {
-      await Clipboard.setStringAsync(value);
-      setSnackbar({ visible: true, message: 'Copied to clipboard' });
+      const success = await clipboardService.copyToClipboard(value, isPassword);
+      if (success) {
+        setSnackbar({ visible: true, message: 'Copied to clipboard' });
+      } else {
+        setSnackbar({ visible: true, message: 'Copy failed' });
+      }
     } catch (e) {
       setSnackbar({ visible: true, message: 'Copy failed' });
     }
@@ -220,7 +224,7 @@ const PasswordDetailsScreen = () => {
                 icon="clipboard"
                 size={20}
                 color={theme.textSecondary}
-                onPress={() => handleCopy(entry.password)}
+                onPress={() => handleCopy(entry.password, true)}
                 style={{ marginLeft: -8 }}
               />
             </View>
@@ -425,4 +429,3 @@ const styles = StyleSheet.create({
 });
 
 export default PasswordDetailsScreen;
- 

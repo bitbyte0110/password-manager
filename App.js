@@ -47,7 +47,7 @@ const theme = {
 };
 
 // Constants for session management
-const ACTIVITY_TIMEOUT = 2 * 60 * 1000; // 2 minutes in milliseconds
+const DEFAULT_ACTIVITY_TIMEOUT = 2 * 60 * 1000; // 2 minutes in milliseconds (default)
 const ACTIVITY_CHECK_INTERVAL = 30 * 1000; // 30 seconds
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
 
@@ -93,13 +93,28 @@ const SessionManager = ({ children }) => {
         return;
       }
 
+      // Get user's auto-lock timeout preference
+      let activityTimeout = DEFAULT_ACTIVITY_TIMEOUT;
+      try {
+        const settings = await AsyncStorage.getItem('userSettings');
+        if (settings) {
+          const parsedSettings = JSON.parse(settings);
+          const userTimeout = parsedSettings.autoLockTimeout || 120; // Default 120 seconds
+          activityTimeout = userTimeout * 1000; // Convert to milliseconds
+        }
+      } catch (error) {
+        console.error('Error loading auto-lock settings:', error);
+      }
+
       const lastActive = parseInt(lastActiveTime, 10);
       const now = Date.now();
       const timeDifference = now - lastActive;
 
-      if (timeDifference > ACTIVITY_TIMEOUT) {
+      if (timeDifference > activityTimeout) {
         // Session expired - this will be handled by individual screens
-        console.log('Session expired due to inactivity');
+        console.log(
+          `Session expired due to inactivity (${Math.round(timeDifference / 1000)}s > ${activityTimeout / 1000}s)`
+        );
       }
     } catch (error) {
       console.error('Error checking inactivity:', error);
@@ -215,15 +230,28 @@ const AppNavigator = () => {
         return 'Login';
       }
 
-      // Step 3: Check if session is still valid (within 2 minutes)
+      // Step 3: Check if session is still valid based on user's auto-lock timeout
       const lastActive = parseInt(lastActiveTime, 10);
       const now = Date.now();
       const timeDifference = now - lastActive;
 
-      if (timeDifference > ACTIVITY_TIMEOUT) {
+      // Get user's auto-lock timeout preference
+      let activityTimeout = DEFAULT_ACTIVITY_TIMEOUT;
+      try {
+        const settings = await AsyncStorage.getItem('userSettings');
+        if (settings) {
+          const parsedSettings = JSON.parse(settings);
+          const userTimeout = parsedSettings.autoLockTimeout || 120; // Default 120 seconds
+          activityTimeout = userTimeout * 1000; // Convert to milliseconds
+        }
+      } catch (error) {
+        console.error('Error loading auto-lock settings:', error);
+      }
+
+      if (timeDifference > activityTimeout) {
         // Session expired, require re-authentication
         console.log(
-          `Session expired (${Math.round(timeDifference / 1000)}s ago), requiring authentication`
+          `Session expired (${Math.round(timeDifference / 1000)}s ago, timeout: ${activityTimeout / 1000}s), requiring authentication`
         );
         // Clear any session tokens since session is expired
         try {
@@ -235,7 +263,7 @@ const AppNavigator = () => {
       } else {
         // Session still valid, go directly to MainTabs
         console.log(
-          `Session valid (${Math.round(timeDifference / 1000)}s ago), accessing MainTabs`
+          `Session valid (${Math.round(timeDifference / 1000)}s ago, timeout: ${activityTimeout / 1000}s), accessing MainTabs`
         );
         // Update activity timestamp
         await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, Date.now().toString());
