@@ -666,6 +666,109 @@ class VaultService {
   }
 
   /**
+   * Change master password
+   * @param {string} oldPassword - Current master password
+   * @param {string} newPassword - New master password
+   * @returns {Promise<boolean>} Success status
+   */
+  async changeMasterPassword(oldPassword, newPassword) {
+    if (!this.isUserAuthenticated()) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      console.log('VaultService: Starting master password change...');
+
+      // Verify old password
+      const storedHash = await SecureStore.getItemAsync('vault_masterHash');
+      if (!storedHash) {
+        throw new Error('No master password found');
+      }
+
+      const isOldPasswordValid = await bcrypt.compare(oldPassword, storedHash);
+      if (!isOldPasswordValid) {
+        throw new Error('Invalid current password');
+      }
+
+      // Ensure the vault service is authenticated with the old password
+      if (this.masterPassword !== oldPassword) {
+        throw new Error('Vault service authentication mismatch');
+      }
+
+      console.log('VaultService: Old password verified, starting data re-encryption...');
+
+      // Get all password entries
+      const allEntries = await this.dbService.getPasswordEntries();
+      console.log(`VaultService: Found ${allEntries.length} entries to re-encrypt`);
+
+      // Create new password hash
+      const saltRounds = 12;
+      const newHash = await bcrypt.hash(newPassword, saltRounds);
+
+      // Re-encrypt all entries with new password
+      const reEncryptedEntries = [];
+      for (const entry of allEntries) {
+        try {
+          console.log(`VaultService: Re-encrypting entry ${entry.id}...`);
+          
+          // Decrypt with old password
+          const decryptedEntry = await this.decryptPasswordEntry(entry);
+          
+          // Re-encrypt with new password
+          const reEncryptedData = encryptionService.encryptPasswordEntryOptimized(
+            {
+              title: decryptedEntry.title,
+              username: decryptedEntry.username,
+              password: decryptedEntry.password,
+              url: decryptedEntry.url,
+              notes: decryptedEntry.notes,
+              categoryId: decryptedEntry.categoryId,
+              isFavorite: decryptedEntry.isFavorite,
+            },
+            newPassword
+          );
+
+          reEncryptedEntries.push({
+            id: entry.id,
+            encryptedPayload: reEncryptedData.encrypted_payload,
+          });
+        } catch (error) {
+          console.error(`Failed to re-encrypt entry ${entry.id}:`, error);
+          throw new Error(`Failed to re-encrypt password entry: ${error.message}`);
+        }
+      }
+
+      console.log('VaultService: All entries re-encrypted, updating database...');
+
+      // Update all entries in database with new encrypted data
+      for (const entry of reEncryptedEntries) {
+        await this.dbService.db.runAsync(
+          `UPDATE passwords 
+           SET encrypted_payload = ?, 
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id = ?`,
+          [JSON.stringify(entry.encryptedPayload), entry.id]
+        );
+      }
+
+      // Update master password hash
+      await SecureStore.setItemAsync('vault_masterHash', newHash);
+
+      // Update authentication state with new password
+      this.masterPassword = newPassword;
+
+      // Create new session token with new password
+      await this.createSessionToken(newPassword);
+
+      console.log('VaultService: Master password change completed successfully');
+      return true;
+    } catch (error) {
+      console.error('VaultService: Error changing master password:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Migrate legacy password entries to optimized format
    * @returns {Promise<number>} Number of entries migrated
    */

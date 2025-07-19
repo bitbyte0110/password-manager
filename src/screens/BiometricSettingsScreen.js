@@ -13,6 +13,8 @@ import { Button, Switch } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import * as LocalAuthentication from 'expo-local-authentication';
 
 const BiometricSettingsScreen = () => {
   const navigation = useNavigation();
@@ -40,6 +42,15 @@ const BiometricSettingsScreen = () => {
     checkBiometricSupport();
   }, []);
 
+  // Reload settings when screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadCurrentSetting();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
   const loadCurrentSetting = async () => {
     try {
       const settings = await AsyncStorage.getItem('userSettings');
@@ -52,13 +63,29 @@ const BiometricSettingsScreen = () => {
     }
   };
 
-  const checkBiometricSupport = () => {
-    // In a real app, you would use expo-local-authentication to check
-    // For demo purposes, we'll simulate different biometric types
-    const supportedTypes = ['fingerprint', 'face', 'none'];
-    const randomType =
-      supportedTypes[Math.floor(Math.random() * supportedTypes.length)];
-    setBiometricType(randomType);
+  const checkBiometricSupport = async () => {
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
+      
+      if (!hasHardware || !isEnrolled) {
+        setBiometricType('none');
+        return;
+      }
+
+      // Determine the type based on supported authentication types
+      if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+        setBiometricType('face');
+      } else if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+        setBiometricType('fingerprint');
+      } else {
+        setBiometricType('none');
+      }
+    } catch (error) {
+      console.error('Error checking biometric support:', error);
+      setBiometricType('none');
+    }
   };
 
   const handleToggleBiometric = () => {
@@ -102,18 +129,31 @@ const BiometricSettingsScreen = () => {
         biometricEnabled: enabled,
       };
 
-      await AsyncStorage.setItem(
-        'userSettings',
-        JSON.stringify(updatedSettings)
-      );
+      // If disabling biometric, also disable MFA since MFA requires biometric
+      if (!enabled && parsedSettings.mfaEnabled) {
+        updatedSettings.mfaEnabled = false;
+        await SecureStore.setItemAsync('vault_mfaEnabled', 'false');
+      }
+
+      // Save to both AsyncStorage and SecureStore for consistency
+      await AsyncStorage.setItem('userSettings', JSON.stringify(updatedSettings));
+      await SecureStore.setItemAsync('vault_biometricEnabled', enabled.toString());
+
       setBiometricEnabled(enabled);
+
+      const message = enabled 
+        ? 'Biometric login has been enabled'
+        : parsedSettings.mfaEnabled 
+          ? 'Biometric login has been disabled. Multi-factor authentication has also been disabled since it requires biometric authentication.'
+          : 'Biometric login has been disabled';
 
       Alert.alert(
         'Settings Saved',
-        `Biometric login has been ${enabled ? 'enabled' : 'disabled'}`,
+        message,
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error) {
+      console.error('Error saving biometric settings:', error);
       Alert.alert('Error', 'Failed to save biometric settings');
     } finally {
       setIsLoading(false);

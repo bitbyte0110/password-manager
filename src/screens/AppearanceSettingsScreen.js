@@ -12,29 +12,22 @@ import { Button, RadioButton } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme } from '../contexts/ThemeContext';
 
 const AppearanceSettingsScreen = () => {
   const navigation = useNavigation();
-  const [selectedTheme, setSelectedTheme] = useState('light');
+  const { theme, themePreference, setTheme: setGlobalTheme } = useTheme();
+  const [selectedTheme, setSelectedTheme] = useState(themePreference);
   const [isLoading, setIsLoading] = useState(false);
 
-  const getEffectiveTheme = themeChoice => {
-    return themeChoice === 'dark';
-  };
-
-  const isDarkMode = getEffectiveTheme(selectedTheme);
-
-  const theme = {
-    background: isDarkMode ? '#121212' : '#ffffff',
-    card: isDarkMode ? '#2c2c2c' : '#ffffff',
-    primary: '#8e44ad',
-    text: isDarkMode ? '#ffffff' : '#333333',
-    textSecondary: isDarkMode ? '#b0b0b0' : '#666666',
-    border: isDarkMode ? '#333333' : '#e0e0e0',
-    success: '#2ecc71',
-  };
-
   const themeOptions = [
+    {
+      value: 'system',
+      label: 'System Default',
+      description: 'Follow device appearance settings',
+      icon: 'mobile-alt',
+      colors: { bg: theme.colors.background, text: theme.colors.text, accent: theme.colors.primary },
+    },
     {
       value: 'light',
       label: 'Light Mode',
@@ -52,49 +45,22 @@ const AppearanceSettingsScreen = () => {
   ];
 
   useEffect(() => {
-    loadCurrentSetting();
-  }, []);
+    setSelectedTheme(themePreference);
+  }, [themePreference]);
 
-  const loadCurrentSetting = async () => {
-    try {
-      const settings = await AsyncStorage.getItem('userSettings');
-      if (settings) {
-        const parsedSettings = JSON.parse(settings);
-        // If the saved theme is 'system', default to 'light'
-        const savedTheme = parsedSettings.theme;
-        setSelectedTheme(
-          savedTheme === 'system' ? 'light' : savedTheme || 'light'
-        );
-      }
-    } catch (error) {
-      console.error('Error loading theme settings:', error);
-    }
-  };
-
-  const handleThemeChange = newTheme => {
+  const handleThemeChange = async (newTheme) => {
     setSelectedTheme(newTheme);
-    // Apply theme immediately for preview
+    // Apply theme immediately using global theme context
+    await setGlobalTheme(newTheme);
   };
 
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      const settings = await AsyncStorage.getItem('userSettings');
-      const parsedSettings = settings ? JSON.parse(settings) : {};
-
-      const updatedSettings = {
-        ...parsedSettings,
-        theme: selectedTheme,
-      };
-
-      await AsyncStorage.setItem(
-        'userSettings',
-        JSON.stringify(updatedSettings)
-      );
-
+      // Theme is already saved by setGlobalTheme in handleThemeChange
       Alert.alert(
         'Theme Updated',
-        'Your theme preference has been saved and will be applied throughout the app.',
+        'Your theme preference has been saved and applied throughout the app.',
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error) {

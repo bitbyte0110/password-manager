@@ -93,12 +93,22 @@ const AutoLockSettingsScreen = () => {
         JSON.stringify(updatedSettings)
       );
 
+      // Update activity timestamp so new timeout takes effect immediately
+      const timestamp = Date.now().toString();
+      await AsyncStorage.setItem('vault_lastActiveTime', timestamp);
+
+      const timeoutValue = parseInt(selectedTimeout, 10);
+      const timeoutMessage = timeoutValue === 0 
+        ? 'Auto-lock has been disabled' 
+        : `Auto-lock timeout set to ${timeoutValue} seconds`;
+
       Alert.alert(
         'Settings Saved',
-        'Auto-lock timeout has been updated successfully',
+        `${timeoutMessage}. The new setting is now active.`,
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error) {
+      console.error('Error saving auto-lock settings:', error);
       Alert.alert('Error', 'Failed to save auto-lock settings');
     } finally {
       setIsLoading(false);

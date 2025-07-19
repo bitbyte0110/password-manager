@@ -92,12 +92,18 @@ const ClipboardSettingsScreen = () => {
         JSON.stringify(updatedSettings)
       );
 
+      const timeoutValue = parseInt(selectedTimeout, 10);
+      const timeoutMessage = timeoutValue === 0 
+        ? 'Clipboard auto-clear has been disabled' 
+        : `Clipboard will auto-clear after ${timeoutValue} seconds`;
+
       Alert.alert(
         'Settings Saved',
-        'Clipboard auto-clear timeout has been updated successfully',
+        `${timeoutMessage}. The new setting is now active for future password copies.`,
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error) {
+      console.error('Error saving clipboard settings:', error);
       Alert.alert('Error', 'Failed to save clipboard settings');
     } finally {
       setIsLoading(false);

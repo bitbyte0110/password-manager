@@ -6,7 +6,6 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  useColorScheme,
   Alert,
 } from 'react-native';
 import { Divider } from 'react-native-paper';
@@ -15,6 +14,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import vaultService from '../services/vaultService';
 import { usePasswords } from '../PasswordContext';
+import AuthenticationModal from '../components/AuthenticationModal';
+import { useTheme } from '../contexts/ThemeContext';
 
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
 
@@ -29,29 +30,22 @@ const SettingsScreen = () => {
     clipboardTimeout: 30, // seconds
     theme: 'light',
   });
-
-  // Get color scheme for theme support
-  const colorScheme = useColorScheme();
-  const isDarkMode = colorScheme === 'dark';
-
-  // Theme colors
-  const theme = {
-    background: isDarkMode ? '#121212' : '#ffffff',
-    surface: isDarkMode ? '#1e1e1e' : '#f8f9fa',
-    card: isDarkMode ? '#2c2c2c' : '#ffffff',
-    primary: '#8e44ad',
-    secondary: '#3498db',
-    text: isDarkMode ? '#ffffff' : '#333333',
-    textSecondary: isDarkMode ? '#b0b0b0' : '#666666',
-    border: isDarkMode ? '#333333' : '#e0e0e0',
-    error: '#e74c3c',
-    success: '#2ecc71',
-    warning: '#f39c12',
-  };
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState(null);
+  const { theme } = useTheme();
 
   useEffect(() => {
     loadUserSettings();
   }, []);
+
+  // Reload settings when screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadUserSettings();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   const loadUserSettings = async () => {
     try {
@@ -78,11 +72,24 @@ const SettingsScreen = () => {
     updateActivity();
 
     if (requiresAuth) {
-      // For now, navigate directly. In production, add authentication check
-      navigation.navigate(screenName);
+      setPendingNavigation(screenName);
+      setShowAuthModal(true);
     } else {
       navigation.navigate(screenName);
     }
+  };
+
+  const handleAuthSuccess = (authResult) => {
+    setShowAuthModal(false);
+    if (pendingNavigation) {
+      navigation.navigate(pendingNavigation);
+      setPendingNavigation(null);
+    }
+  };
+
+  const handleAuthCancel = () => {
+    setShowAuthModal(false);
+    setPendingNavigation(null);
   };
 
   const handleLogOut = async () => {
@@ -129,7 +136,7 @@ const SettingsScreen = () => {
     rightComponent = null
   ) => (
     <TouchableOpacity
-      style={[styles.settingItem, { backgroundColor: theme.card }]}
+      style={[styles.settingItem, { backgroundColor: theme.colors.card }]}
       onPress={onPress}
       activeOpacity={0.7}
     >
@@ -137,18 +144,18 @@ const SettingsScreen = () => {
         <View
           style={[
             styles.settingIcon,
-            { backgroundColor: theme.primary + '20' },
+            { backgroundColor: theme.colors.primary + '20' },
           ]}
         >
-          <Icon name={iconName} size={20} color={theme.primary} />
+          <Icon name={iconName} size={20} color={theme.colors.primary} />
         </View>
         <View style={styles.settingContent}>
-          <Text style={[styles.settingTitle, { color: theme.text }]}>
+          <Text style={[styles.settingTitle, { color: theme.colors.text }]}>
             {title}
           </Text>
           {subtitle && (
             <Text
-              style={[styles.settingSubtitle, { color: theme.textSecondary }]}
+              style={[styles.settingSubtitle, { color: theme.colors.textSecondary }]}
             >
               {subtitle}
             </Text>
@@ -158,7 +165,7 @@ const SettingsScreen = () => {
       <View style={styles.settingItemRight}>
         {rightComponent}
         {showChevron && (
-          <Icon name="chevron-right" size={14} color={theme.textSecondary} />
+          <Icon name="chevron-right" size={14} color={theme.colors.textSecondary} />
         )}
       </View>
     </TouchableOpacity>
@@ -166,32 +173,32 @@ const SettingsScreen = () => {
 
   const renderSection = (title, children) => (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+      <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
         {title}
       </Text>
-      <View style={[styles.sectionContent, { backgroundColor: theme.card }]}>
+      <View style={[styles.sectionContent, { backgroundColor: theme.colors.card }]}>
         {children}
       </View>
     </View>
   );
 
   const renderDivider = () => (
-    <Divider style={[styles.divider, { backgroundColor: theme.border }]} />
+    <Divider style={[styles.divider, { backgroundColor: theme.colors.border }]} />
   );
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-left" size={20} color={theme.text} />
+          <Icon name="arrow-left" size={20} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
           Settings
         </Text>
         <View style={styles.headerRight} />
@@ -216,14 +223,14 @@ const SettingsScreen = () => {
               'Multi-Factor Authentication',
               userSettings.mfaEnabled ? 'Enabled' : 'Disabled',
               'shield-alt',
-              () => handleSettingPress('MFASettings')
+              () => handleSettingPress('MFASettings', true)
             )}
             {renderDivider()}
             {renderSettingItem(
               'Biometric Login',
               userSettings.biometricEnabled ? 'Enabled' : 'Disabled',
               'fingerprint',
-              () => handleSettingPress('BiometricSettings')
+              () => handleSettingPress('BiometricSettings', true)
             )}
             {renderDivider()}
             {renderSettingItem(
@@ -289,6 +296,14 @@ const SettingsScreen = () => {
 
         <View style={styles.bottomPadding} />
       </ScrollView>
+
+      <AuthenticationModal
+        visible={showAuthModal}
+        onClose={handleAuthCancel}
+        onSuccess={handleAuthSuccess}
+        title="Settings Access"
+        message="Authenticate to access this setting"
+      />
     </SafeAreaView>
   );
 };
