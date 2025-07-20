@@ -4,7 +4,8 @@
       "Bash(npm run lint)",
       "Bash(npm run lint:*)",
       "Bash(npx expo start:*)",
-      "Bash(npx expo export:*)"
+      "Bash(npx expo export:*)",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": []
   }

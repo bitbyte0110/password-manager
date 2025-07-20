@@ -9,20 +9,10 @@ import {
   Alert,
   Modal,
   Dimensions,
-  ScrollView,
 } from 'react-native';
-import {
-  Searchbar,
-  Menu,
-  ActivityIndicator,
-  Snackbar,
-  TextInput,
-  Button,
-  Chip,
-} from 'react-native-paper';
+import { Searchbar, Badge, Menu, ActivityIndicator } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/FontAwesome5';
-// import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 
 import vaultService from '../services/vaultService';
@@ -34,121 +24,46 @@ import { useTheme } from '../contexts/ThemeContext';
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
 const { height: screenHeight } = Dimensions.get('window');
 
-// Category icons and colors mapping
-const CATEGORY_ICONS = [
-  'folder',
-  'globe',
-  'briefcase',
-  'credit-card',
-  'user',
-  'shopping-bag',
-  'envelope',
-  'shield-alt',
-  'key',
-  'lock',
-  'heart',
-  'star',
-  'bookmark',
-  'home',
-  'car',
-  'plane',
-  'gamepad',
-  'music',
-  'camera',
-  'book',
-];
-
-const CATEGORY_COLORS = [
-  '#8e44ad',
-  '#3498db',
-  '#e74c3c',
-  '#2ecc71',
-  '#f39c12',
-  '#9b59b6',
-  '#1abc9c',
-  '#34495e',
-  '#f1c40f',
-  '#e67e22',
-  '#95a5a6',
-  '#16a085',
-  '#27ae60',
-  '#2980b9',
-  '#e91e63',
-  '#c0392b',
-  '#d35400',
-  '#7f8c8d',
-];
-
 const CategoriesScreen = ({ navigation, route }) => {
   // State management
+  const { theme } = useTheme();
   const [categories, setCategories] = useState([]);
   const [filteredCategories, setFilteredCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [selectedFilter, setSelectedFilter] = useState('all');
   const [sortBy, setSortBy] = useState('name_asc');
+  const [recentSearches, setRecentSearches] = useState([]);
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [showSortMenu, setShowSortMenu] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
   const [menuVisible, setMenuVisible] = useState({});
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
-  const [showFABMenu, setShowFABMenu] = useState(false);
 
-  // Edit form state
-  const [editForm, setEditForm] = useState({
-    name: '',
-    description: '',
-    icon: 'folder',
-    color: '#8e44ad',
-  });
-
-  const [formErrors, setFormErrors] = useState({});
-  const { theme } = useTheme();
-
-  // Initialize screen and load data
   useEffect(() => {
-    initializeScreen();
+    initializeCategories();
   }, []);
+
+  useEffect(() => {
+    applyFiltersAndSort();
+  }, [categories, searchQuery, selectedFilter, sortBy]);
 
   // Refresh data when screen gains focus
   useFocusEffect(
     useCallback(() => {
       loadCategories();
-
+      
       // Handle refresh from AddCategoryScreen or EditCategoryScreen
       if (route?.params?.refresh) {
         loadCategories();
-        // Show success message if available
-        if (route?.params?.createdCategory) {
-          showSnackbar('Category created successfully');
-        } else if (route?.params?.updatedCategoryId) {
-          showSnackbar('Category updated successfully');
-        } else if (route?.params?.deletedCategoryId) {
-          showSnackbar('Category deleted successfully');
-        }
-        // Clear the parameters
-        navigation.setParams({
-          refresh: undefined,
-          createdCategory: undefined,
-          updatedCategoryId: undefined,
-          deletedCategoryId: undefined,
-        });
+        // Clear the parameter
+        navigation.setParams({ refresh: undefined });
       }
-    }, [
-      route?.params?.refresh,
-      route?.params?.createdCategory,
-      route?.params?.updatedCategoryId,
-      route?.params?.deletedCategoryId,
-    ])
+    }, [route?.params?.refresh])
   );
 
-  // Apply filters and sorting when data changes
-  useEffect(() => {
-    applyFiltersAndSort();
-  }, [categories, searchQuery, activeFilter, sortBy]);
-
-  const initializeScreen = async () => {
+  const initializeCategories = async () => {
     try {
       setIsLoading(true);
       updateActivity();
@@ -163,24 +78,32 @@ const CategoriesScreen = ({ navigation, route }) => {
         return;
       }
 
-      // Load categories
-      await loadCategories();
+      // Load data
+      await Promise.all([
+        loadCategories(),
+        loadRecentSearches(),
+        updateActivity(),
+      ]);
     } catch (error) {
-      console.error('Error initializing CategoriesScreen:', error);
-      showSnackbar('Error loading categories. Please try again.');
-      // Navigate back if initialization fails
-      navigation.goBack();
+      console.error('Error initializing categories:', error);
+      
+      if (
+        error.message.includes('not authenticated') ||
+        error.message.includes('master password') ||
+        error.message.includes('session')
+      ) {
+        console.log('Authentication error during initialization, redirecting to login');
+        Alert.alert(
+          'Session Expired',
+          'Your session has expired. Please log in again.',
+          [{ text: 'OK', onPress: () => navigation.replace('Login') }]
+        );
+      } else {
+        Alert.alert('Error', 'Failed to load categories data. Please try again.');
+        navigation.goBack();
+      }
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const updateActivity = async () => {
-    try {
-      const timestamp = Date.now().toString();
-      await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, timestamp);
-    } catch (error) {
-      console.error('Error updating activity timestamp:', error);
     }
   };
 
@@ -191,18 +114,39 @@ const CategoriesScreen = ({ navigation, route }) => {
       setCategories(categoriesData);
     } catch (error) {
       console.error('Error loading categories:', error);
-      showSnackbar('Error loading categories');
+      Alert.alert('Error', 'Failed to load categories');
     } finally {
       setIsRefreshing(false);
     }
   };
 
-  const applyFiltersAndSort = useCallback(() => {
+  const loadRecentSearches = async () => {
+    try {
+      const searches = await AsyncStorage.getItem('categories_recentSearches');
+      if (searches) {
+        setRecentSearches(JSON.parse(searches));
+      }
+    } catch (error) {
+      console.error('Error loading recent searches:', error);
+    }
+  };
+
+  const updateActivity = async () => {
+    try {
+      const timestamp = Date.now().toString();
+      await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, timestamp);
+    } catch (error) {
+      console.error('Error updating activity:', error);
+    }
+  };
+
+  const applyFiltersAndSort = useCallback(async () => {
     try {
       let filtered = [...categories];
 
-      // Apply search filter
+      // Apply search filter first if there's a search query
       if (searchQuery.trim()) {
+        await saveRecentSearch(searchQuery.trim());
         const query = searchQuery.toLowerCase().trim();
         filtered = filtered.filter(
           category =>
@@ -210,20 +154,20 @@ const CategoriesScreen = ({ navigation, route }) => {
             (category.description &&
               category.description.toLowerCase().includes(query))
         );
-      }
-
-      // Apply category filter
-      switch (activeFilter) {
-        case 'with_passwords':
-          filtered = filtered.filter(category => category.password_count > 0);
-          break;
-        case 'empty':
-          filtered = filtered.filter(category => category.password_count === 0);
-          break;
-        case 'all':
-        default:
-          // Show all categories
-          break;
+      } else {
+        // Apply category filter when no search query
+        switch (selectedFilter) {
+          case 'with_passwords':
+            filtered = filtered.filter(category => category.password_count > 0);
+            break;
+          case 'empty':
+            filtered = filtered.filter(category => category.password_count === 0);
+            break;
+          case 'all':
+          default:
+            // Show all categories
+            break;
+        }
       }
 
       // Apply sorting
@@ -233,7 +177,7 @@ const CategoriesScreen = ({ navigation, route }) => {
     } catch (error) {
       console.error('Error applying filters:', error);
     }
-  }, [categories, searchQuery, activeFilter, sortBy]);
+  }, [categories, searchQuery, selectedFilter, sortBy]);
 
   const applySorting = (categoryList, sortOption) => {
     const sorted = [...categoryList];
@@ -252,18 +196,29 @@ const CategoriesScreen = ({ navigation, route }) => {
     }
   };
 
+  const saveRecentSearch = async query => {
+    try {
+      const updated = [query, ...recentSearches.filter(s => s !== query)].slice(
+        0,
+        3
+      );
+      setRecentSearches(updated);
+      await AsyncStorage.setItem(
+        'categories_recentSearches',
+        JSON.stringify(updated)
+      );
+    } catch (error) {
+      console.error('Error saving recent search:', error);
+    }
+  };
+
   const handleSearchChange = query => {
     setSearchQuery(query);
     updateActivity();
   };
 
-  const handleFilterChange = filter => {
-    setActiveFilter(filter);
-    updateActivity();
-  };
-
-  const handleSortChange = sort => {
-    setSortBy(sort);
+  const handleSort = sortType => {
+    setSortBy(sortType);
     setShowSortMenu(false);
     updateActivity();
   };
@@ -313,8 +268,6 @@ const CategoriesScreen = ({ navigation, route }) => {
       return;
     }
 
-    // All categories can be deleted - removed default category restriction
-
     Alert.alert(
       'Delete Category',
       `Are you sure you want to delete "${selectedCategory.name}"? This action cannot be undone.`,
@@ -334,81 +287,27 @@ const CategoriesScreen = ({ navigation, route }) => {
 
     try {
       await databaseService.deleteCategoryEntry(selectedCategory.id);
-      showSnackbar('Category deleted successfully');
       await loadCategories();
     } catch (error) {
       console.error('Error deleting category:', error);
-      showSnackbar('Error deleting category. Please try again.');
+      Alert.alert('Error', 'Failed to delete category. Please try again.');
     }
   };
 
-  const validateEditForm = () => {
-    const errors = {};
-
-    if (!editForm.name.trim()) {
-      errors.name = 'Category name is required';
-    } else if (editForm.name.trim().length < 2) {
-      errors.name = 'Category name must be at least 2 characters';
-    } else {
-      // Check for duplicate names (excluding current category)
-      const duplicate = categories.find(
-        cat =>
-          cat.id !== selectedCategory?.id &&
-          cat.name.toLowerCase() === editForm.name.trim().toLowerCase()
-      );
-      if (duplicate) {
-        errors.name = 'A category with this name already exists';
-      }
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleSaveEdit = async () => {
-    if (!validateEditForm() || !selectedCategory) return;
-
-    try {
-      const updatedCategory = {
-        name: editForm.name.trim(),
-        description: editForm.description.trim(),
-        icon: editForm.icon,
-        color: editForm.color,
-      };
-
-      await databaseService.updateCategoryEntry(
-        selectedCategory.id,
-        updatedCategory
-      );
-      showSnackbar('Category updated successfully');
-      setShowEditModal(false);
-      await loadCategories();
-    } catch (error) {
-      console.error('Error updating category:', error);
-      showSnackbar('Error updating category. Please try again.');
-    }
-  };
-
-  const handleCreateCategory = () => {
+  const handleAddCategory = () => {
+    setShowAddModal(false);
     updateActivity();
     navigation.navigate('AddCategory');
   };
 
-  const handleFABPress = () => {
-    setShowFABMenu(true);
-    updateActivity();
-  };
+  const renderCategoryCard = ({ item }) => {
+    const displayTitle = item.name || 'No Title';
+    const displaySubtitle = `${item.password_count || 0} password${(item.password_count || 0) !== 1 ? 's' : ''}`;
 
-  const showSnackbar = message => {
-    setSnackbar({ visible: true, message });
-  };
-
-  const renderCategoryCard = ({ item }) => (
-    <View style={styles.categoryCardContainer}>
+    return (
       <TouchableOpacity
         style={[styles.categoryCard, { backgroundColor: theme.colors.surface }]}
         onPress={() => handleCategoryPress(item)}
-        activeOpacity={0.7}
       >
         <View style={styles.categoryCardContent}>
           <View style={styles.categoryCardLeft}>
@@ -418,58 +317,67 @@ const CategoriesScreen = ({ navigation, route }) => {
                 { backgroundColor: item.color || theme.colors.primary },
               ]}
             >
-              <Icon name={item.icon || 'folder'} size={20} color="#fff" />
+              <Icon
+                name={item.icon || 'folder'}
+                size={16}
+                color="#fff"
+              />
             </View>
             <View style={styles.categoryInfo}>
               <Text
-                style={[styles.categoryName, { color: theme.colors.text }]}
+                style={[styles.categoryTitle, { color: theme.colors.text }]}
                 numberOfLines={1}
               >
-                {item.name}
+                {displayTitle}
               </Text>
               <Text
-                style={[styles.passwordCount, { color: theme.colors.textSecondary }]}
+                style={[
+                  styles.categorySubtitle,
+                  { color: theme.colors.textSecondary },
+                ]}
                 numberOfLines={1}
               >
-                {item.password_count || 0} password
-                {(item.password_count || 0) !== 1 ? 's' : ''}
+                {displaySubtitle}
               </Text>
             </View>
           </View>
-          <Menu
-            visible={menuVisible[item.id] || false}
-            onDismiss={() => setMenuVisible({})}
-            anchor={
-              <TouchableOpacity
-                style={styles.moreButton}
-                onPress={event => handleMoreOptions(item, event)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Icon name="ellipsis-v" size={16} color={theme.colors.textSecondary} />
-              </TouchableOpacity>
-            }
-            contentStyle={[
-              styles.menuContent,
-              { backgroundColor: theme.colors.surface },
-            ]}
-          >
-            <Menu.Item
-              onPress={handleEditCategory}
-              title="Edit Category"
-              leadingIcon="pencil"
-              titleStyle={{ color: theme.colors.text }}
-            />
-            <Menu.Item
-              onPress={handleDeleteCategory}
-              title="Delete Category"
-              leadingIcon="trash"
-              titleStyle={{ color: theme.colors.error }}
-            />
-          </Menu>
+          <View style={styles.categoryCardRight}>
+            <Menu
+              visible={menuVisible[item.id] || false}
+              onDismiss={() => setMenuVisible({})}
+              anchor={
+                <TouchableOpacity
+                  style={styles.moreButton}
+                  onPress={event => handleMoreOptions(item, event)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Icon name="ellipsis-v" size={16} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              }
+              contentStyle={[
+                styles.menuContent,
+                { backgroundColor: theme.colors.surface },
+              ]}
+            >
+              <Menu.Item
+                onPress={handleEditCategory}
+                title="Edit Category"
+                leadingIcon="pencil"
+                titleStyle={{ color: theme.colors.text }}
+              />
+              <Menu.Item
+                onPress={handleDeleteCategory}
+                title="Delete Category"
+                leadingIcon="trash"
+                titleStyle={{ color: theme.colors.error }}
+              />
+            </Menu>
+            <Icon name="chevron-right" size={16} color={theme.colors.textSecondary} />
+          </View>
         </View>
       </TouchableOpacity>
-    </View>
-  );
+    );
+  };
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
@@ -480,244 +388,159 @@ const CategoriesScreen = ({ navigation, route }) => {
       <Text style={[styles.emptyStateSubtitle, { color: theme.colors.textSecondary }]}>
         {searchQuery.trim()
           ? 'Try adjusting your search or filters'
-          : 'Tap + to create your first category'}
+          : 'Tap the + button to create your first category'}
       </Text>
     </View>
   );
 
-  const renderFilterChips = () => (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      style={styles.filterChipsContainer}
-      contentContainerStyle={styles.filterChipsContent}
-    >
-      {[
-        { key: 'all', label: 'All Categories', count: categories.length },
-        {
-          key: 'with_passwords',
-          label: 'With Passwords',
-          count: categories.filter(c => c.password_count > 0).length,
-        },
-        {
-          key: 'empty',
-          label: 'Empty',
-          count: categories.filter(c => c.password_count === 0).length,
-        },
-      ].map(filter => (
-        <Chip
-          key={filter.key}
-          mode={activeFilter === filter.key ? 'flat' : 'outlined'}
-          selected={activeFilter === filter.key}
-          onPress={() => handleFilterChange(filter.key)}
-          style={[
-            styles.filterChip,
-            activeFilter === filter.key && {
-              backgroundColor: theme.colors.primary + '20',
-            },
-          ]}
-          textStyle={{
-            color:
-              activeFilter === filter.key ? theme.colors.primary : theme.colors.textSecondary,
-            fontSize: 14,
-          }}
-        >
-          {filter.label} ({filter.count})
-        </Chip>
-      ))}
-    </ScrollView>
-  );
-
-  const renderEditModal = () => (
+  const renderFilterModal = () => (
     <Modal
-      visible={showEditModal}
+      visible={showFilterModal}
       transparent={true}
       animationType="slide"
-      onRequestClose={() => setShowEditModal(false)}
+      onRequestClose={() => setShowFilterModal(false)}
     >
       <View style={styles.modalContainer}>
         <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
-          onPress={() => setShowEditModal(false)}
+          onPress={() => setShowFilterModal(false)}
         />
         <View
           style={[
-            styles.editModalContent,
+            styles.filterModalContent,
             { backgroundColor: theme.colors.background },
           ]}
         >
           <View style={styles.modalHeader}>
             <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
-              Edit Category
+              Filter by
             </Text>
-            <TouchableOpacity onPress={() => setShowEditModal(false)}>
+            <TouchableOpacity onPress={() => setShowFilterModal(false)}>
               <Icon name="times" size={20} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView
-            style={styles.editForm}
-            showsVerticalScrollIndicator={false}
+          <TouchableOpacity
+            style={[
+              styles.filterOption,
+              selectedFilter === 'all' && {
+                backgroundColor: theme.colors.primary + '20',
+              },
+            ]}
+            onPress={() => {
+              setSelectedFilter('all');
+              setShowFilterModal(false);
+            }}
           >
-            <TextInput
-              label="Category Name"
-              value={editForm.name}
-              onChangeText={text =>
-                setEditForm(prev => ({ ...prev, name: text }))
+            <Icon
+              name="list"
+              size={20}
+              color={
+                selectedFilter === 'all' ? theme.colors.primary : theme.colors.textSecondary
               }
-              style={styles.formInput}
-              error={!!formErrors.name}
-              mode="outlined"
-              theme={{ colors: { primary: theme.colors.primary } }}
             />
-            {formErrors.name && (
-              <Text style={[styles.errorText, { color: theme.colors.error }]}>
-                {formErrors.name}
-              </Text>
-            )}
+            <Text
+              style={[
+                styles.filterOptionText,
+                {
+                  color:
+                    selectedFilter === 'all' ? theme.colors.primary : theme.colors.text,
+                },
+              ]}
+            >
+              All Categories
+            </Text>
+            <Text style={[styles.filterCount, { color: theme.colors.textSecondary }]}>
+              {categories.length}
+            </Text>
+          </TouchableOpacity>
 
-            <TextInput
-              label="Description (Optional)"
-              value={editForm.description}
-              onChangeText={text =>
-                setEditForm(prev => ({ ...prev, description: text }))
+          <TouchableOpacity
+            style={[
+              styles.filterOption,
+              selectedFilter === 'with_passwords' && {
+                backgroundColor: theme.colors.primary + '20',
+              },
+            ]}
+            onPress={() => {
+              setSelectedFilter('with_passwords');
+              setShowFilterModal(false);
+            }}
+          >
+            <Icon
+              name="folder"
+              size={20}
+              color={
+                selectedFilter === 'with_passwords' ? theme.colors.primary : theme.colors.textSecondary
               }
-              style={styles.formInput}
-              mode="outlined"
-              multiline
-              numberOfLines={3}
-              theme={{ colors: { primary: theme.colors.primary } }}
             />
-
-            <View style={styles.iconColorSection}>
-              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-                Icon
-              </Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.iconGrid}>
-                  {CATEGORY_ICONS.map(iconName => (
-                    <TouchableOpacity
-                      key={iconName}
-                      style={[
-                        styles.iconOption,
-                        {
-                          backgroundColor:
-                            editForm.icon === iconName
-                              ? theme.colors.primary + '20'
-                              : theme.colors.surface,
-                        },
-                      ]}
-                      onPress={() =>
-                        setEditForm(prev => ({ ...prev, icon: iconName }))
-                      }
-                    >
-                      <Icon
-                        name={iconName}
-                        size={20}
-                        color={
-                          editForm.icon === iconName
-                            ? theme.colors.primary
-                            : theme.colors.textSecondary
-                        }
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-
-            <View style={styles.iconColorSection}>
-              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-                Color
-              </Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.colorGrid}>
-                  {CATEGORY_COLORS.map(color => (
-                    <TouchableOpacity
-                      key={color}
-                      style={[
-                        styles.colorOption,
-                        { backgroundColor: color },
-                        editForm.color === color && styles.selectedColor,
-                      ]}
-                      onPress={() => setEditForm(prev => ({ ...prev, color }))}
-                    >
-                      {editForm.color === color && (
-                        <Icon name="check" size={16} color="#fff" />
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-
-            <View style={styles.previewSection}>
-              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-                Preview
-              </Text>
-              <View
-                style={[
-                  styles.categoryCard,
-                  { backgroundColor: theme.colors.surface },
-                ]}
-              >
-                <View style={styles.categoryCardContent}>
-                  <View style={styles.categoryCardLeft}>
-                    <View
-                      style={[
-                        styles.categoryIcon,
-                        { backgroundColor: editForm.color },
-                      ]}
-                    >
-                      <Icon name={editForm.icon} size={20} color="#fff" />
-                    </View>
-                    <View style={styles.categoryInfo}>
-                      <Text
-                        style={[styles.categoryName, { color: theme.colors.text }]}
-                        numberOfLines={1}
-                      >
-                        {editForm.name || 'Category Name'}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.passwordCount,
-                          { color: theme.colors.textSecondary },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {selectedCategory?.password_count || 0} password
-                        {(selectedCategory?.password_count || 0) !== 1
-                          ? 's'
-                          : ''}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-            </View>
-          </ScrollView>
-
-          <View style={styles.modalButtons}>
-            <Button
-              mode="outlined"
-              onPress={() => setShowEditModal(false)}
-              style={[styles.modalButton, { borderColor: theme.colors.border }]}
-              textColor={theme.colors.textSecondary}
+            <Text
+              style={[
+                styles.filterOptionText,
+                {
+                  color:
+                    selectedFilter === 'with_passwords'
+                      ? theme.colors.primary
+                      : theme.colors.text,
+                },
+              ]}
             >
-              Cancel
-            </Button>
-            <Button
-              mode="contained"
-              onPress={handleSaveEdit}
-              style={[styles.modalButton, { backgroundColor: theme.colors.primary }]}
+              With Passwords
+            </Text>
+            <Text style={[styles.filterCount, { color: theme.colors.textSecondary }]}>
+              {categories.filter(c => c.password_count > 0).length}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.filterOption,
+              selectedFilter === 'empty' && {
+                backgroundColor: theme.colors.primary + '20',
+              },
+            ]}
+            onPress={() => {
+              setSelectedFilter('empty');
+              setShowFilterModal(false);
+            }}
+          >
+            <Icon
+              name="folder-open"
+              size={20}
+              color={
+                selectedFilter === 'empty' ? theme.colors.primary : theme.colors.textSecondary
+              }
+            />
+            <Text
+              style={[
+                styles.filterOptionText,
+                {
+                  color:
+                    selectedFilter === 'empty'
+                      ? theme.colors.primary
+                      : theme.colors.text,
+                },
+              ]}
             >
-              Save Changes
-            </Button>
-          </View>
+              Empty Categories
+            </Text>
+            <Text style={[styles.filterCount, { color: theme.colors.textSecondary }]}>
+              {categories.filter(c => c.password_count === 0).length}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
     </Modal>
+  );
+
+  const renderAddModal = () => (
+    <FABActionMenu
+      visible={showAddModal}
+      onClose={() => setShowAddModal(false)}
+      navigation={navigation}
+      onAddCategory={handleAddCategory}
+    />
   );
 
   if (isLoading) {
@@ -739,11 +562,42 @@ const CategoriesScreen = ({ navigation, route }) => {
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-          Categories
-        </Text>
+      {/* Header with Title and Category Count */}
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: theme.colors.background,
+            borderBottomColor: theme.colors.border,
+          },
+        ]}
+      >
+        <View
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+          }}
+        >
+          <Text
+            style={[
+              styles.headerTitle,
+              { color: theme.colors.text, fontSize: 20, fontWeight: '600' },
+            ]}
+          >
+            Categories
+          </Text>
+          {/* Keep the badge right-aligned, visually similar to MyVaultScreen */}
+          <View style={{ position: 'absolute', right: 0 }}>
+            <Badge
+              style={[styles.categoryCount, { backgroundColor: theme.colors.primary }]}
+            >
+              {categories.length}
+            </Badge>
+          </View>
+        </View>
       </View>
 
       {/* Search Bar */}
@@ -752,17 +606,32 @@ const CategoriesScreen = ({ navigation, route }) => {
           placeholder="Search categories..."
           onChangeText={handleSearchChange}
           value={searchQuery}
-          style={[styles.searchBar, { backgroundColor: theme.colors.surface, marginHorizontal: 16 }]}
+          style={[styles.searchBar, { backgroundColor: theme.colors.surface }]}
           inputStyle={{ color: theme.colors.text }}
           iconColor={theme.colors.textSecondary}
         />
       </View>
 
-      {/* Filter Chips */}
-      {renderFilterChips()}
+      {/* Filter Button */}
+      <View style={styles.filterButtonContainer}>
+        <TouchableOpacity
+          style={[styles.filterButton, { backgroundColor: theme.colors.surface }]}
+          onPress={() => setShowFilterModal(true)}
+        >
+          <Icon name="sliders-h" size={16} color={theme.colors.textSecondary} />
+          <Text
+            style={[styles.filterButtonText, { color: theme.colors.textSecondary }]}
+          >
+            {selectedFilter === 'all'
+              ? 'All Categories'
+              : selectedFilter === 'with_passwords'
+                ? 'With Passwords'
+                : 'Empty Categories'}
+          </Text>
+          <Icon name="chevron-down" size={12} color={theme.colors.textSecondary} />
+        </TouchableOpacity>
 
-      {/* Sort Controls */}
-      <View style={styles.sortContainer}>
+        {/* Sort Menu */}
         <Menu
           visible={showSortMenu}
           onDismiss={() => setShowSortMenu(false)}
@@ -772,32 +641,23 @@ const CategoriesScreen = ({ navigation, route }) => {
               onPress={() => setShowSortMenu(true)}
             >
               <Icon name="sort" size={16} color={theme.colors.textSecondary} />
-              <Text
-                style={[styles.sortButtonText, { color: theme.colors.textSecondary }]}
-              >
-                {sortBy === 'name_asc'
-                  ? 'A–Z'
-                  : sortBy === 'name_desc'
-                    ? 'Z–A'
-                    : sortBy === 'most_passwords'
-                      ? 'Most Passwords'
-                      : 'Least Passwords'}
-              </Text>
-              <Icon name="chevron-down" size={12} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           }
         >
-          <Menu.Item onPress={() => handleSortChange('name_asc')} title="A–Z" />
           <Menu.Item
-            onPress={() => handleSortChange('name_desc')}
-            title="Z–A"
+            onPress={() => handleSort('name_asc')}
+            title="A-Z"
           />
           <Menu.Item
-            onPress={() => handleSortChange('most_passwords')}
+            onPress={() => handleSort('name_desc')}
+            title="Z-A"
+          />
+          <Menu.Item
+            onPress={() => handleSort('most_passwords')}
             title="Most Passwords"
           />
           <Menu.Item
-            onPress={() => handleSortChange('least_passwords')}
+            onPress={() => handleSort('least_passwords')}
             title="Least Passwords"
           />
         </Menu>
@@ -808,48 +668,26 @@ const CategoriesScreen = ({ navigation, route }) => {
         data={filteredCategories}
         renderItem={renderCategoryCard}
         keyExtractor={item => item.id.toString()}
-        style={styles.categoriesList}
+        style={styles.categoryList}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmptyState}
         refreshing={isRefreshing}
         onRefresh={loadCategories}
-        contentContainerStyle={
-          filteredCategories.length === 0
-            ? styles.emptyListContainer
-            : { paddingBottom: 200 }
-        }
       />
 
       {/* Floating Action Button */}
       <View style={styles.fabContainer}>
         <TouchableOpacity
           style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-          onPress={handleFABPress}
+          onPress={() => setShowAddModal(true)}
         >
           <Icon name="plus" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
 
-      {/* Edit Modal */}
-      {renderEditModal()}
-
-      {/* FAB Action Menu */}
-      <FABActionMenu
-        visible={showFABMenu}
-        onClose={() => setShowFABMenu(false)}
-        navigation={navigation}
-        onAddCategory={handleCreateCategory}
-      />
-
-      {/* Snackbar */}
-      <Snackbar
-        visible={snackbar.visible}
-        onDismiss={() => setSnackbar({ visible: false, message: '' })}
-        duration={3000}
-        style={{ backgroundColor: theme.colors.surface }}
-      >
-        <Text style={{ color: theme.colors.text }}>{snackbar.message}</Text>
-      </Snackbar>
+      {/* Modals */}
+      {renderFilterModal()}
+      {renderAddModal()}
     </SafeAreaView>
   );
 };
@@ -872,13 +710,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 40,
     paddingBottom: 16,
     borderBottomWidth: 1,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  categoryCount: {
+    fontSize: 12,
   },
   searchContainer: {
     paddingHorizontal: 0,
@@ -890,47 +731,39 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     height: 50,
   },
-  filterChipsContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 4,
+  filterButtonContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 0,
+    paddingVertical: 8,
+    gap: 8,
   },
-  filterChipsContent: {
-    paddingRight: 16,
-  },
-  filterChip: {
-    marginRight: 8,
-    height: 32,
-  },
-  sortContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 2,
-    alignItems: 'flex-end',
-  },
-  sortButton: {
+  filterButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 8,
-    gap: 6,
+    gap: 8,
   },
-  sortButtonText: {
+  filterButtonText: {
+    flex: 1,
     fontSize: 14,
   },
-  categoriesList: {
+  sortButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+  },
+  categoryList: {
     flex: 1,
-    paddingHorizontal: 16,
-  },
-  emptyListContainer: {
-    paddingTop: 20,
-  },
-  categoryCardContainer: {
-    position: 'relative',
+    paddingHorizontal: 0,
   },
   categoryCard: {
     borderRadius: 12,
     marginVertical: 4,
-    marginHorizontal: 0,
     elevation: 2,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -948,9 +781,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categoryIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -958,26 +791,31 @@ const styles = StyleSheet.create({
   categoryInfo: {
     flex: 1,
   },
-  categoryName: {
+  categoryTitle: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 2,
   },
-  passwordCount: {
+  categorySubtitle: {
     fontSize: 14,
+  },
+  categoryCardRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   moreButton: {
     padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    minWidth: 44,
-    minHeight: 44,
+    minWidth: 24,
+    minHeight: 24,
   },
   emptyState: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 20,
-    paddingHorizontal: 20,
+    paddingTop: 80,
   },
   emptyStateTitle: {
     fontSize: 20,
@@ -988,11 +826,10 @@ const styles = StyleSheet.create({
   emptyStateSubtitle: {
     fontSize: 16,
     textAlign: 'center',
-    paddingHorizontal: 40,
   },
   fabContainer: {
     position: 'absolute',
-    bottom: 150,
+    bottom: 100,
     right: 20,
   },
   fab: {
@@ -1006,7 +843,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 6,
   },
-
   menuContent: {
     borderRadius: 8,
     elevation: 4,
@@ -1023,10 +859,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  editModalContent: {
+  filterModalContent: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: screenHeight * 0.8,
+    maxHeight: screenHeight * 0.6,
     paddingBottom: 20,
   },
   modalHeader: {
@@ -1042,68 +878,19 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  editForm: {
+  filterOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-  },
-  formInput: {
-    marginBottom: 16,
-  },
-  errorText: {
-    fontSize: 12,
-    marginTop: -12,
-    marginBottom: 8,
-    marginLeft: 12,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  iconColorSection: {
-    marginBottom: 24,
-  },
-  iconGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  iconOption: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  colorGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  colorOption: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  selectedColor: {
-    borderWidth: 3,
-    borderColor: '#fff',
-  },
-  previewSection: {
-    marginBottom: 20,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingTop: 16,
     gap: 12,
   },
-  modalButton: {
+  filterOptionText: {
     flex: 1,
+    fontSize: 16,
+  },
+  filterCount: {
+    fontSize: 14,
   },
 });
 
