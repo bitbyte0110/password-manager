@@ -6,8 +6,6 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Alert,
-  Modal,
-  Dimensions,
   ScrollView,
   BackHandler,
 } from 'react-native';
@@ -27,7 +25,6 @@ import { useTheme } from '../contexts/ThemeContext';
 
 // Constants for activity tracking
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
-const { height: screenHeight } = Dimensions.get('window');
 
 // Category icons and colors mapping (matching Create Category design)
 const CATEGORY_ICONS = [
@@ -453,38 +450,30 @@ const EditCategoryScreen = ({ navigation, route }) => {
   }
 
   return (
-    <Modal
-      visible={true}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={handleClose}
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      <View style={styles.modalContainer}>
+      {/* Header */}
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
+          style={styles.backButton}
           onPress={handleClose}
-        />
-        <View
-          style={[styles.modalContent, { backgroundColor: theme.colors.card }]}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          {/* Header */}
-          <View
-            style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}
-          >
-            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
-              Edit Category
-            </Text>
-            <TouchableOpacity onPress={handleClose}>
-              <Icon name="times" size={20} color={theme.colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
+          <Icon name="arrow-left" size={20} color={theme.colors.text} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
+          Edit Category
+        </Text>
+        <View style={styles.headerRight} />
+      </View>
 
-          {/* Form Content */}
-          <ScrollView
-            style={styles.formContainer}
-            showsVerticalScrollIndicator={false}
-          >
+      {/* Form Content */}
+      <ScrollView
+        style={styles.formContainer}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
             {/* Category Name Input */}
             <TextInput
               label="Category Name"
@@ -552,28 +541,26 @@ const EditCategoryScreen = ({ navigation, route }) => {
             {renderPreview()}
           </ScrollView>
 
-          {/* Action Buttons */}
-          <View style={styles.buttonContainer}>
-            <Button
-              mode="outlined"
-              onPress={handleDelete}
-              style={[styles.deleteButton, { borderColor: theme.colors.error }]}
-              textColor={theme.colors.error}
-              disabled={isSaving}
-            >
-              Delete
-            </Button>
-            <Button
-              mode="contained"
-              onPress={handleSave}
-              style={[styles.saveButton, { backgroundColor: theme.colors.primary }]}
-              disabled={!isFormValid || isSaving}
-              loading={isSaving}
-            >
-              Save Changes
-            </Button>
-          </View>
-        </View>
+      {/* Action Buttons */}
+      <View style={[styles.buttonContainer, { borderTopColor: theme.colors.border }]}>
+        <Button
+          mode="outlined"
+          onPress={handleDelete}
+          style={[styles.deleteButton, { borderColor: theme.colors.error }]}
+          textColor={theme.colors.error}
+          disabled={isSaving}
+        >
+          Delete
+        </Button>
+        <Button
+          mode="contained"
+          onPress={handleSave}
+          style={[styles.saveButton, { backgroundColor: theme.colors.primary }]}
+          disabled={!isFormValid || isSaving}
+          loading={isSaving}
+        >
+          Save Changes
+        </Button>
       </View>
 
       {/* Snackbar */}
@@ -585,7 +572,7 @@ const EditCategoryScreen = ({ navigation, route }) => {
       >
         <Text style={{ color: theme.colors.text }}>{snackbar.message}</Text>
       </Snackbar>
-    </Modal>
+    </SafeAreaView>
   );
 };
 
@@ -602,36 +589,30 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
   },
-  // Modal Styles
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalContent: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: screenHeight * 0.8,
-    paddingBottom: 20,
-  },
-  modalHeader: {
+  // Header Styles
+  header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
   },
-  modalTitle: {
+  backButton: {
+    padding: 8,
+    marginRight: 8,
+  },
+  headerTitle: {
     fontSize: 20,
     fontWeight: '600',
+    flex: 1,
+  },
+  headerRight: {
+    width: 36,
   },
   formContainer: {
+    flex: 1,
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 16,
   },
   formInput: {
     marginBottom: 16,
@@ -725,7 +706,8 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingVertical: 16,
+    borderTopWidth: 1,
     gap: 12,
   },
   deleteButton: {

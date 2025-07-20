@@ -5,7 +5,6 @@ import {
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
-  useColorScheme,
   ScrollView,
   BackHandler,
 } from 'react-native';
@@ -21,6 +20,7 @@ import { useFocusEffect } from '@react-navigation/native';
 
 import vaultService from '../services/vaultService';
 import databaseService from '../services/databaseService';
+import { useTheme } from '../contexts/ThemeContext';
 
 // Constants for activity tracking
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
@@ -71,6 +71,7 @@ const CATEGORY_COLORS = [
 ];
 
 const AddCategoryScreen = ({ navigation, route }) => {
+  const { theme } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
@@ -85,24 +86,6 @@ const AddCategoryScreen = ({ navigation, route }) => {
 
   const [formErrors, setFormErrors] = useState({});
   const [isFormValid, setIsFormValid] = useState(false);
-
-  // Get color scheme for theme support
-  const colorScheme = useColorScheme();
-  const isDarkMode = colorScheme === 'dark';
-
-  // Theme colors
-  const theme = {
-    background: isDarkMode ? '#121212' : '#ffffff',
-    surface: isDarkMode ? '#1e1e1e' : '#f5f5f5',
-    primary: '#8e44ad',
-    secondary: '#3498db',
-    text: isDarkMode ? '#ffffff' : '#333333',
-    textSecondary: isDarkMode ? '#b0b0b0' : '#666666',
-    border: isDarkMode ? '#333333' : '#e0e0e0',
-    error: '#e74c3c',
-    success: '#2ecc71',
-    warning: '#f39c12',
-  };
 
   // Initialize screen
   useEffect(() => {
@@ -275,7 +258,7 @@ const AddCategoryScreen = ({ navigation, route }) => {
 
   const renderIconSelection = () => (
     <View style={styles.iconColorSection}>
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>Icon</Text>
+      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Icon</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={styles.iconGrid}>
           {CATEGORY_ICONS.map(iconName => (
@@ -286,8 +269,8 @@ const AddCategoryScreen = ({ navigation, route }) => {
                 {
                   backgroundColor:
                     formData.icon === iconName
-                      ? theme.primary + '20'
-                      : theme.surface,
+                      ? theme.colors.primary + '20'
+                      : theme.colors.card,
                 },
               ]}
               onPress={() => setFormData(prev => ({ ...prev, icon: iconName }))}
@@ -297,8 +280,8 @@ const AddCategoryScreen = ({ navigation, route }) => {
                 size={20}
                 color={
                   formData.icon === iconName
-                    ? theme.primary
-                    : theme.textSecondary
+                    ? theme.colors.primary
+                    : theme.colors.textSecondary
                 }
               />
             </TouchableOpacity>
@@ -310,7 +293,7 @@ const AddCategoryScreen = ({ navigation, route }) => {
 
   const renderColorSelection = () => (
     <View style={styles.iconColorSection}>
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>Color</Text>
+      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Color</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={styles.colorGrid}>
           {CATEGORY_COLORS.map(color => (
@@ -335,8 +318,8 @@ const AddCategoryScreen = ({ navigation, route }) => {
 
   const renderPreview = () => (
     <View style={styles.previewSection}>
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>Preview</Text>
-      <View style={[styles.categoryCard, { backgroundColor: theme.surface }]}>
+      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Preview</Text>
+      <View style={[styles.categoryCard, { backgroundColor: theme.colors.card }]}>
         <View style={styles.categoryCardContent}>
           <View style={styles.categoryCardLeft}>
             <View
@@ -346,13 +329,13 @@ const AddCategoryScreen = ({ navigation, route }) => {
             </View>
             <View style={styles.categoryInfo}>
               <Text
-                style={[styles.categoryName, { color: theme.text }]}
+                style={[styles.categoryName, { color: theme.colors.text }]}
                 numberOfLines={1}
               >
                 {formData.name || 'Category Name'}
               </Text>
               <Text
-                style={[styles.passwordCount, { color: theme.textSecondary }]}
+                style={[styles.passwordCount, { color: theme.colors.textSecondary }]}
                 numberOfLines={1}
               >
                 0 passwords
@@ -367,11 +350,11 @@ const AddCategoryScreen = ({ navigation, route }) => {
   if (isLoading) {
     return (
       <SafeAreaView
-        style={[styles.container, { backgroundColor: theme.background }]}
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
       >
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.primary} />
-          <Text style={[styles.loadingText, { color: theme.text }]}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.text }]}>
             Loading...
           </Text>
         </View>
@@ -381,18 +364,18 @@ const AddCategoryScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={handleClose}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Icon name="arrow-left" size={20} color={theme.text} />
+          <Icon name="arrow-left" size={20} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
           Add Category
         </Text>
         <View style={styles.headerRight} />
@@ -409,14 +392,26 @@ const AddCategoryScreen = ({ navigation, route }) => {
           label="Category Name"
           value={formData.name}
           onChangeText={text => setFormData(prev => ({ ...prev, name: text }))}
-          style={styles.formInput}
+          style={[styles.formInput, { backgroundColor: theme.colors.inputBackground }]}
           error={!!formErrors.name}
           mode="outlined"
           maxLength={30}
-          theme={{ colors: { primary: theme.primary } }}
+          theme={{
+            colors: {
+              primary: theme.colors.inputBorderFocused,
+              accent: theme.colors.inputBorderFocused,
+              text: theme.colors.inputText,
+              background: theme.colors.inputBackground,
+              outline: formErrors.name ? theme.colors.error : theme.colors.inputBorder,
+              placeholder: theme.colors.inputPlaceholder,
+              onSurfaceVariant: theme.colors.inputPlaceholder,
+            },
+          }}
+          textColor={theme.colors.inputText}
+          placeholderTextColor={theme.colors.inputPlaceholder}
         />
         {formErrors.name && (
-          <Text style={[styles.errorText, { color: theme.error }]}>
+          <Text style={[styles.errorText, { color: theme.colors.error }]}>
             {formErrors.name}
           </Text>
         )}
@@ -428,11 +423,23 @@ const AddCategoryScreen = ({ navigation, route }) => {
           onChangeText={text =>
             setFormData(prev => ({ ...prev, description: text }))
           }
-          style={styles.formInput}
+          style={[styles.formInput, { backgroundColor: theme.colors.inputBackground }]}
           mode="outlined"
           multiline
           numberOfLines={3}
-          theme={{ colors: { primary: theme.primary } }}
+          theme={{
+            colors: {
+              primary: theme.colors.inputBorderFocused,
+              accent: theme.colors.inputBorderFocused,
+              text: theme.colors.inputText,
+              background: theme.colors.inputBackground,
+              outline: theme.colors.inputBorder,
+              placeholder: theme.colors.inputPlaceholder,
+              onSurfaceVariant: theme.colors.inputPlaceholder,
+            },
+          }}
+          textColor={theme.colors.inputText}
+          placeholderTextColor={theme.colors.inputPlaceholder}
         />
 
         {/* Icon Selection */}
@@ -446,12 +453,12 @@ const AddCategoryScreen = ({ navigation, route }) => {
       </ScrollView>
 
       {/* Action Buttons */}
-      <View style={[styles.buttonContainer, { borderTopColor: theme.border }]}>
+      <View style={[styles.buttonContainer, { borderTopColor: theme.colors.border }]}>
         <Button
-          mode="outlined"
+          mode="contained"
           onPress={handleClose}
-          style={[styles.cancelButton, { borderColor: theme.border }]}
-          textColor={theme.textSecondary}
+          style={[styles.cancelButton, { backgroundColor: '#3A3A3C' }]}
+          textColor="#FFFFFF"
           disabled={isSaving}
         >
           Cancel
@@ -459,7 +466,7 @@ const AddCategoryScreen = ({ navigation, route }) => {
         <Button
           mode="contained"
           onPress={handleSave}
-          style={[styles.saveButton, { backgroundColor: theme.primary }]}
+          style={[styles.saveButton, { backgroundColor: theme.colors.primary }]}
           disabled={!isFormValid || isSaving}
           loading={isSaving}
         >
@@ -472,9 +479,9 @@ const AddCategoryScreen = ({ navigation, route }) => {
         visible={snackbar.visible}
         onDismiss={() => setSnackbar({ visible: false, message: '' })}
         duration={3000}
-        style={{ backgroundColor: theme.surface }}
+        style={{ backgroundColor: theme.colors.card }}
       >
-        <Text style={{ color: theme.text }}>{snackbar.message}</Text>
+        <Text style={{ color: theme.colors.text }}>{snackbar.message}</Text>
       </Snackbar>
     </SafeAreaView>
   );
