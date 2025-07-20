@@ -219,12 +219,78 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
     updateActivity();
   };
 
+  const generateStrongPassword = () => {
+    // Character sets for password generation (same as PasswordGeneratorScreen)
+    const charSets = {
+      uppercase: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+      lowercase: 'abcdefghijklmnopqrstuvwxyz',
+      numbers: '0123456789',
+      symbols: '!@#$%^&*()_+-=[]{}|;:,.<>?',
+    };
+
+    const getRandomChar = charset => {
+      const randomIndex = Math.floor(Math.random() * charset.length);
+      return charset[randomIndex];
+    };
+
+    const shuffleArray = array => {
+      const shuffled = [...array];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    };
+
+    try {
+      const passwordLength = 16;
+      let availableChars = '';
+      const guaranteedChars = [];
+
+      // Build character set and ensure at least one character from each type
+      availableChars += charSets.uppercase;
+      guaranteedChars.push(getRandomChar(charSets.uppercase));
+
+      availableChars += charSets.lowercase;
+      guaranteedChars.push(getRandomChar(charSets.lowercase));
+
+      availableChars += charSets.numbers;
+      guaranteedChars.push(getRandomChar(charSets.numbers));
+
+      availableChars += charSets.symbols;
+      guaranteedChars.push(getRandomChar(charSets.symbols));
+
+      // Generate remaining characters
+      const remainingLength = passwordLength - guaranteedChars.length;
+      const randomChars = [];
+
+      for (let i = 0; i < remainingLength; i++) {
+        randomChars.push(getRandomChar(availableChars));
+      }
+
+      // Combine and shuffle all characters
+      const allChars = [...guaranteedChars, ...randomChars];
+      const shuffledPassword = shuffleArray(allChars).join('');
+
+      return shuffledPassword;
+    } catch (error) {
+      console.error('Error generating password:', error);
+      return null;
+    }
+  };
+
   const handleGeneratePassword = () => {
     updateActivity();
-    navigation.navigate('PasswordGenerator', {
-      returnScreen: 'AddPassword',
-      returnPassword: true,
-    });
+    const generatedPassword = generateStrongPassword();
+    if (generatedPassword) {
+      setFormData(prev => ({
+        ...prev,
+        password: generatedPassword,
+      }));
+      showSnackbar('Strong password generated!');
+    } else {
+      showSnackbar('Error generating password. Please try again.');
+    }
   };
 
   const handleSavePassword = async () => {
