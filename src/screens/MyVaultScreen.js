@@ -167,24 +167,15 @@ const MyVaultScreen = ({ navigation, route }) => {
       // Apply search filter first if there's a search query
       if (searchQuery.trim()) {
         await saveRecentSearch(searchQuery.trim());
-        try {
-          // Use vault service search with category filter
-          filtered = await vaultService.searchPasswords(searchQuery, {
-            categoryId:
-              selectedCategory !== 'all' && selectedCategory !== 'favorites'
-                ? parseInt(selectedCategory)
-                : null,
-            isFavorite: selectedCategory === 'favorites' ? true : null,
-          });
-        } catch (searchError) {
-          console.error('Search error:', searchError);
-          // Fall back to client-side search
-          filtered = filtered.filter(
-            entry =>
-              entry.title &&
-              entry.title.toLowerCase().includes(searchQuery.toLowerCase())
-          );
-        }
+        const query = searchQuery.toLowerCase().trim();
+        // Client-side search filtering by title and username (case-insensitive)
+        filtered = filtered.filter(
+          entry =>
+            (entry.title &&
+              entry.title.toLowerCase().includes(query)) ||
+            (entry.username &&
+              entry.username.toLowerCase().includes(query))
+        );
       } else {
         // Apply category filter when no search query
         if (selectedCategory !== 'all') {
@@ -372,10 +363,10 @@ const MyVaultScreen = ({ navigation, route }) => {
     }
 
     // Display decrypted data according to user requirements:
-    // First line: Category name (from categories table)
-    // Second line: Password title or username/email
-    const displayTitle = item.categoryName || 'No Category';
-    const displaySubtitle = item.title || item.username || 'No title';
+    // First line: Title (bold)
+    // Second line: Username (smaller font)
+    const displayTitle = item.title || 'No Title';
+    const displaySubtitle = item.username || 'No Username';
 
     return (
       <TouchableOpacity
