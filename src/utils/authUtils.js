@@ -1,4 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as LocalAuthentication from 'expo-local-authentication';
 import bcrypt from 'bcryptjs';
 import { Alert } from 'react-native';
@@ -6,6 +7,52 @@ import { Alert } from 'react-native';
 /**
  * Utility functions for authentication flows
  */
+
+/**
+ * Get MFA enabled state from storage (centralized function)
+ * @returns {Promise<boolean>} MFA enabled state
+ */
+export const getMFAEnabled = async () => {
+  try {
+    // Check AsyncStorage first (primary source)
+    const settings = await AsyncStorage.getItem('userSettings');
+    if (settings) {
+      const parsedSettings = JSON.parse(settings);
+      return parsedSettings.mfaEnabled === true;
+    }
+
+    // Fallback to SecureStore
+    const mfaSecure = await SecureStore.getItemAsync('vault_mfaEnabled');
+    return mfaSecure === 'true';
+  } catch (error) {
+    console.error('Error getting MFA state:', error);
+    // Default to false for security (require explicit enable)
+    return false;
+  }
+};
+
+/**
+ * Get biometric enabled state from storage (centralized function)  
+ * @returns {Promise<boolean>} Biometric enabled state
+ */
+export const getBiometricEnabled = async () => {
+  try {
+    // Check AsyncStorage first (primary source)
+    const settings = await AsyncStorage.getItem('userSettings');
+    if (settings) {
+      const parsedSettings = JSON.parse(settings);
+      return parsedSettings.biometricEnabled === true;
+    }
+
+    // Fallback to SecureStore
+    const biometricSecure = await SecureStore.getItemAsync('vault_biometricEnabled');
+    return biometricSecure === 'true';
+  } catch (error) {
+    console.error('Error getting biometric state:', error);
+    // Default to false for security (require explicit enable)
+    return false;
+  }
+};
 
 /**
  * Re-authenticate user based on their configured authentication method
@@ -19,14 +66,9 @@ export const reAuthenticate = async (options = {}) => {
   } = options;
 
   try {
-    // Load user preferences
-    const biometricEnabled = await SecureStore.getItemAsync(
-      'vault_biometricEnabled'
-    );
-    const mfaEnabled = await SecureStore.getItemAsync('vault_mfaEnabled');
-
-    const isBiometricEnabled = biometricEnabled === 'true';
-    const isMfaEnabled = mfaEnabled === 'true';
+    // Load user preferences using centralized functions
+    const isBiometricEnabled = await getBiometricEnabled();
+    const isMfaEnabled = await getMFAEnabled();
 
     // Check biometric availability
     let biometricAvailable = false;
