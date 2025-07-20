@@ -128,7 +128,7 @@ const MFASetupModal = ({ visible, onComplete }) => {
                 style={styles.primaryButtonGradient}
               >
                 <Text style={styles.primaryButtonText}>
-                  {isLoading ? 'Enabling...' : 'Enable MFA'}
+                  {isLoading ? 'Enabling MFA...' : 'Enable MFA'}
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -139,7 +139,9 @@ const MFASetupModal = ({ visible, onComplete }) => {
               onPress={handleSkip}
               disabled={isLoading}
             >
-              <Text style={styles.secondaryButtonText}>Skip</Text>
+              <Text style={styles.secondaryButtonText}>
+                {isLoading ? 'Disabling MFA...' : 'Skip'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -124,11 +124,11 @@ const MFASettingsScreen = () => {
       // Show confirmation dialog for disabling
       Alert.alert(
         'Disable Multi-Factor Authentication',
-        'Are you sure you want to disable MFA? This will reduce the security of your vault.',
+        'Are you sure you want to disable MFA? This will reduce the security of your vault and only require your master password for access.',
         [
           { text: 'Cancel', style: 'cancel' },
           {
-            text: 'Disable',
+            text: 'Disable MFA',
             style: 'destructive',
             onPress: () => handleDisableMFA(),
           },
@@ -140,12 +140,12 @@ const MFASettingsScreen = () => {
   const handleSetupMFA = () => {
     // In a real app, this would navigate to biometric setup or MFA configuration
     Alert.alert(
-      'Setup Multi-Factor Authentication',
-      'MFA setup would integrate with your device biometrics or secondary authentication method.',
+      'Enable Multi-Factor Authentication',
+      'This will require both biometric authentication and your master password to access your vault. This provides enhanced security for your stored data.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Enable',
+          text: 'Enable MFA',
           onPress: () => saveMFASetting(true),
         },
       ]
@@ -331,7 +331,10 @@ const MFASettingsScreen = () => {
           loading={isLoading}
           disabled={isLoading}
         >
-          {mfaEnabled ? 'Disable MFA' : 'Setup MFA'}
+          {isLoading 
+            ? (mfaEnabled ? 'Disabling MFA...' : 'Enabling MFA...')
+            : (mfaEnabled ? 'Disable MFA' : 'Enable MFA')
+          }
         </Button>
       </View>
     </SafeAreaView>

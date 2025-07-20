@@ -769,7 +769,7 @@ const CategoriesScreen = ({ navigation, route }) => {
           placeholder="Search categories..."
           onChangeText={handleSearchChange}
           value={searchQuery}
-          style={[styles.searchBar, { backgroundColor: theme.surface }]}
+          style={[styles.searchBar, { backgroundColor: theme.surface, marginHorizontal: 16 }]}
           inputStyle={{ color: theme.text }}
           iconColor={theme.textSecondary}
         />
@@ -898,7 +898,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   searchContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
     paddingVertical: 10,
   },
   searchBar: {
@@ -909,7 +909,7 @@ const styles = StyleSheet.create({
   },
   filterChipsContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
   filterChipsContent: {
     paddingRight: 16,
@@ -920,7 +920,7 @@ const styles = StyleSheet.create({
   },
   sortContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 4,
+    paddingVertical: 2,
     alignItems: 'flex-end',
   },
   sortButton: {
@@ -936,7 +936,7 @@ const styles = StyleSheet.create({
   },
   categoriesList: {
     flex: 1,
-    paddingHorizontal: 0,
+    paddingHorizontal: 16,
   },
   emptyListContainer: {
     paddingTop: 20,
@@ -947,7 +947,7 @@ const styles = StyleSheet.create({
   categoryCard: {
     borderRadius: 12,
     marginVertical: 4,
-    marginHorizontal: 16,
+    marginHorizontal: 0,
     elevation: 2,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

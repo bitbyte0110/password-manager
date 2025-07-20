@@ -138,11 +138,12 @@ const LoginScreen = ({ navigation: navProp }) => {
 
       if (settings) {
         const parsedSettings = JSON.parse(settings);
-        biometricEnabledValue = parsedSettings.biometricEnabled || false;
-        mfaEnabledValue = parsedSettings.mfaEnabled || false;
+        biometricEnabledValue = parsedSettings.biometricEnabled === true;
+        mfaEnabledValue = parsedSettings.mfaEnabled === true;
         console.log('Loaded settings from AsyncStorage:', {
           biometricEnabledValue,
           mfaEnabledValue,
+          parsedSettings,
         });
       } else {
         // Fallback to SecureStore
@@ -161,9 +162,10 @@ const LoginScreen = ({ navigation: navProp }) => {
       setBiometricEnabled(biometricEnabledValue);
       setMfaEnabled(mfaEnabledValue);
 
-      console.log('Final login options:', {
+      console.log('🔐 Final login options set:', {
         biometricEnabled: biometricEnabledValue,
         mfaEnabled: mfaEnabledValue,
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
       console.error('Error loading user preferences:', error);
@@ -354,16 +356,16 @@ const LoginScreen = ({ navigation: navProp }) => {
 
         // Check if MFA is enabled
         if (mfaEnabled) {
-          console.log('MFA enabled, showing password modal');
+          console.log('🔐 MFA is ENABLED - requiring both biometric and password');
           // MFA enabled: Show password modal for second factor
           setMfaMode(true);
           setShowPasswordModal(true);
           showSnackbar(
-            'Biometric authentication successful. Please enter your master password.'
+            'MFA Step 1 complete: Biometric verified. Please enter your master password.'
           );
         } else {
           console.log(
-            'MFA disabled, trying to restore vault access with existing session'
+            '🔐 MFA is DISABLED - biometric authentication sufficient, checking vault access'
           );
           // MFA disabled: Try to restore session or proceed with stored credentials
           try {
@@ -473,7 +475,7 @@ const LoginScreen = ({ navigation: navProp }) => {
         await incrementFailedAttempts();
         if (mfaMode) {
           showSnackbar(
-            'Invalid master password. MFA requires both biometric and password.'
+            'Invalid master password. MFA Step 2 failed - both biometric and password required.'
           );
         } else {
           showSnackbar(
@@ -715,11 +717,11 @@ const LoginScreen = ({ navigation: navProp }) => {
             <Text style={styles.modalSubtitle}>
               {mfaMode
                 ? biometricSucceeded
-                  ? 'Biometric authentication successful. Please enter your master password to complete login.'
-                  : 'Please enter your master password to complete multi-factor authentication.'
+                  ? 'Step 2 of 2: Biometric authentication successful. Please enter your master password to complete MFA login.'
+                  : 'Multi-Factor Authentication is enabled. Please enter your master password to complete the second authentication step.'
                 : biometricSucceeded
-                  ? 'Biometric authentication successful. Please enter your master password to access vault data.'
-                  : 'Please enter your master password to access vault data.'}
+                  ? 'Biometric authentication successful. Please enter your master password to access your vault.'
+                  : 'Please enter your master password to access your vault.'}
             </Text>
 
             <TextInput
