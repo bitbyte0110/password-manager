@@ -182,6 +182,152 @@ class VaultService {
   }
 
   /**
+   * Authenticate with biometric when MFA is disabled
+   * Uses stored master password hash to establish vault access
+   * @returns {Promise<boolean>} Authentication success
+   */
+  async authenticateWithBiometric() {
+    try {
+      console.log('VaultService: Attempting biometric-only authentication...');
+      
+      // Check if MFA is disabled (requirement for biometric-only access)
+      const mfaEnabled = await getMFAEnabled();
+      if (mfaEnabled) {
+        console.log('VaultService: MFA is enabled, biometric-only auth not allowed');
+        return false;
+      }
+
+      // Get the stored master password hash
+      const storedHash = await SecureStore.getItemAsync('vault_masterHash');
+      if (!storedHash) {
+        console.log('VaultService: No master password hash found');
+        return false;
+      }
+
+      // For biometric-only access, we need to either:
+      // 1. Restore from existing session token, OR
+      // 2. Use a stored password for first-time biometric setup
+      
+      // Try to restore from session token first
+      const restored = await this.tryRestoreAuthentication();
+      if (restored) {
+        console.log('VaultService: Biometric authentication successful via session restore');
+        return true;
+      }
+
+      // If no session available, check if we have a stored password for biometric access
+      const biometricPassword = await SecureStore.getItemAsync('vault_biometricPassword');
+      if (biometricPassword) {
+        try {
+          // Decrypt the stored password and authenticate
+          const decryptedPassword = this.decryptBiometricPassword(biometricPassword);
+          const isValid = await bcrypt.compare(decryptedPassword, storedHash);
+          
+          if (isValid) {
+            this.masterPassword = decryptedPassword;
+            this.isAuthenticated = true;
+            this.sessionStartTime = Date.now();
+            
+            // Create session token for future use
+            await this.createSessionToken(decryptedPassword);
+            
+            console.log('VaultService: Biometric authentication successful via stored password');
+            return true;
+          }
+        } catch (decryptError) {
+          console.error('VaultService: Error decrypting biometric password:', decryptError);
+          // Clear corrupted biometric password
+          await SecureStore.deleteItemAsync('vault_biometricPassword');
+        }
+      }
+
+      console.log('VaultService: Biometric authentication failed - no valid session or stored password');
+      return false;
+    } catch (error) {
+      console.error('VaultService: Biometric authentication error:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Store master password for biometric access (when MFA is disabled)
+   * @param {string} password - Master password to store
+   */
+  async enableBiometricAccess(password) {
+    try {
+      // Only allow this when MFA is disabled
+      const mfaEnabled = await getMFAEnabled();
+      if (mfaEnabled) {
+        throw new Error('Cannot enable biometric-only access when MFA is enabled');
+      }
+
+      // Verify the password is correct first
+      const storedHash = await SecureStore.getItemAsync('vault_masterHash');
+      if (!storedHash) {
+        throw new Error('No master password set');
+      }
+
+      const isValid = await bcrypt.compare(password, storedHash);
+      if (!isValid) {
+        throw new Error('Invalid master password');
+      }
+
+      // Encrypt and store the password for biometric access
+      const encryptedPassword = this.encryptBiometricPassword(password);
+      await SecureStore.setItemAsync('vault_biometricPassword', encryptedPassword);
+      
+      console.log('VaultService: Biometric access enabled successfully');
+      return true;
+    } catch (error) {
+      console.error('VaultService: Error enabling biometric access:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Encrypt password for biometric storage
+   * @param {string} password - Password to encrypt
+   * @returns {string} Encrypted password
+   */
+  encryptBiometricPassword(password) {
+    // Use a simple encryption for biometric storage
+    // In production, use proper encryption with device keystore
+    const salt = 'biometric_salt_' + Date.now();
+    let encrypted = '';
+    for (let i = 0; i < password.length; i++) {
+      encrypted += String.fromCharCode(
+        password.charCodeAt(i) ^ salt.charCodeAt(i % salt.length)
+      );
+    }
+    const combined = salt + '|' + Buffer.from(encrypted, 'binary').toString('base64');
+    return Buffer.from(combined).toString('base64');
+  }
+
+  /**
+   * Decrypt password from biometric storage
+   * @param {string} encryptedData - Encrypted password data
+   * @returns {string} Decrypted password
+   */
+  decryptBiometricPassword(encryptedData) {
+    try {
+      const combined = Buffer.from(encryptedData, 'base64').toString();
+      const [salt, encryptedPassword] = combined.split('|');
+      const encrypted = Buffer.from(encryptedPassword, 'base64').toString('binary');
+      
+      let decrypted = '';
+      for (let i = 0; i < encrypted.length; i++) {
+        decrypted += String.fromCharCode(
+          encrypted.charCodeAt(i) ^ salt.charCodeAt(i % salt.length)
+        );
+      }
+      return decrypted;
+    } catch (error) {
+      console.error('VaultService: Error decrypting biometric password:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Authenticate with master password and create session token
    * @param {string} password - Master password
    * @returns {Promise<boolean>} Authentication success
@@ -201,6 +347,18 @@ class VaultService {
 
         // Create and store session token for restoration
         await this.createSessionToken(password);
+
+        // If MFA is disabled and biometrics are enabled, store password for future biometric access
+        const mfaEnabled = await getMFAEnabled();
+        if (!mfaEnabled) {
+          try {
+            await this.enableBiometricAccess(password);
+            console.log('VaultService: Biometric access enabled for future logins');
+          } catch (biometricError) {
+            console.warn('VaultService: Could not enable biometric access:', biometricError);
+            // Don't fail authentication if biometric setup fails
+          }
+        }
 
         // Auto-migrate legacy entries on successful authentication
         try {
@@ -859,6 +1017,17 @@ class VaultService {
     }
   }
 
+  /**
+   * Clear biometric access (when MFA is enabled or biometrics are disabled)
+   */
+  async clearBiometricAccess() {
+    try {
+      await SecureStore.deleteItemAsync('vault_biometricPassword');
+      console.log('VaultService: Biometric access cleared');
+    } catch (error) {
+      console.error('VaultService: Error clearing biometric access:', error);
+    }
+  }
 }
 
 // Export singleton instance

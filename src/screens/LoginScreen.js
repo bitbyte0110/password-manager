@@ -345,39 +345,36 @@ const LoginScreen = ({ navigation: navProp }) => {
           );
         } else {
           console.log(
-            '🔐 MFA is DISABLED - biometric authentication sufficient for login'
+            '🔐 MFA is DISABLED - attempting biometric-only authentication'
           );
-          // MFA disabled: Biometric success should be sufficient for single-factor auth
+          // MFA disabled: Try to authenticate with biometric alone
           try {
             // Initialize vault service first
             await vaultService.initialize();
 
-            // Check if vault service can restore authentication from session
-            if (vaultService.isUserAuthenticated()) {
-              console.log(
-                '✅ Vault service already authenticated, proceeding to vault'
-              );
+            // Try biometric-only authentication when MFA is disabled
+            const biometricAuthSuccess = await vaultService.authenticateWithBiometric();
+            
+            if (biometricAuthSuccess) {
+              console.log('✅ Biometric-only authentication successful! Proceeding to vault');
               navigation.replace('MainTabs');
               return;
             } else {
               console.log(
-                '🔐 MFA DISABLED: Biometric succeeded but vault needs master password for data access'
+                '🔐 MFA DISABLED: Biometric auth failed, need password for first-time setup'
               );
-              // When MFA is disabled, we still need master password for vault data decryption
-              // But this is for data access, not MFA - make this clear to user
+              // First time or biometric setup needed - prompt for password
               setMfaMode(false);
               setShowPasswordModal(true);
               showSnackbar(
-                'Biometric authentication successful. Please enter your master password to decrypt vault data.'
+                'First-time setup: Enter your master password to enable biometric-only login.'
               );
             }
           } catch (error) {
-            console.error('Error checking vault authentication:', error);
+            console.error('Error during biometric authentication:', error);
             setMfaMode(false);
             setShowPasswordModal(true);
-            showSnackbar(
-              'Biometric authentication successful. Please enter your master password to access vault data.'
-            );
+            showSnackbar('Please enter your master password to access vault data.');
           }
         }
       } else {

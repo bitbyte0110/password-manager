@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useTheme } from '../contexts/ThemeContext';
+import vaultService from '../services/vaultService';
 
 const MFASettingsScreen = () => {
   const navigation = useNavigation();
@@ -162,9 +163,19 @@ const MFASettingsScreen = () => {
 
       setMfaEnabled(enabled);
 
+      // If enabling MFA, clear any stored biometric passwords for security
+      if (enabled) {
+        try {
+          await vaultService.clearBiometricAccess();
+          console.log('Cleared biometric access when enabling MFA');
+        } catch (error) {
+          console.warn('Could not clear biometric access:', error);
+        }
+      }
+
       Alert.alert(
         'Settings Saved',
-        `Multi-Factor Authentication has been ${enabled ? 'enabled' : 'disabled'}.${enabled ? ' You will now need both biometric and password authentication to access your vault.' : ''}`,
+        `Multi-Factor Authentication has been ${enabled ? 'enabled' : 'disabled'}.${enabled ? ' You will now need both biometric and password authentication to access your vault.' : ' You can now use biometric authentication alone when available.'}`,
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error) {
