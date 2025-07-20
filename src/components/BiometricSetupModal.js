@@ -112,7 +112,9 @@ const BiometricSetupModal = ({ visible, onComplete }) => {
               onPress={handleSkip}
               disabled={isLoading}
             >
-              <Text style={styles.secondaryButtonText}>Skip</Text>
+              <Text style={styles.secondaryButtonText}>
+                {isLoading ? 'Skipping...' : 'Skip'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

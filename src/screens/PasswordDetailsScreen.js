@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import clipboardService from '../services/clipboardService';
 import vaultService from '../services/vaultService';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 
 const PasswordDetailsScreen = () => {
   const navigation = useNavigation();
@@ -30,6 +30,13 @@ const PasswordDetailsScreen = () => {
   useEffect(() => {
     fetchEntry();
   }, [id]);
+
+  // Refresh data when screen gains focus (e.g., returning from EditPasswordScreen)
+  useFocusEffect(
+    useCallback(() => {
+      fetchEntry();
+    }, [id])
+  );
 
   const fetchEntry = async () => {
     setLoading(true);

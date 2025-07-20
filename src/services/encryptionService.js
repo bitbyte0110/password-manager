@@ -270,7 +270,7 @@ class EncryptionService {
       return {
         id: passwordEntry.id || null,
         encrypted_payload: encryptedPayload,
-        category_id: categoryId || null,
+        category_id: categoryId !== undefined ? categoryId : null,
         is_favorite: isFavorite ? 1 : 0,
         created_at: passwordEntry.createdAt || new Date().toISOString(),
         updated_at: new Date().toISOString(),

@@ -118,7 +118,7 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
         password: entry.password || '',
         url: entry.url || '',
         notes: entry.notes || '',
-        categoryId: entry.categoryId || null,
+        categoryId: entry.categoryId !== undefined ? entry.categoryId : null,
         isFavorite: entry.isFavorite || false,
       });
     } catch (error) {
@@ -291,8 +291,11 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
       // Update in database using existing vaultService (pass ID as first parameter)
       await vaultService.updatePasswordEntry(id, passwordEntry);
 
-      // Update the password context
-      updatePassword({ id, ...passwordEntry });
+      // Get the fresh entry data with all fields including category metadata
+      const updatedEntry = await vaultService.getPasswordEntry(id);
+      
+      // Update the password context with complete entry data
+      updatePassword(id, updatedEntry);
 
       showSnackbar('Password updated successfully!');
 
