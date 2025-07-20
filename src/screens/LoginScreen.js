@@ -18,6 +18,7 @@ import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useNavigation } from '@react-navigation/native';
 import vaultService from '../services/vaultService';
 import { useTheme } from '../contexts/ThemeContext';
+import { getMFAEnabled, getBiometricEnabled } from '../utils/authUtils';
 
 // Password lockout constants
 const FAILED_ATTEMPTS_KEY = 'vault_failedAttempts';
@@ -134,33 +135,9 @@ const LoginScreen = ({ navigation: navProp }) => {
     try {
       console.log('Loading user preferences from storage...');
 
-      // Load from AsyncStorage (primary source) and SecureStore (fallback)
-      const settings = await AsyncStorage.getItem('userSettings');
-      let biometricEnabledValue = false;
-      let mfaEnabledValue = false;
-
-      if (settings) {
-        const parsedSettings = JSON.parse(settings);
-        biometricEnabledValue = parsedSettings.biometricEnabled === true;
-        mfaEnabledValue = parsedSettings.mfaEnabled === true;
-        console.log('Loaded settings from AsyncStorage:', {
-          biometricEnabledValue,
-          mfaEnabledValue,
-          parsedSettings,
-        });
-      } else {
-        // Fallback to SecureStore
-        const biometricSecure = await SecureStore.getItemAsync(
-          'vault_biometricEnabled'
-        );
-        const mfaSecure = await SecureStore.getItemAsync('vault_mfaEnabled');
-        biometricEnabledValue = biometricSecure === 'true';
-        mfaEnabledValue = mfaSecure === 'true';
-        console.log('Loaded settings from SecureStore:', {
-          biometricEnabledValue,
-          mfaEnabledValue,
-        });
-      }
+      // Use centralized functions for consistent storage access
+      const biometricEnabledValue = await getBiometricEnabled();
+      const mfaEnabledValue = await getMFAEnabled();
 
       setBiometricEnabled(biometricEnabledValue);
       setMfaEnabled(mfaEnabledValue);
@@ -368,29 +345,30 @@ const LoginScreen = ({ navigation: navProp }) => {
           );
         } else {
           console.log(
-            '🔐 MFA is DISABLED - biometric authentication sufficient, checking vault access'
+            '🔐 MFA is DISABLED - biometric authentication sufficient for login'
           );
-          // MFA disabled: Try to restore session or proceed with stored credentials
+          // MFA disabled: Biometric success should be sufficient for single-factor auth
           try {
             // Initialize vault service first
             await vaultService.initialize();
 
-            // Check if vault service can restore authentication
+            // Check if vault service can restore authentication from session
             if (vaultService.isUserAuthenticated()) {
               console.log(
-                'Vault service already authenticated, proceeding to vault'
+                '✅ Vault service already authenticated, proceeding to vault'
               );
               navigation.replace('MainTabs');
               return;
             } else {
               console.log(
-                'Vault service not authenticated, requesting master password'
+                '🔐 MFA DISABLED: Biometric succeeded but vault needs master password for data access'
               );
-              // Still need master password for vault access
+              // When MFA is disabled, we still need master password for vault data decryption
+              // But this is for data access, not MFA - make this clear to user
               setMfaMode(false);
               setShowPasswordModal(true);
               showSnackbar(
-                'Please enter your master password to access vault data.'
+                'Biometric authentication successful. Please enter your master password to decrypt vault data.'
               );
             }
           } catch (error) {
@@ -398,7 +376,7 @@ const LoginScreen = ({ navigation: navProp }) => {
             setMfaMode(false);
             setShowPasswordModal(true);
             showSnackbar(
-              'Please enter your master password to access vault data.'
+              'Biometric authentication successful. Please enter your master password to access vault data.'
             );
           }
         }

@@ -4,6 +4,7 @@ import { Buffer } from 'buffer';
 import databaseService from './databaseService';
 import encryptionService from './encryptionService';
 import { usePasswords } from '../PasswordContext';
+import { getMFAEnabled } from '../utils/authUtils';
 
 /**
  * Vault Service for handling master password and data operations
@@ -75,7 +76,7 @@ class VaultService {
 
       console.log('VaultService: Session token found, parsing...');
 
-      // Verify session token is still valid (within 2 minutes)
+      // Verify session token is still valid - timeout depends on MFA state
       let sessionData;
       try {
         sessionData = JSON.parse(sessionToken);
@@ -90,10 +91,16 @@ class VaultService {
 
       const now = Date.now();
       const sessionAge = now - sessionData.timestamp;
-      const SESSION_TIMEOUT = 2 * 60 * 1000; // 2 minutes
+      
+      // Get MFA state to determine session timeout
+      const mfaEnabled = await getMFAEnabled();
+      // When MFA is disabled, allow longer sessions for better UX
+      const SESSION_TIMEOUT = mfaEnabled 
+        ? 2 * 60 * 1000  // 2 minutes when MFA enabled (more secure)
+        : 24 * 60 * 60 * 1000; // 24 hours when MFA disabled (convenience)
 
       console.log(
-        `VaultService: Session age: ${Math.round(sessionAge / 1000)}s (timeout: ${SESSION_TIMEOUT / 1000}s)`
+        `VaultService: Session age: ${Math.round(sessionAge / 1000)}s (timeout: ${SESSION_TIMEOUT / 1000}s, MFA: ${mfaEnabled})`
       );
 
       if (sessionAge > SESSION_TIMEOUT) {
@@ -851,6 +858,7 @@ class VaultService {
       throw error;
     }
   }
+
 }
 
 // Export singleton instance

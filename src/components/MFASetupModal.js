@@ -7,11 +7,12 @@ import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { useTheme } from '../contexts/ThemeContext';
 
 const MFASetupModal = ({ visible, onComplete }) => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isEnabling, setIsEnabling] = useState(false);
+  const [isDisabling, setIsDisabling] = useState(false);
   const { theme } = useTheme();
 
   const handleEnable = async () => {
-    setIsLoading(true);
+    setIsEnabling(true);
     try {
       // Save to both AsyncStorage and SecureStore for consistency
       const settings = await AsyncStorage.getItem('userSettings');
@@ -48,12 +49,12 @@ const MFASetupModal = ({ visible, onComplete }) => {
       // On storage failure, default to disabled for consistency
       onComplete(false);
     } finally {
-      setIsLoading(false);
+      setIsEnabling(false);
     }
   };
 
   const handleSkip = async () => {
-    setIsLoading(true);
+    setIsDisabling(true);
     try {
       // Save to both AsyncStorage and SecureStore for consistency
       const settings = await AsyncStorage.getItem('userSettings');
@@ -91,7 +92,7 @@ const MFASetupModal = ({ visible, onComplete }) => {
       // On storage failure, default to disabled for consistency
       onComplete(false);
     } finally {
-      setIsLoading(false);
+      setIsDisabling(false);
     }
   };
 
@@ -123,14 +124,14 @@ const MFASetupModal = ({ visible, onComplete }) => {
             <TouchableOpacity
               style={styles.primaryButton}
               onPress={handleEnable}
-              disabled={isLoading}
+              disabled={isEnabling || isDisabling}
             >
               <LinearGradient
                 colors={[theme.colors.primary, theme.colors.secondary]}
                 style={styles.primaryButtonGradient}
               >
                 <Text style={styles.primaryButtonText}>
-                  {isLoading ? 'Enabling MFA...' : 'Enable MFA'}
+                  {isEnabling ? 'Enabling MFA...' : 'Enable MFA'}
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -139,10 +140,10 @@ const MFASetupModal = ({ visible, onComplete }) => {
             <TouchableOpacity
               style={[styles.secondaryButton, { backgroundColor: '#3A3A3C', borderColor: '#3A3A3C' }]}
               onPress={handleSkip}
-              disabled={isLoading}
+              disabled={isEnabling || isDisabling}
             >
               <Text style={[styles.secondaryButtonText, { color: '#FFFFFF' }]}>
-                {isLoading ? 'Disabling MFA...' : 'Skip'}
+                {isDisabling ? 'Skipping...' : 'Skip'}
               </Text>
             </TouchableOpacity>
           </View>
