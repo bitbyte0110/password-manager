@@ -20,7 +20,9 @@ export const reAuthenticate = async (options = {}) => {
 
   try {
     // Load user preferences
-    const biometricEnabled = await SecureStore.getItemAsync('vault_biometricEnabled');
+    const biometricEnabled = await SecureStore.getItemAsync(
+      'vault_biometricEnabled'
+    );
     const mfaEnabled = await SecureStore.getItemAsync('vault_mfaEnabled');
 
     const isBiometricEnabled = biometricEnabled === 'true';
@@ -94,7 +96,7 @@ const authenticateWithBiometric = async (title, message) => {
  * Authenticate with password modal
  */
 const authenticateWithPassword = async (title, message) => {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     Alert.prompt(
       title,
       message,
@@ -102,15 +104,16 @@ const authenticateWithPassword = async (title, message) => {
         {
           text: 'Cancel',
           style: 'cancel',
-          onPress: () => resolve({
-            success: false,
-            error: 'USER_CANCELLED',
-            message: 'Authentication cancelled',
-          }),
+          onPress: () =>
+            resolve({
+              success: false,
+              error: 'USER_CANCELLED',
+              message: 'Authentication cancelled',
+            }),
         },
         {
           text: 'Authenticate',
-          onPress: async (password) => {
+          onPress: async password => {
             if (!password || !password.trim()) {
               resolve({
                 success: false,
@@ -121,7 +124,8 @@ const authenticateWithPassword = async (title, message) => {
             }
 
             try {
-              const storedHash = await SecureStore.getItemAsync('vault_masterHash');
+              const storedHash =
+                await SecureStore.getItemAsync('vault_masterHash');
               if (!storedHash) {
                 resolve({
                   success: false,
@@ -167,15 +171,21 @@ const authenticateWithPassword = async (title, message) => {
 const authenticateWithMFA = async (title, message) => {
   try {
     // Step 1: Biometric authentication
-    const biometricResult = await authenticateWithBiometric(title, 'Complete biometric authentication first');
-    
+    const biometricResult = await authenticateWithBiometric(
+      title,
+      'Complete biometric authentication first'
+    );
+
     if (!biometricResult.success) {
       return biometricResult;
     }
 
     // Step 2: Password authentication
-    const passwordResult = await authenticateWithPassword(title, 'Now enter your master password');
-    
+    const passwordResult = await authenticateWithPassword(
+      title,
+      'Now enter your master password'
+    );
+
     if (!passwordResult.success) {
       return passwordResult;
     }
@@ -198,7 +208,7 @@ const authenticateWithMFA = async (title, message) => {
 /**
  * Show authentication required alert
  */
-export const showAuthRequiredAlert = (callback) => {
+export const showAuthRequiredAlert = callback => {
   Alert.alert(
     'Authentication Required',
     'You must authenticate before accessing this feature.',

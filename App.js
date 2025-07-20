@@ -119,7 +119,7 @@ const SessionManager = ({ children, navigationRef }) => {
       }
 
       const activityTimeout = await getActivityTimeout();
-      
+
       // Skip auto-logout if timeout is 0 (Never)
       if (activityTimeout === 0) {
         return;
@@ -133,7 +133,7 @@ const SessionManager = ({ children, navigationRef }) => {
         console.log(
           `Session expired due to inactivity (${Math.round(timeDifference / 1000)}s > ${activityTimeout / 1000}s)`
         );
-        
+
         // Clear session and navigate to login
         await handleSessionExpiry();
       }
@@ -145,25 +145,59 @@ const SessionManager = ({ children, navigationRef }) => {
   const handleSessionExpiry = async () => {
     try {
       console.log('Auto-logout triggered - redirecting to login');
-      
+
       // Clear vault service session
       await vaultService.clearSession();
-      
+
       // Clear activity timestamp
       await AsyncStorage.removeItem(LAST_ACTIVE_TIME_KEY);
-      
+
       // Clear session token
       await SecureStore.deleteItemAsync('vault_sessionToken');
-      
+
       // Navigate directly to login without confirmation
-      if (navigationRef.current && navigationRef.current.replace) {
-        navigationRef.current.replace('Login');
+      if (navigationRef.current) {
+        console.log(
+          'Navigation ref available, attempting to navigate to Login'
+        );
+        try {
+          // Check if we're already on the login screen
+          const currentRoute = navigationRef.current.getCurrentRoute();
+          if (currentRoute?.name !== 'Login') {
+            navigationRef.current.replace('Login');
+            console.log('Successfully navigated to Login screen');
+          } else {
+            console.log('Already on Login screen, no navigation needed');
+          }
+        } catch (navError) {
+          console.error('Error during navigation:', navError);
+          // Fallback: try to reset the navigation stack
+          try {
+            navigationRef.current.reset({
+              index: 0,
+              routes: [{ name: 'Login' }],
+            });
+            console.log('Successfully reset navigation to Login screen');
+          } catch (resetError) {
+            console.error('Error resetting navigation:', resetError);
+          }
+        }
+      } else {
+        console.error('Navigation ref not available for auto-logout');
       }
     } catch (error) {
       console.error('Error handling session expiry:', error);
       // Even on error, try to navigate to login
-      if (navigationRef.current && navigationRef.current.replace) {
-        navigationRef.current.replace('Login');
+      if (navigationRef.current) {
+        try {
+          navigationRef.current.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+          });
+          console.log('Emergency navigation to Login completed');
+        } catch (emergencyNavError) {
+          console.error('Emergency navigation failed:', emergencyNavError);
+        }
       }
     }
   };
@@ -421,7 +455,7 @@ const AppWithTheme = () => {
         <NavigationContainer ref={navigationRef}>
           <SessionManager navigationRef={navigationRef}>
             <AppNavigator />
-            <StatusBar style={appTheme.isDark ? "light" : "dark"} />
+            <StatusBar style={appTheme.isDark ? 'light' : 'dark'} />
           </SessionManager>
         </NavigationContainer>
       </PasswordProvider>

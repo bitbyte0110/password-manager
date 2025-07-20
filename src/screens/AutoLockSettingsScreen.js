@@ -98,9 +98,10 @@ const AutoLockSettingsScreen = () => {
       await AsyncStorage.setItem('vault_lastActiveTime', timestamp);
 
       const timeoutValue = parseInt(selectedTimeout, 10);
-      const timeoutMessage = timeoutValue === 0 
-        ? 'Auto-lock has been disabled' 
-        : `Auto-lock timeout set to ${timeoutValue} seconds`;
+      const timeoutMessage =
+        timeoutValue === 0
+          ? 'Auto-lock has been disabled'
+          : `Auto-lock timeout set to ${timeoutValue} seconds`;
 
       Alert.alert(
         'Settings Saved',

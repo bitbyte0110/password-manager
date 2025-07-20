@@ -13,12 +13,12 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import bcrypt from 'bcryptjs';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 
-const AuthenticationModal = ({ 
-  visible, 
-  onClose, 
-  onSuccess, 
+const AuthenticationModal = ({
+  visible,
+  onClose,
+  onSuccess,
   title = 'Authentication Required',
-  message = 'Please authenticate to continue'
+  message = 'Please authenticate to continue',
 }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -58,7 +58,9 @@ const AuthenticationModal = ({
   const initializeAuth = async () => {
     try {
       // Load user preferences
-      const biometricEnabled = await SecureStore.getItemAsync('vault_biometricEnabled');
+      const biometricEnabled = await SecureStore.getItemAsync(
+        'vault_biometricEnabled'
+      );
       const mfaEnabled = await SecureStore.getItemAsync('vault_mfaEnabled');
 
       const isBiometricEnabled = biometricEnabled === 'true';
@@ -99,7 +101,10 @@ const AuthenticationModal = ({
       setError('');
 
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: authMethod === 'mfa' ? 'Complete biometric authentication first' : message,
+        promptMessage:
+          authMethod === 'mfa'
+            ? 'Complete biometric authentication first'
+            : message,
         cancelLabel: 'Cancel',
         fallbackLabel: 'Use Password',
       });
@@ -119,7 +124,9 @@ const AuthenticationModal = ({
         } else {
           // Fallback to password
           setAuthMethod('password');
-          setError('Biometric authentication failed. Please use your password.');
+          setError(
+            'Biometric authentication failed. Please use your password.'
+          );
         }
       }
     } catch (error) {
@@ -172,9 +179,9 @@ const AuthenticationModal = ({
 
   const getModalMessage = () => {
     if (authMethod === 'mfa') {
-      return mfaStep === 1 
-        ? 'Complete biometric authentication first' 
-        : biometricSucceeded 
+      return mfaStep === 1
+        ? 'Complete biometric authentication first'
+        : biometricSucceeded
           ? 'Biometric authentication successful. Now enter your master password.'
           : 'Please enter your master password to continue.';
     }
@@ -203,7 +210,9 @@ const AuthenticationModal = ({
           {authMethod === 'mfa' && mfaStep === 1 && (
             <View style={styles.biometricSection}>
               <Icon name="fingerprint" size={48} color={theme.primary} />
-              <Text style={[styles.biometricText, { color: theme.textSecondary }]}>
+              <Text
+                style={[styles.biometricText, { color: theme.textSecondary }]}
+              >
                 Touch the fingerprint sensor
               </Text>
               <TouchableOpacity
@@ -211,7 +220,9 @@ const AuthenticationModal = ({
                 onPress={handleBiometricAuth}
                 disabled={isLoading}
               >
-                <Text style={[styles.retryButtonText, { color: theme.primary }]}>
+                <Text
+                  style={[styles.retryButtonText, { color: theme.primary }]}
+                >
                   Retry Biometric
                 </Text>
               </TouchableOpacity>
@@ -219,7 +230,8 @@ const AuthenticationModal = ({
           )}
 
           {/* Show password input for password-only or MFA step 2 */}
-          {(authMethod === 'password' || (authMethod === 'mfa' && mfaStep === 2)) && (
+          {(authMethod === 'password' ||
+            (authMethod === 'mfa' && mfaStep === 2)) && (
             <View style={styles.passwordSection}>
               <TextInput
                 label="Master Password"
@@ -258,7 +270,12 @@ const AuthenticationModal = ({
                   disabled={isLoading}
                 >
                   <Icon name="fingerprint" size={20} color={theme.primary} />
-                  <Text style={[styles.biometricAlternativeText, { color: theme.primary }]}>
+                  <Text
+                    style={[
+                      styles.biometricAlternativeText,
+                      { color: theme.primary },
+                    ]}
+                  >
                     Use biometric instead
                   </Text>
                 </TouchableOpacity>
@@ -276,8 +293,9 @@ const AuthenticationModal = ({
             >
               Cancel
             </Button>
-            
-            {(authMethod === 'password' || (authMethod === 'mfa' && mfaStep === 2)) && (
+
+            {(authMethod === 'password' ||
+              (authMethod === 'mfa' && mfaStep === 2)) && (
               <Button
                 mode="contained"
                 onPress={handlePasswordAuth}

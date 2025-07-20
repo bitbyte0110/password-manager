@@ -18,7 +18,7 @@ export const ThemeProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Calculate effective theme based on preference and system setting
-  const getEffectiveTheme = (preference) => {
+  const getEffectiveTheme = preference => {
     switch (preference) {
       case 'light':
         return 'light';
@@ -94,7 +94,7 @@ export const ThemeProvider = ({ children }) => {
     }
   };
 
-  const setTheme = async (newTheme) => {
+  const setTheme = async newTheme => {
     try {
       // Update state immediately for instant UI feedback
       setThemePreference(newTheme);
@@ -102,13 +102,16 @@ export const ThemeProvider = ({ children }) => {
       // Save to storage
       const settings = await AsyncStorage.getItem('userSettings');
       const parsedSettings = settings ? JSON.parse(settings) : {};
-      
+
       const updatedSettings = {
         ...parsedSettings,
         theme: newTheme,
       };
 
-      await AsyncStorage.setItem('userSettings', JSON.stringify(updatedSettings));
+      await AsyncStorage.setItem(
+        'userSettings',
+        JSON.stringify(updatedSettings)
+      );
       console.log(`Theme changed to: ${newTheme}`);
     } catch (error) {
       console.error('Error saving theme preference:', error);
@@ -154,15 +157,21 @@ export const ThemeProvider = ({ children }) => {
     };
 
     return (
-      <ThemeContext.Provider value={{ theme: basicTheme, themePreference: 'system', setTheme, isDarkMode: false, isLoading: true }}>
+      <ThemeContext.Provider
+        value={{
+          theme: basicTheme,
+          themePreference: 'system',
+          setTheme,
+          isDarkMode: false,
+          isLoading: true,
+        }}
+      >
         {children}
       </ThemeContext.Provider>
     );
   }
 
   return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
   );
 };

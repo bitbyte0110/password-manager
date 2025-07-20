@@ -26,7 +26,11 @@ const AppearanceSettingsScreen = () => {
       label: 'System Default',
       description: 'Follow device appearance settings',
       icon: 'mobile-alt',
-      colors: { bg: theme.colors.background, text: theme.colors.text, accent: theme.colors.primary },
+      colors: {
+        bg: theme.colors.background,
+        text: theme.colors.text,
+        accent: theme.colors.primary,
+      },
     },
     {
       value: 'light',
@@ -48,7 +52,7 @@ const AppearanceSettingsScreen = () => {
     setSelectedTheme(themePreference);
   }, [themePreference]);
 
-  const handleThemeChange = async (newTheme) => {
+  const handleThemeChange = async newTheme => {
     setSelectedTheme(newTheme);
     // Apply theme immediately using global theme context
     await setGlobalTheme(newTheme);

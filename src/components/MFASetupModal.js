@@ -14,21 +14,26 @@ const MFASetupModal = ({ visible, onComplete }) => {
       // Save to both AsyncStorage and SecureStore for consistency
       const settings = await AsyncStorage.getItem('userSettings');
       const parsedSettings = settings ? JSON.parse(settings) : {};
-      
+
       const updatedSettings = {
         ...parsedSettings,
         mfaEnabled: true,
       };
-      
-      await AsyncStorage.setItem('userSettings', JSON.stringify(updatedSettings));
+
+      await AsyncStorage.setItem(
+        'userSettings',
+        JSON.stringify(updatedSettings)
+      );
       await SecureStore.setItemAsync('vault_mfaEnabled', 'true');
-      
-      console.log('✅ MFA enabled during initial setup - settings saved successfully');
-      
+
+      console.log(
+        '✅ MFA enabled during initial setup - settings saved successfully'
+      );
+
       // Verify settings were saved correctly
       const verification = await AsyncStorage.getItem('userSettings');
       const verifiedSettings = verification ? JSON.parse(verification) : {};
-      
+
       if (verifiedSettings.mfaEnabled === true) {
         console.log('✅ MFA setting verified in storage');
         onComplete(true);
@@ -51,21 +56,26 @@ const MFASetupModal = ({ visible, onComplete }) => {
       // Save to both AsyncStorage and SecureStore for consistency
       const settings = await AsyncStorage.getItem('userSettings');
       const parsedSettings = settings ? JSON.parse(settings) : {};
-      
+
       const updatedSettings = {
         ...parsedSettings,
         mfaEnabled: false,
       };
-      
-      await AsyncStorage.setItem('userSettings', JSON.stringify(updatedSettings));
+
+      await AsyncStorage.setItem(
+        'userSettings',
+        JSON.stringify(updatedSettings)
+      );
       await SecureStore.setItemAsync('vault_mfaEnabled', 'false');
-      
-      console.log('✅ MFA skipped during initial setup - settings saved successfully');
-      
+
+      console.log(
+        '✅ MFA skipped during initial setup - settings saved successfully'
+      );
+
       // Verify settings were saved correctly
       const verification = await AsyncStorage.getItem('userSettings');
       const verifiedSettings = verification ? JSON.parse(verification) : {};
-      
+
       if (verifiedSettings.mfaEnabled === false) {
         console.log('✅ MFA disabled setting verified in storage');
         onComplete(false);

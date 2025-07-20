@@ -93,9 +93,10 @@ const ClipboardSettingsScreen = () => {
       );
 
       const timeoutValue = parseInt(selectedTimeout, 10);
-      const timeoutMessage = timeoutValue === 0 
-        ? 'Clipboard auto-clear has been disabled' 
-        : `Clipboard will auto-clear after ${timeoutValue} seconds`;
+      const timeoutMessage =
+        timeoutValue === 0
+          ? 'Clipboard auto-clear has been disabled'
+          : `Clipboard will auto-clear after ${timeoutValue} seconds`;
 
       Alert.alert(
         'Settings Saved',
