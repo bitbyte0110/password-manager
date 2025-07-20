@@ -33,31 +33,37 @@ export const ThemeProvider = ({ children }) => {
   const effectiveTheme = getEffectiveTheme(themePreference);
   const isDarkMode = effectiveTheme === 'dark';
 
-  // Theme colors
+  // Theme colors - Updated to match the specified dark mode palette
   const theme = {
     mode: effectiveTheme,
     preference: themePreference,
     isDark: isDarkMode,
     colors: {
-      background: isDarkMode ? '#121212' : '#ffffff',
-      surface: isDarkMode ? '#1e1e1e' : '#f8f9fa',
-      card: isDarkMode ? '#2c2c2c' : '#ffffff',
-      primary: '#8e44ad',
+      background: isDarkMode ? '#181824' : '#ffffff',
+      surface: isDarkMode ? '#1e1e2e' : '#f8f9fa',
+      card: isDarkMode ? '#23243a' : '#ffffff',
+      primary: isDarkMode ? '#9747ff' : '#8e44ad',
       secondary: '#3498db',
-      accent: '#3498db',
+      accent: isDarkMode ? '#9747ff' : '#3498db',
       text: isDarkMode ? '#ffffff' : '#333333',
-      textSecondary: isDarkMode ? '#b0b0b0' : '#666666',
-      border: isDarkMode ? '#333333' : '#e0e0e0',
+      textSecondary: isDarkMode ? '#e0e0e0' : '#666666',
+      border: isDarkMode ? '#9747ff' : '#e0e0e0',
       error: '#e74c3c',
       success: '#2ecc71',
       warning: '#f39c12',
       info: '#3498db',
       // Additional colors for specific UI elements
-      tabBar: isDarkMode ? '#1e1e1e' : '#ffffff',
-      tabBarActive: '#8e44ad',
-      tabBarInactive: isDarkMode ? '#666666' : '#999999',
+      tabBar: isDarkMode ? '#23243a' : '#ffffff',
+      tabBarActive: isDarkMode ? '#9747ff' : '#8e44ad',
+      tabBarInactive: isDarkMode ? '#b0b0b0' : '#999999',
       modalOverlay: 'rgba(0, 0, 0, 0.5)',
-      divider: isDarkMode ? '#333333' : '#e0e0e0',
+      divider: isDarkMode ? '#444458' : '#e0e0e0',
+      // Input field specific colors
+      inputBackground: isDarkMode ? '#23243a' : '#ffffff',
+      inputText: isDarkMode ? '#ffffff' : '#333333',
+      inputPlaceholder: isDarkMode ? '#b0b0b0' : '#999999',
+      inputBorder: isDarkMode ? '#9747ff' : '#e0e0e0',
+      inputBorderFocused: isDarkMode ? '#9747ff' : '#8e44ad',
     },
   };
 
@@ -153,6 +159,12 @@ export const ThemeProvider = ({ children }) => {
         tabBarInactive: '#999999',
         modalOverlay: 'rgba(0, 0, 0, 0.5)',
         divider: '#e0e0e0',
+        // Input field specific colors
+        inputBackground: '#ffffff',
+        inputText: '#333333',
+        inputPlaceholder: '#999999',
+        inputBorder: '#e0e0e0',
+        inputBorderFocused: '#8e44ad',
       },
     };
 

@@ -6,7 +6,6 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  useColorScheme,
   Alert,
 } from 'react-native';
 import { Button, Switch } from 'react-native-paper';
@@ -15,27 +14,14 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
+import { useTheme } from '../contexts/ThemeContext';
 
 const BiometricSettingsScreen = () => {
   const navigation = useNavigation();
+  const { theme } = useTheme();
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [biometricType, setBiometricType] = useState('fingerprint'); // fingerprint, face, or none
-
-  const colorScheme = useColorScheme();
-  const isDarkMode = colorScheme === 'dark';
-
-  const theme = {
-    background: isDarkMode ? '#121212' : '#ffffff',
-    card: isDarkMode ? '#2c2c2c' : '#ffffff',
-    primary: '#8e44ad',
-    text: isDarkMode ? '#ffffff' : '#333333',
-    textSecondary: isDarkMode ? '#b0b0b0' : '#666666',
-    border: isDarkMode ? '#333333' : '#e0e0e0',
-    success: '#2ecc71',
-    warning: '#f39c12',
-    error: '#e74c3c',
-  };
 
   useEffect(() => {
     loadCurrentSetting();
@@ -208,17 +194,17 @@ const BiometricSettingsScreen = () => {
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-left" size={20} color={theme.text} />
+          <Icon name="arrow-left" size={20} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
           Biometric Login
         </Text>
         <View style={styles.headerRight} />
@@ -230,17 +216,17 @@ const BiometricSettingsScreen = () => {
       >
         <View style={styles.content}>
           {/* Status Card */}
-          <View style={[styles.statusCard, { backgroundColor: theme.card }]}>
+          <View style={[styles.statusCard, { backgroundColor: theme.colors.card }]}>
             <View style={styles.statusHeader}>
               <View
                 style={[
                   styles.statusIcon,
                   {
                     backgroundColor: biometricEnabled
-                      ? theme.success + '20'
+                      ? theme.colors.success + '20'
                       : biometricType === 'none'
-                        ? theme.error + '20'
-                        : theme.warning + '20',
+                        ? theme.colors.error + '20'
+                        : theme.colors.warning + '20',
                   },
                 ]}
               >
@@ -249,15 +235,15 @@ const BiometricSettingsScreen = () => {
                   size={24}
                   color={
                     biometricEnabled
-                      ? theme.success
+                      ? theme.colors.success
                       : biometricType === 'none'
-                        ? theme.error
-                        : theme.warning
+                        ? theme.colors.error
+                        : theme.colors.warning
                   }
                 />
               </View>
               <View style={styles.statusContent}>
-                <Text style={[styles.statusTitle, { color: theme.text }]}>
+                <Text style={[styles.statusTitle, { color: theme.colors.text }]}>
                   {getBiometricLabel()}
                 </Text>
                 <Text
@@ -265,10 +251,10 @@ const BiometricSettingsScreen = () => {
                     styles.statusSubtitle,
                     {
                       color: biometricEnabled
-                        ? theme.success
+                        ? theme.colors.success
                         : biometricType === 'none'
-                          ? theme.error
-                          : theme.warning,
+                          ? theme.colors.error
+                          : theme.colors.warning,
                     },
                   ]}
                 >
@@ -282,7 +268,7 @@ const BiometricSettingsScreen = () => {
               <Switch
                 value={biometricEnabled}
                 onValueChange={handleToggleBiometric}
-                color={theme.primary}
+                color={theme.colors.primary}
                 disabled={isLoading || biometricType === 'none'}
               />
             </View>
@@ -290,19 +276,19 @@ const BiometricSettingsScreen = () => {
 
           {/* Device Compatibility */}
           <View
-            style={[styles.compatibilityCard, { backgroundColor: theme.card }]}
+            style={[styles.compatibilityCard, { backgroundColor: theme.colors.card }]}
           >
-            <Text style={[styles.cardTitle, { color: theme.text }]}>
+            <Text style={[styles.cardTitle, { color: theme.colors.text }]}>
               Device Compatibility
             </Text>
 
             <View style={styles.compatibilityList}>
               <View style={styles.compatibilityItem}>
-                <Icon name="info-circle" size={16} color={theme.primary} />
+                <Icon name="info-circle" size={16} color={theme.colors.primary} />
                 <Text
                   style={[
                     styles.compatibilityText,
-                    { color: theme.textSecondary },
+                    { color: theme.colors.textSecondary },
                   ]}
                 >
                   Not all devices support biometric authentication
@@ -313,12 +299,12 @@ const BiometricSettingsScreen = () => {
                 <Icon
                   name="exclamation-triangle"
                   size={16}
-                  color={theme.warning}
+                  color={theme.colors.warning}
                 />
                 <Text
                   style={[
                     styles.compatibilityText,
-                    { color: theme.textSecondary },
+                    { color: theme.colors.textSecondary },
                   ]}
                 >
                   Ensure biometrics are set up in device settings first
@@ -328,29 +314,29 @@ const BiometricSettingsScreen = () => {
           </View>
 
           {/* Security Notice */}
-          <View style={[styles.securityCard, { backgroundColor: theme.card }]}>
-            <Text style={[styles.cardTitle, { color: theme.text }]}>
+          <View style={[styles.securityCard, { backgroundColor: theme.colors.card }]}>
+            <Text style={[styles.cardTitle, { color: theme.colors.text }]}>
               Security Notice
             </Text>
 
-            <Text style={[styles.securityText, { color: theme.textSecondary }]}>
+            <Text style={[styles.securityText, { color: theme.colors.textSecondary }]}>
               Biometric authentication provides convenience but may be less
               secure than a strong master password in certain scenarios:
             </Text>
 
             <View style={styles.securityList}>
               <Text
-                style={[styles.securityPoint, { color: theme.textSecondary }]}
+                style={[styles.securityPoint, { color: theme.colors.textSecondary }]}
               >
                 • Biometrics can potentially be compromised
               </Text>
               <Text
-                style={[styles.securityPoint, { color: theme.textSecondary }]}
+                style={[styles.securityPoint, { color: theme.colors.textSecondary }]}
               >
                 • Master password remains required for account recovery
               </Text>
               <Text
-                style={[styles.securityPoint, { color: theme.textSecondary }]}
+                style={[styles.securityPoint, { color: theme.colors.textSecondary }]}
               >
                 • Use alongside other security measures for best protection
               </Text>
@@ -364,7 +350,7 @@ const BiometricSettingsScreen = () => {
         <View
           style={[
             styles.buttonContainer,
-            { backgroundColor: theme.background },
+            { backgroundColor: theme.colors.background },
           ]}
         >
           <Button
@@ -373,7 +359,7 @@ const BiometricSettingsScreen = () => {
             style={[
               styles.actionButton,
               {
-                backgroundColor: biometricEnabled ? theme.error : theme.primary,
+                backgroundColor: biometricEnabled ? theme.colors.error : theme.colors.primary,
               },
             ]}
             loading={isLoading}

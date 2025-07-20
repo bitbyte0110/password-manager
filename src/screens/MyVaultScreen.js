@@ -6,7 +6,6 @@ import {
   SafeAreaView,
   FlatList,
   TouchableOpacity,
-  useColorScheme,
   Alert,
   Modal,
   Dimensions,
@@ -19,6 +18,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import vaultService from '../services/vaultService';
 import FABActionMenu from '../components/FABActionMenu';
 import { usePasswords } from '../PasswordContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 // Constants for activity tracking
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
@@ -28,6 +28,7 @@ const MyVaultScreen = ({ navigation, route }) => {
   // State management
   const { passwords, loading, error, loadPasswords, deletePassword } =
     usePasswords();
+  const { theme } = useTheme();
   const [categories, setCategories] = useState([]);
   const [filteredPasswords, setFilteredPasswords] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,23 +38,7 @@ const MyVaultScreen = ({ navigation, route }) => {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [authError, setAuthError] = useState(null); // New state for authentication errors
-  // Get color scheme for theme support
-  const colorScheme = useColorScheme();
-  const isDarkMode = colorScheme === 'dark';
-
-  // Theme colors
-  const theme = {
-    background: isDarkMode ? '#121212' : '#ffffff',
-    surface: isDarkMode ? '#1e1e1e' : '#f5f5f5',
-    primary: '#8e44ad',
-    secondary: '#3498db',
-    text: isDarkMode ? '#ffffff' : '#000000',
-    textSecondary: isDarkMode ? '#b0b0b0' : '#666666',
-    border: isDarkMode ? '#333333' : '#e0e0e0',
-    modalBackground: 'rgba(0,0,0,0.5)',
-    error: '#e74c3c',
-  };
+  const [authError, setAuthError] = useState(null);
 
   useEffect(() => {
     initializeVault();
@@ -66,7 +51,10 @@ const MyVaultScreen = ({ navigation, route }) => {
   // Refresh data when screen gains focus (e.g., returning from AddPasswordScreen)
   useFocusEffect(
     useCallback(() => {
-      // Check if we should refresh (from navigation params)
+      // Always refresh categories when screen gains focus to ensure counts are up-to-date
+      loadCategories();
+      
+      // Check if we should also refresh passwords (from navigation params)
       if (route?.params?.shouldRefresh) {
         console.log('MyVaultScreen: Refreshing data due to navigation params');
         loadPasswords();
@@ -292,9 +280,9 @@ const MyVaultScreen = ({ navigation, route }) => {
     try {
       await vaultService.deletePasswordEntry(id);
       deletePassword(id);
-      // Optionally show a snackbar or alert
+      await loadCategories(); // Refresh categories with updated counts
     } catch (error) {
-      // Handle error
+      console.error('Error deleting password:', error);
     }
   };
 
@@ -321,20 +309,20 @@ const MyVaultScreen = ({ navigation, route }) => {
           style={[
             styles.passwordCard,
             styles.passwordCardError,
-            { backgroundColor: theme.surface, borderLeftColor: theme.error },
+            { backgroundColor: theme.colors.surface, borderLeftColor: theme.colors.error },
           ]}
           onPress={() => handlePasswordPress(item)}
         >
           <View style={styles.passwordCardContent}>
             <View style={styles.passwordCardLeft}>
               <View
-                style={[styles.categoryIcon, { backgroundColor: theme.error }]}
+                style={[styles.categoryIcon, { backgroundColor: theme.colors.error }]}
               >
                 <Icon name="exclamation-triangle" size={16} color="#fff" />
               </View>
               <View style={styles.passwordInfo}>
                 <Text
-                  style={[styles.passwordTitle, { color: theme.error }]}
+                  style={[styles.passwordTitle, { color: theme.colors.error }]}
                   numberOfLines={1}
                 >
                   {item.title || 'Decryption Error'}
@@ -342,7 +330,7 @@ const MyVaultScreen = ({ navigation, route }) => {
                 <Text
                   style={[
                     styles.passwordSubtitle,
-                    { color: theme.textSecondary },
+                    { color: theme.colors.textSecondary },
                   ]}
                   numberOfLines={1}
                 >
@@ -354,7 +342,7 @@ const MyVaultScreen = ({ navigation, route }) => {
               <Icon
                 name="chevron-right"
                 size={16}
-                color={theme.textSecondary}
+                color={theme.colors.textSecondary}
               />
             </View>
           </View>
@@ -370,7 +358,7 @@ const MyVaultScreen = ({ navigation, route }) => {
 
     return (
       <TouchableOpacity
-        style={[styles.passwordCard, { backgroundColor: theme.surface }]}
+        style={[styles.passwordCard, { backgroundColor: theme.colors.surface }]}
         onPress={() => handlePasswordPress(item)}
       >
         <View style={styles.passwordCardContent}>
@@ -378,7 +366,7 @@ const MyVaultScreen = ({ navigation, route }) => {
             <View
               style={[
                 styles.categoryIcon,
-                { backgroundColor: item.categoryColor || theme.primary },
+                { backgroundColor: item.categoryColor || theme.colors.primary },
               ]}
             >
               <Icon
@@ -389,7 +377,7 @@ const MyVaultScreen = ({ navigation, route }) => {
             </View>
             <View style={styles.passwordInfo}>
               <Text
-                style={[styles.passwordTitle, { color: theme.text }]}
+                style={[styles.passwordTitle, { color: theme.colors.text }]}
                 numberOfLines={1}
               >
                 {displayTitle}
@@ -397,7 +385,7 @@ const MyVaultScreen = ({ navigation, route }) => {
               <Text
                 style={[
                   styles.passwordSubtitle,
-                  { color: theme.textSecondary },
+                  { color: theme.colors.textSecondary },
                 ]}
                 numberOfLines={1}
               >
@@ -409,7 +397,7 @@ const MyVaultScreen = ({ navigation, route }) => {
             {item.isFavorite && (
               <Icon name="star" size={16} color="#FFD700" solid />
             )}
-            <Icon name="chevron-right" size={16} color={theme.textSecondary} />
+            <Icon name="chevron-right" size={16} color={theme.colors.textSecondary} />
           </View>
         </View>
       </TouchableOpacity>
@@ -418,11 +406,11 @@ const MyVaultScreen = ({ navigation, route }) => {
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Icon name="shield-alt" size={64} color={theme.textSecondary} />
-      <Text style={[styles.emptyStateTitle, { color: theme.text }]}>
+      <Icon name="shield-alt" size={64} color={theme.colors.textSecondary} />
+      <Text style={[styles.emptyStateTitle, { color: theme.colors.text }]}>
         No passwords saved yet
       </Text>
-      <Text style={[styles.emptyStateSubtitle, { color: theme.textSecondary }]}>
+      <Text style={[styles.emptyStateSubtitle, { color: theme.colors.textSecondary }]}>
         Tap the + button to add your first password
       </Text>
     </View>
@@ -444,15 +432,15 @@ const MyVaultScreen = ({ navigation, route }) => {
         <View
           style={[
             styles.filterModalContent,
-            { backgroundColor: theme.background },
+            { backgroundColor: theme.colors.background },
           ]}
         >
           <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
               Filter by
             </Text>
             <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-              <Icon name="times" size={20} color={theme.textSecondary} />
+              <Icon name="times" size={20} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -460,7 +448,7 @@ const MyVaultScreen = ({ navigation, route }) => {
             style={[
               styles.filterOption,
               selectedCategory === 'all' && {
-                backgroundColor: theme.primary + '20',
+                backgroundColor: theme.colors.primary + '20',
               },
             ]}
             onPress={() => {
@@ -472,7 +460,7 @@ const MyVaultScreen = ({ navigation, route }) => {
               name="list"
               size={20}
               color={
-                selectedCategory === 'all' ? theme.primary : theme.textSecondary
+                selectedCategory === 'all' ? theme.colors.primary : theme.colors.textSecondary
               }
             />
             <Text
@@ -480,13 +468,13 @@ const MyVaultScreen = ({ navigation, route }) => {
                 styles.filterOptionText,
                 {
                   color:
-                    selectedCategory === 'all' ? theme.primary : theme.text,
+                    selectedCategory === 'all' ? theme.colors.primary : theme.colors.text,
                 },
               ]}
             >
               All Records
             </Text>
-            <Text style={[styles.filterCount, { color: theme.textSecondary }]}>
+            <Text style={[styles.filterCount, { color: theme.colors.textSecondary }]}>
               {passwords.length}
             </Text>
           </TouchableOpacity>
@@ -495,7 +483,7 @@ const MyVaultScreen = ({ navigation, route }) => {
             style={[
               styles.filterOption,
               selectedCategory === 'favorites' && {
-                backgroundColor: theme.primary + '20',
+                backgroundColor: theme.colors.primary + '20',
               },
             ]}
             onPress={() => {
@@ -507,7 +495,7 @@ const MyVaultScreen = ({ navigation, route }) => {
               name="star"
               size={20}
               color={
-                selectedCategory === 'favorites' ? theme.primary : '#FFD700'
+                selectedCategory === 'favorites' ? theme.colors.primary : '#FFD700'
               }
               solid
             />
@@ -517,14 +505,14 @@ const MyVaultScreen = ({ navigation, route }) => {
                 {
                   color:
                     selectedCategory === 'favorites'
-                      ? theme.primary
-                      : theme.text,
+                      ? theme.colors.primary
+                      : theme.colors.text,
                 },
               ]}
             >
               Favorites
             </Text>
-            <Text style={[styles.filterCount, { color: theme.textSecondary }]}>
+            <Text style={[styles.filterCount, { color: theme.colors.textSecondary }]}>
               {passwords.filter(p => p.isFavorite === true).length}
             </Text>
           </TouchableOpacity>
@@ -535,7 +523,7 @@ const MyVaultScreen = ({ navigation, route }) => {
               style={[
                 styles.filterOption,
                 selectedCategory === category.id.toString() && {
-                  backgroundColor: theme.primary + '20',
+                  backgroundColor: theme.colors.primary + '20',
                 },
               ]}
               onPress={() => {
@@ -546,7 +534,7 @@ const MyVaultScreen = ({ navigation, route }) => {
               <View
                 style={[
                   styles.categoryIndicator,
-                  { backgroundColor: category.color || theme.primary },
+                  { backgroundColor: category.color || theme.colors.primary },
                 ]}
               >
                 <Icon name={category.icon || 'folder'} size={12} color="#fff" />
@@ -557,15 +545,15 @@ const MyVaultScreen = ({ navigation, route }) => {
                   {
                     color:
                       selectedCategory === category.id.toString()
-                        ? theme.primary
-                        : theme.text,
+                        ? theme.colors.primary
+                        : theme.colors.text,
                   },
                 ]}
               >
                 {category.name}
               </Text>
               <Text
-                style={[styles.filterCount, { color: theme.textSecondary }]}
+                style={[styles.filterCount, { color: theme.colors.textSecondary }]}
               >
                 {category.password_count || 0}
               </Text>
@@ -587,11 +575,11 @@ const MyVaultScreen = ({ navigation, route }) => {
   if (loading) {
     return (
       <SafeAreaView
-        style={[styles.container, { backgroundColor: theme.background }]}
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
       >
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.primary} />
-          <Text style={[styles.loadingText, { color: theme.text }]}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.text }]}>
             Loading vault...
           </Text>
         </View>
@@ -601,15 +589,15 @@ const MyVaultScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       {/* Header with Title and Password Count */}
       <View
         style={[
           styles.header,
           {
-            backgroundColor: theme.background,
-            borderBottomColor: theme.border,
+            backgroundColor: theme.colors.background,
+            borderBottomColor: theme.colors.border,
           },
         ]}
       >
@@ -625,7 +613,7 @@ const MyVaultScreen = ({ navigation, route }) => {
           <Text
             style={[
               styles.headerTitle,
-              { color: theme.text, fontSize: 20, fontWeight: '600' },
+              { color: theme.colors.text, fontSize: 20, fontWeight: '600' },
             ]}
           >
             My Vault
@@ -633,7 +621,7 @@ const MyVaultScreen = ({ navigation, route }) => {
           {/* Keep the badge right-aligned, visually similar to AddPasswordScreen's headerRight */}
           <View style={{ position: 'absolute', right: 0 }}>
             <Badge
-              style={[styles.passwordCount, { backgroundColor: theme.primary }]}
+              style={[styles.passwordCount, { backgroundColor: theme.colors.primary }]}
             >
               {passwords.length}
             </Badge>
@@ -647,9 +635,9 @@ const MyVaultScreen = ({ navigation, route }) => {
           placeholder="Search passwords..."
           onChangeText={handleSearchChange}
           value={searchQuery}
-          style={[styles.searchBar, { backgroundColor: theme.surface }]}
-          inputStyle={{ color: theme.text }}
-          iconColor={theme.textSecondary}
+          style={[styles.searchBar, { backgroundColor: theme.colors.surface }]}
+          inputStyle={{ color: theme.colors.text }}
+          iconColor={theme.colors.textSecondary}
         />
 
         {/* Recent searches */}
@@ -671,12 +659,12 @@ const MyVaultScreen = ({ navigation, route }) => {
       {/* Filter Button */}
       <View style={styles.filterButtonContainer}>
         <TouchableOpacity
-          style={[styles.filterButton, { backgroundColor: theme.surface }]}
+          style={[styles.filterButton, { backgroundColor: theme.colors.surface }]}
           onPress={() => setShowFilterModal(true)}
         >
-          <Icon name="sliders-h" size={16} color={theme.textSecondary} />
+          <Icon name="sliders-h" size={16} color={theme.colors.textSecondary} />
           <Text
-            style={[styles.filterButtonText, { color: theme.textSecondary }]}
+            style={[styles.filterButtonText, { color: theme.colors.textSecondary }]}
           >
             {selectedCategory === 'all'
               ? 'All Records'
@@ -685,7 +673,7 @@ const MyVaultScreen = ({ navigation, route }) => {
                 : categories.find(c => c.id.toString() === selectedCategory)
                     ?.name || 'Filter'}
           </Text>
-          <Icon name="chevron-down" size={12} color={theme.textSecondary} />
+          <Icon name="chevron-down" size={12} color={theme.colors.textSecondary} />
         </TouchableOpacity>
 
         {/* Sort Menu */}
@@ -694,10 +682,10 @@ const MyVaultScreen = ({ navigation, route }) => {
           onDismiss={() => setShowSortMenu(false)}
           anchor={
             <TouchableOpacity
-              style={[styles.sortButton, { backgroundColor: theme.surface }]}
+              style={[styles.sortButton, { backgroundColor: theme.colors.surface }]}
               onPress={() => setShowSortMenu(true)}
             >
-              <Icon name="sort" size={16} color={theme.textSecondary} />
+              <Icon name="sort" size={16} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           }
         >
@@ -730,7 +718,7 @@ const MyVaultScreen = ({ navigation, route }) => {
       {/* Floating Action Button */}
       <View style={styles.fabContainer}>
         <TouchableOpacity
-          style={[styles.fab, { backgroundColor: theme.primary }]}
+          style={[styles.fab, { backgroundColor: theme.colors.primary }]}
           onPress={() => setShowAddModal(true)}
         >
           <Icon name="plus" size={24} color="#fff" />

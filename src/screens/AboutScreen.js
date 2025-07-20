@@ -6,24 +6,14 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  useColorScheme,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../contexts/ThemeContext';
 
 const AboutScreen = () => {
   const navigation = useNavigation();
-  const colorScheme = useColorScheme();
-  const isDarkMode = colorScheme === 'dark';
-
-  const theme = {
-    background: isDarkMode ? '#121212' : '#ffffff',
-    card: isDarkMode ? '#2c2c2c' : '#ffffff',
-    primary: '#8e44ad',
-    text: isDarkMode ? '#ffffff' : '#333333',
-    textSecondary: isDarkMode ? '#b0b0b0' : '#666666',
-    border: isDarkMode ? '#333333' : '#e0e0e0',
-  };
+  const { theme } = useTheme();
 
   const appInfo = {
     name: 'SecureVault',
@@ -34,16 +24,16 @@ const AboutScreen = () => {
   };
 
   const renderInfoCard = (title, content, icon) => (
-    <View style={[styles.infoCard, { backgroundColor: theme.card }]}>
+    <View style={[styles.infoCard, { backgroundColor: theme.colors.card }]}>
       <View style={styles.cardHeader}>
         <View
-          style={[styles.cardIcon, { backgroundColor: theme.primary + '20' }]}
+          style={[styles.cardIcon, { backgroundColor: theme.colors.primary + '20' }]}
         >
-          <Icon name={icon} size={20} color={theme.primary} />
+          <Icon name={icon} size={20} color={theme.colors.primary} />
         </View>
-        <Text style={[styles.cardTitle, { color: theme.text }]}>{title}</Text>
+        <Text style={[styles.cardTitle, { color: theme.colors.text }]}>{title}</Text>
       </View>
-      <Text style={[styles.cardContent, { color: theme.textSecondary }]}>
+      <Text style={[styles.cardContent, { color: theme.colors.textSecondary }]}>
         {content}
       </Text>
     </View>
@@ -51,17 +41,17 @@ const AboutScreen = () => {
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-left" size={20} color={theme.text} />
+          <Icon name="arrow-left" size={20} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>About</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>About</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -72,14 +62,14 @@ const AboutScreen = () => {
         <View style={styles.content}>
           {/* App Icon and Name */}
           <View style={styles.appHeaderSection}>
-            <View style={[styles.appIcon, { backgroundColor: theme.primary }]}>
+            <View style={[styles.appIcon, { backgroundColor: theme.colors.primary }]}>
               <Icon name="shield-alt" size={32} color="#ffffff" />
             </View>
-            <Text style={[styles.appName, { color: theme.text }]}>
+            <Text style={[styles.appName, { color: theme.colors.text }]}>
               {appInfo.name}
             </Text>
             <Text
-              style={[styles.appDescription, { color: theme.textSecondary }]}
+              style={[styles.appDescription, { color: theme.colors.textSecondary }]}
             >
               {appInfo.description}
             </Text>
@@ -107,16 +97,16 @@ const AboutScreen = () => {
           )}
 
           {/* Open Source Notice */}
-          <View style={[styles.footerSection, { backgroundColor: theme.card }]}>
-            <Icon name="heart" size={18} color={theme.primary} />
-            <Text style={[styles.footerText, { color: theme.textSecondary }]}>
+          <View style={[styles.footerSection, { backgroundColor: theme.colors.card }]}>
+            <Icon name="heart" size={18} color={theme.colors.primary} />
+            <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}>
               Built with security and privacy in mind
             </Text>
           </View>
 
           {/* Technical Info */}
           <View style={styles.technicalInfo}>
-            <Text style={[styles.technicalTitle, { color: theme.text }]}>
+            <Text style={[styles.technicalTitle, { color: theme.colors.text }]}>
               Technical Information
             </Text>
             <View style={styles.technicalList}>
@@ -124,12 +114,12 @@ const AboutScreen = () => {
                 <Text
                   style={[
                     styles.technicalLabel,
-                    { color: theme.textSecondary },
+                    { color: theme.colors.textSecondary },
                   ]}
                 >
                   Platform:
                 </Text>
-                <Text style={[styles.technicalValue, { color: theme.text }]}>
+                <Text style={[styles.technicalValue, { color: theme.colors.text }]}>
                   React Native
                 </Text>
               </View>
@@ -137,12 +127,12 @@ const AboutScreen = () => {
                 <Text
                   style={[
                     styles.technicalLabel,
-                    { color: theme.textSecondary },
+                    { color: theme.colors.textSecondary },
                   ]}
                 >
                   Encryption:
                 </Text>
-                <Text style={[styles.technicalValue, { color: theme.text }]}>
+                <Text style={[styles.technicalValue, { color: theme.colors.text }]}>
                   AES-256
                 </Text>
               </View>
@@ -150,12 +140,12 @@ const AboutScreen = () => {
                 <Text
                   style={[
                     styles.technicalLabel,
-                    { color: theme.textSecondary },
+                    { color: theme.colors.textSecondary },
                   ]}
                 >
                   Storage:
                 </Text>
-                <Text style={[styles.technicalValue, { color: theme.text }]}>
+                <Text style={[styles.technicalValue, { color: theme.colors.text }]}>
                   SQLite + Secure Storage
                 </Text>
               </View>

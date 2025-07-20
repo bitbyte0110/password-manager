@@ -6,7 +6,6 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  useColorScheme,
   Alert,
 } from 'react-native';
 import { Button, Switch } from 'react-native-paper';
@@ -15,28 +14,15 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
+import { useTheme } from '../contexts/ThemeContext';
 
 const MFASettingsScreen = () => {
   const navigation = useNavigation();
+  const { theme } = useTheme();
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
-
-  const colorScheme = useColorScheme();
-  const isDarkMode = colorScheme === 'dark';
-
-  const theme = {
-    background: isDarkMode ? '#121212' : '#ffffff',
-    card: isDarkMode ? '#2c2c2c' : '#ffffff',
-    primary: '#8e44ad',
-    text: isDarkMode ? '#ffffff' : '#333333',
-    textSecondary: isDarkMode ? '#b0b0b0' : '#666666',
-    border: isDarkMode ? '#333333' : '#e0e0e0',
-    success: '#2ecc71',
-    warning: '#f39c12',
-    error: '#e74c3c',
-  };
 
   useEffect(() => {
     loadCurrentSetting();
@@ -191,17 +177,17 @@ const MFASettingsScreen = () => {
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-left" size={20} color={theme.text} />
+          <Icon name="arrow-left" size={20} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
           Multi-Factor Authentication
         </Text>
         <View style={styles.headerRight} />
@@ -213,33 +199,33 @@ const MFASettingsScreen = () => {
       >
         <View style={styles.content}>
           {/* Status Card */}
-          <View style={[styles.statusCard, { backgroundColor: theme.card }]}>
+          <View style={[styles.statusCard, { backgroundColor: theme.colors.card }]}>
             <View style={styles.statusHeader}>
               <View
                 style={[
                   styles.statusIcon,
                   {
                     backgroundColor: mfaEnabled
-                      ? theme.success + '20'
-                      : theme.warning + '20',
+                      ? theme.colors.success + '20'
+                      : theme.colors.warning + '20',
                   },
                 ]}
               >
                 <Icon
                   name={mfaEnabled ? 'shield-alt' : 'exclamation-triangle'}
                   size={24}
-                  color={mfaEnabled ? theme.success : theme.warning}
+                  color={mfaEnabled ? theme.colors.success : theme.colors.warning}
                 />
               </View>
               <View style={styles.statusContent}>
-                <Text style={[styles.statusTitle, { color: theme.text }]}>
+                <Text style={[styles.statusTitle, { color: theme.colors.text }]}>
                   MFA Status
                 </Text>
                 <Text
                   style={[
                     styles.statusSubtitle,
                     {
-                      color: mfaEnabled ? theme.success : theme.warning,
+                      color: mfaEnabled ? theme.colors.success : theme.colors.warning,
                     },
                   ]}
                 >
@@ -249,7 +235,7 @@ const MFASettingsScreen = () => {
               <Switch
                 value={mfaEnabled}
                 onValueChange={handleToggleMFA}
-                color={theme.primary}
+                color={theme.colors.primary}
                 disabled={isLoading}
               />
             </View>
@@ -257,13 +243,13 @@ const MFASettingsScreen = () => {
 
           {/* Description Section */}
           <View
-            style={[styles.descriptionCard, { backgroundColor: theme.card }]}
+            style={[styles.descriptionCard, { backgroundColor: theme.colors.card }]}
           >
-            <Text style={[styles.descriptionTitle, { color: theme.text }]}>
+            <Text style={[styles.descriptionTitle, { color: theme.colors.text }]}>
               About Multi-Factor Authentication
             </Text>
             <Text
-              style={[styles.descriptionText, { color: theme.textSecondary }]}
+              style={[styles.descriptionText, { color: theme.colors.textSecondary }]}
             >
               Multi-Factor Authentication adds an extra layer of security to
               your vault by requiring both your master password and a second
@@ -272,25 +258,25 @@ const MFASettingsScreen = () => {
 
             <View style={styles.benefitsList}>
               <View style={styles.benefitItem}>
-                <Icon name="check-circle" size={16} color={theme.success} />
+                <Icon name="check-circle" size={16} color={theme.colors.success} />
                 <Text
-                  style={[styles.benefitText, { color: theme.textSecondary }]}
+                  style={[styles.benefitText, { color: theme.colors.textSecondary }]}
                 >
                   Protection against password theft
                 </Text>
               </View>
               <View style={styles.benefitItem}>
-                <Icon name="check-circle" size={16} color={theme.success} />
+                <Icon name="check-circle" size={16} color={theme.colors.success} />
                 <Text
-                  style={[styles.benefitText, { color: theme.textSecondary }]}
+                  style={[styles.benefitText, { color: theme.colors.textSecondary }]}
                 >
                   Enhanced security for sensitive data
                 </Text>
               </View>
               <View style={styles.benefitItem}>
-                <Icon name="check-circle" size={16} color={theme.success} />
+                <Icon name="check-circle" size={16} color={theme.colors.success} />
                 <Text
-                  style={[styles.benefitText, { color: theme.textSecondary }]}
+                  style={[styles.benefitText, { color: theme.colors.textSecondary }]}
                 >
                   Peace of mind with two-factor protection
                 </Text>
@@ -302,11 +288,11 @@ const MFASettingsScreen = () => {
           <View
             style={[
               styles.securityNote,
-              { backgroundColor: theme.primary + '10' },
+              { backgroundColor: theme.colors.primary + '10' },
             ]}
           >
-            <Icon name="info-circle" size={18} color={theme.primary} />
-            <Text style={[styles.securityText, { color: theme.text }]}>
+            <Icon name="info-circle" size={18} color={theme.colors.primary} />
+            <Text style={[styles.securityText, { color: theme.colors.text }]}>
               We highly recommend enabling MFA for maximum security. Even if
               someone gains access to your master password, they won't be able
               to access your vault without the second factor.
@@ -317,7 +303,7 @@ const MFASettingsScreen = () => {
 
       {/* Action Button */}
       <View
-        style={[styles.buttonContainer, { backgroundColor: theme.background }]}
+        style={[styles.buttonContainer, { backgroundColor: theme.colors.background }]}
       >
         <Button
           mode="contained"
@@ -325,7 +311,7 @@ const MFASettingsScreen = () => {
           style={[
             styles.actionButton,
             {
-              backgroundColor: mfaEnabled ? theme.error : theme.primary,
+              backgroundColor: mfaEnabled ? theme.colors.error : theme.colors.primary,
             },
           ]}
           loading={isLoading}

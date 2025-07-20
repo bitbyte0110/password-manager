@@ -6,16 +6,17 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  useColorScheme,
   Alert,
 } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useNavigation } from '@react-navigation/native';
 import vaultService from '../services/vaultService';
+import { useTheme } from '../contexts/ThemeContext';
 
 const ChangeMasterPasswordScreen = () => {
   const navigation = useNavigation();
+  const { theme } = useTheme();
   const [formData, setFormData] = useState({
     oldPassword: '',
     newPassword: '',
@@ -29,21 +30,6 @@ const ChangeMasterPasswordScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(null);
   const [errors, setErrors] = useState({});
-
-  const colorScheme = useColorScheme();
-  const isDarkMode = colorScheme === 'dark';
-
-  const theme = {
-    background: isDarkMode ? '#121212' : '#ffffff',
-    card: isDarkMode ? '#2c2c2c' : '#ffffff',
-    primary: '#8e44ad',
-    text: isDarkMode ? '#ffffff' : '#333333',
-    textSecondary: isDarkMode ? '#b0b0b0' : '#666666',
-    border: isDarkMode ? '#333333' : '#e0e0e0',
-    error: '#e74c3c',
-    success: '#2ecc71',
-    warning: '#f39c12',
-  };
 
   const validatePassword = password => {
     const strength = {
@@ -133,10 +119,10 @@ const ChangeMasterPasswordScreen = () => {
   };
 
   const getStrengthColor = () => {
-    if (!passwordStrength) return theme.textSecondary;
-    if (passwordStrength.score < 2) return theme.error;
-    if (passwordStrength.score < 4) return theme.warning;
-    return theme.success;
+    if (!passwordStrength) return theme.colors.textSecondary;
+    if (passwordStrength.score < 2) return theme.colors.error;
+    if (passwordStrength.score < 4) return theme.colors.warning;
+    return theme.colors.success;
   };
 
   const getStrengthText = () => {
@@ -148,17 +134,17 @@ const ChangeMasterPasswordScreen = () => {
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-left" size={20} color={theme.text} />
+          <Icon name="arrow-left" size={20} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
           Change Master Password
         </Text>
         <View style={styles.headerRight} />
@@ -171,12 +157,12 @@ const ChangeMasterPasswordScreen = () => {
         <View style={styles.content}>
           {/* Current Password */}
           <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: theme.text }]}>
+            <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
               Current Password
             </Text>
             <View style={styles.passwordInputContainer}>
               <TextInput
-                style={[styles.passwordInput, { backgroundColor: theme.card }]}
+                style={[styles.passwordInput, { backgroundColor: theme.colors.inputBackground }]}
                 value={formData.oldPassword}
                 onChangeText={value =>
                   handlePasswordChange('oldPassword', value)
@@ -185,7 +171,19 @@ const ChangeMasterPasswordScreen = () => {
                 placeholder="Enter current password"
                 error={!!errors.oldPassword}
                 mode="outlined"
-                theme={{ colors: { primary: theme.primary } }}
+                theme={{
+                  colors: {
+                    primary: theme.colors.inputBorderFocused,
+                    accent: theme.colors.inputBorderFocused,
+                    text: theme.colors.inputText,
+                    background: theme.colors.inputBackground,
+                    outline: errors.oldPassword ? theme.colors.error : theme.colors.inputBorder,
+                    placeholder: theme.colors.inputPlaceholder,
+                    onSurfaceVariant: theme.colors.inputPlaceholder,
+                  },
+                }}
+                textColor={theme.colors.inputText}
+                placeholderTextColor={theme.colors.inputPlaceholder}
               />
               <TouchableOpacity
                 style={styles.eyeButton}
@@ -196,12 +194,12 @@ const ChangeMasterPasswordScreen = () => {
                 <Icon
                   name={showPasswords.old ? 'eye-slash' : 'eye'}
                   size={18}
-                  color={theme.textSecondary}
+                  color={theme.colors.textSecondary}
                 />
               </TouchableOpacity>
             </View>
             {errors.oldPassword && (
-              <Text style={[styles.errorText, { color: theme.error }]}>
+              <Text style={[styles.errorText, { color: theme.colors.error }]}>
                 {errors.oldPassword}
               </Text>
             )}
@@ -209,12 +207,12 @@ const ChangeMasterPasswordScreen = () => {
 
           {/* New Password */}
           <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: theme.text }]}>
+            <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
               New Password
             </Text>
             <View style={styles.passwordInputContainer}>
               <TextInput
-                style={[styles.passwordInput, { backgroundColor: theme.card }]}
+                style={[styles.passwordInput, { backgroundColor: theme.colors.inputBackground }]}
                 value={formData.newPassword}
                 onChangeText={value =>
                   handlePasswordChange('newPassword', value)
@@ -223,7 +221,19 @@ const ChangeMasterPasswordScreen = () => {
                 placeholder="Enter new password"
                 error={!!errors.newPassword}
                 mode="outlined"
-                theme={{ colors: { primary: theme.primary } }}
+                theme={{
+                  colors: {
+                    primary: theme.colors.inputBorderFocused,
+                    accent: theme.colors.inputBorderFocused,
+                    text: theme.colors.inputText,
+                    background: theme.colors.inputBackground,
+                    outline: errors.newPassword ? theme.colors.error : theme.colors.inputBorder,
+                    placeholder: theme.colors.inputPlaceholder,
+                    onSurfaceVariant: theme.colors.inputPlaceholder,
+                  },
+                }}
+                textColor={theme.colors.inputText}
+                placeholderTextColor={theme.colors.inputPlaceholder}
               />
               <TouchableOpacity
                 style={styles.eyeButton}
@@ -234,7 +244,7 @@ const ChangeMasterPasswordScreen = () => {
                 <Icon
                   name={showPasswords.new ? 'eye-slash' : 'eye'}
                   size={18}
-                  color={theme.textSecondary}
+                  color={theme.colors.textSecondary}
                 />
               </TouchableOpacity>
             </View>
@@ -252,7 +262,7 @@ const ChangeMasterPasswordScreen = () => {
                           backgroundColor:
                             i < passwordStrength.score
                               ? getStrengthColor()
-                              : theme.border,
+                              : theme.colors.border,
                         },
                       ]}
                     />
@@ -269,7 +279,7 @@ const ChangeMasterPasswordScreen = () => {
             {passwordStrength && passwordStrength.feedback.length > 0 && (
               <View style={styles.feedbackContainer}>
                 <Text
-                  style={[styles.feedbackTitle, { color: theme.textSecondary }]}
+                  style={[styles.feedbackTitle, { color: theme.colors.textSecondary }]}
                 >
                   Password should include:
                 </Text>
@@ -278,7 +288,7 @@ const ChangeMasterPasswordScreen = () => {
                     key={index}
                     style={[
                       styles.feedbackItem,
-                      { color: theme.textSecondary },
+                      { color: theme.colors.textSecondary },
                     ]}
                   >
                     • {item}
@@ -288,7 +298,7 @@ const ChangeMasterPasswordScreen = () => {
             )}
 
             {errors.newPassword && (
-              <Text style={[styles.errorText, { color: theme.error }]}>
+              <Text style={[styles.errorText, { color: theme.colors.error }]}>
                 {errors.newPassword}
               </Text>
             )}
@@ -296,12 +306,12 @@ const ChangeMasterPasswordScreen = () => {
 
           {/* Confirm Password */}
           <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: theme.text }]}>
+            <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
               Confirm New Password
             </Text>
             <View style={styles.passwordInputContainer}>
               <TextInput
-                style={[styles.passwordInput, { backgroundColor: theme.card }]}
+                style={[styles.passwordInput, { backgroundColor: theme.colors.inputBackground }]}
                 value={formData.confirmPassword}
                 onChangeText={value =>
                   handlePasswordChange('confirmPassword', value)
@@ -310,7 +320,19 @@ const ChangeMasterPasswordScreen = () => {
                 placeholder="Confirm new password"
                 error={!!errors.confirmPassword}
                 mode="outlined"
-                theme={{ colors: { primary: theme.primary } }}
+                theme={{
+                  colors: {
+                    primary: theme.colors.inputBorderFocused,
+                    accent: theme.colors.inputBorderFocused,
+                    text: theme.colors.inputText,
+                    background: theme.colors.inputBackground,
+                    outline: errors.confirmPassword ? theme.colors.error : theme.colors.inputBorder,
+                    placeholder: theme.colors.inputPlaceholder,
+                    onSurfaceVariant: theme.colors.inputPlaceholder,
+                  },
+                }}
+                textColor={theme.colors.inputText}
+                placeholderTextColor={theme.colors.inputPlaceholder}
               />
               <TouchableOpacity
                 style={styles.eyeButton}
@@ -324,12 +346,12 @@ const ChangeMasterPasswordScreen = () => {
                 <Icon
                   name={showPasswords.confirm ? 'eye-slash' : 'eye'}
                   size={18}
-                  color={theme.textSecondary}
+                  color={theme.colors.textSecondary}
                 />
               </TouchableOpacity>
             </View>
             {errors.confirmPassword && (
-              <Text style={[styles.errorText, { color: theme.error }]}>
+              <Text style={[styles.errorText, { color: theme.colors.error }]}>
                 {errors.confirmPassword}
               </Text>
             )}
@@ -339,13 +361,13 @@ const ChangeMasterPasswordScreen = () => {
 
       {/* Action Buttons */}
       <View
-        style={[styles.buttonContainer, { backgroundColor: theme.background }]}
+        style={[styles.buttonContainer, { backgroundColor: theme.colors.background }]}
       >
         <Button
-          mode="outlined"
+          mode="contained"
           onPress={() => navigation.goBack()}
-          style={[styles.button, { borderColor: theme.border }]}
-          textColor={theme.textSecondary}
+          style={[styles.button, { backgroundColor: '#3A3A3C' }]}
+          textColor="#FFFFFF"
           disabled={isLoading}
         >
           Cancel
@@ -353,7 +375,7 @@ const ChangeMasterPasswordScreen = () => {
         <Button
           mode="contained"
           onPress={handleSave}
-          style={[styles.button, { backgroundColor: theme.primary }]}
+          style={[styles.button, { backgroundColor: theme.colors.primary }]}
           loading={isLoading}
           disabled={isLoading}
         >

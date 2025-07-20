@@ -5,13 +5,13 @@ import {
   StyleSheet,
   Modal,
   TouchableOpacity,
-  useColorScheme,
 } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
 import bcrypt from 'bcryptjs';
 import Icon from 'react-native-vector-icons/FontAwesome5';
+import { useTheme } from '../contexts/ThemeContext';
 
 const AuthenticationModal = ({
   visible,
@@ -28,20 +28,7 @@ const AuthenticationModal = ({
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [mfaStep, setMfaStep] = useState(1); // 1 = biometric, 2 = password
   const [biometricSucceeded, setBiometricSucceeded] = useState(false);
-
-  const colorScheme = useColorScheme();
-  const isDarkMode = colorScheme === 'dark';
-
-  const theme = {
-    background: isDarkMode ? '#121212' : '#ffffff',
-    surface: isDarkMode ? '#1e1e1e' : '#f8f9fa',
-    card: isDarkMode ? '#2c2c2c' : '#ffffff',
-    primary: '#8e44ad',
-    text: isDarkMode ? '#ffffff' : '#333333',
-    textSecondary: isDarkMode ? '#b0b0b0' : '#666666',
-    border: isDarkMode ? '#333333' : '#e0e0e0',
-    error: '#e74c3c',
-  };
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (visible) {
@@ -196,12 +183,12 @@ const AuthenticationModal = ({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={[styles.modalContainer, { backgroundColor: theme.card }]}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.colors.card }]}>
           <View style={styles.header}>
-            <Text style={[styles.title, { color: theme.text }]}>
+            <Text style={[styles.title, { color: theme.colors.text }]}>
               {getModalTitle()}
             </Text>
-            <Text style={[styles.message, { color: theme.textSecondary }]}>
+            <Text style={[styles.message, { color: theme.colors.textSecondary }]}>
               {getModalMessage()}
             </Text>
           </View>
@@ -209,19 +196,19 @@ const AuthenticationModal = ({
           {/* Show biometric prompt for MFA step 1 */}
           {authMethod === 'mfa' && mfaStep === 1 && (
             <View style={styles.biometricSection}>
-              <Icon name="fingerprint" size={48} color={theme.primary} />
+              <Icon name="fingerprint" size={48} color={theme.colors.primary} />
               <Text
-                style={[styles.biometricText, { color: theme.textSecondary }]}
+                style={[styles.biometricText, { color: theme.colors.textSecondary }]}
               >
                 Touch the fingerprint sensor
               </Text>
               <TouchableOpacity
-                style={[styles.retryButton, { borderColor: theme.primary }]}
+                style={[styles.retryButton, { borderColor: theme.colors.primary }]}
                 onPress={handleBiometricAuth}
                 disabled={isLoading}
               >
                 <Text
-                  style={[styles.retryButtonText, { color: theme.primary }]}
+                  style={[styles.retryButtonText, { color: theme.colors.primary }]}
                 >
                   Retry Biometric
                 </Text>
@@ -242,8 +229,8 @@ const AuthenticationModal = ({
                 style={styles.passwordInput}
                 theme={{
                   colors: {
-                    primary: theme.primary,
-                    accent: theme.primary,
+                    primary: theme.colors.primary,
+                    accent: theme.colors.primary,
                   },
                 }}
                 autoFocus
@@ -258,7 +245,7 @@ const AuthenticationModal = ({
               />
 
               {error && (
-                <Text style={[styles.errorText, { color: theme.error }]}>
+                <Text style={[styles.errorText, { color: theme.colors.error }]}>
                   {error}
                 </Text>
               )}
@@ -269,11 +256,11 @@ const AuthenticationModal = ({
                   onPress={handleBiometricAuth}
                   disabled={isLoading}
                 >
-                  <Icon name="fingerprint" size={20} color={theme.primary} />
+                  <Icon name="fingerprint" size={20} color={theme.colors.primary} />
                   <Text
                     style={[
                       styles.biometricAlternativeText,
-                      { color: theme.primary },
+                      { color: theme.colors.primary },
                     ]}
                   >
                     Use biometric instead
@@ -285,10 +272,10 @@ const AuthenticationModal = ({
 
           <View style={styles.buttonContainer}>
             <Button
-              mode="outlined"
+              mode="contained"
               onPress={onClose}
-              style={[styles.button, { borderColor: theme.border }]}
-              textColor={theme.textSecondary}
+              style={[styles.button, { backgroundColor: '#3A3A3C' }]}
+              textColor="#FFFFFF"
               disabled={isLoading}
             >
               Cancel
@@ -299,7 +286,7 @@ const AuthenticationModal = ({
               <Button
                 mode="contained"
                 onPress={handlePasswordAuth}
-                style={[styles.button, { backgroundColor: theme.primary }]}
+                style={[styles.button, { backgroundColor: theme.colors.primary }]}
                 loading={isLoading}
                 disabled={isLoading || !password.trim()}
               >

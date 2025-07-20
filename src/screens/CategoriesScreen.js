@@ -6,7 +6,6 @@ import {
   SafeAreaView,
   FlatList,
   TouchableOpacity,
-  useColorScheme,
   Alert,
   Modal,
   Dimensions,
@@ -29,6 +28,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import vaultService from '../services/vaultService';
 import databaseService from '../services/databaseService';
 import FABActionMenu from '../components/FABActionMenu';
+import { useTheme } from '../contexts/ThemeContext';
 
 // Constants for activity tracking
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
@@ -104,24 +104,7 @@ const CategoriesScreen = ({ navigation, route }) => {
   });
 
   const [formErrors, setFormErrors] = useState({});
-
-  // Get color scheme for theme support
-  const colorScheme = useColorScheme();
-  const isDarkMode = colorScheme === 'dark';
-
-  // Theme colors
-  const theme = {
-    background: isDarkMode ? '#121212' : '#ffffff',
-    surface: isDarkMode ? '#1e1e1e' : '#f5f5f5',
-    primary: '#8e44ad',
-    secondary: '#3498db',
-    text: isDarkMode ? '#ffffff' : '#333333',
-    textSecondary: isDarkMode ? '#b0b0b0' : '#666666',
-    border: isDarkMode ? '#333333' : '#e0e0e0',
-    error: '#e74c3c',
-    success: '#2ecc71',
-    warning: '#f39c12',
-  };
+  const { theme } = useTheme();
 
   // Initialize screen and load data
   useEffect(() => {
@@ -423,7 +406,7 @@ const CategoriesScreen = ({ navigation, route }) => {
   const renderCategoryCard = ({ item }) => (
     <View style={styles.categoryCardContainer}>
       <TouchableOpacity
-        style={[styles.categoryCard, { backgroundColor: theme.surface }]}
+        style={[styles.categoryCard, { backgroundColor: theme.colors.surface }]}
         onPress={() => handleCategoryPress(item)}
         activeOpacity={0.7}
       >
@@ -432,20 +415,20 @@ const CategoriesScreen = ({ navigation, route }) => {
             <View
               style={[
                 styles.categoryIcon,
-                { backgroundColor: item.color || theme.primary },
+                { backgroundColor: item.color || theme.colors.primary },
               ]}
             >
               <Icon name={item.icon || 'folder'} size={20} color="#fff" />
             </View>
             <View style={styles.categoryInfo}>
               <Text
-                style={[styles.categoryName, { color: theme.text }]}
+                style={[styles.categoryName, { color: theme.colors.text }]}
                 numberOfLines={1}
               >
                 {item.name}
               </Text>
               <Text
-                style={[styles.passwordCount, { color: theme.textSecondary }]}
+                style={[styles.passwordCount, { color: theme.colors.textSecondary }]}
                 numberOfLines={1}
               >
                 {item.password_count || 0} password
@@ -462,25 +445,25 @@ const CategoriesScreen = ({ navigation, route }) => {
                 onPress={event => handleMoreOptions(item, event)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Icon name="ellipsis-v" size={16} color={theme.textSecondary} />
+                <Icon name="ellipsis-v" size={16} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             }
             contentStyle={[
               styles.menuContent,
-              { backgroundColor: theme.surface },
+              { backgroundColor: theme.colors.surface },
             ]}
           >
             <Menu.Item
               onPress={handleEditCategory}
               title="Edit Category"
               leadingIcon="pencil"
-              titleStyle={{ color: theme.text }}
+              titleStyle={{ color: theme.colors.text }}
             />
             <Menu.Item
               onPress={handleDeleteCategory}
               title="Delete Category"
               leadingIcon="trash"
-              titleStyle={{ color: theme.error }}
+              titleStyle={{ color: theme.colors.error }}
             />
           </Menu>
         </View>
@@ -490,11 +473,11 @@ const CategoriesScreen = ({ navigation, route }) => {
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Icon name="folder-open" size={64} color={theme.textSecondary} />
-      <Text style={[styles.emptyStateTitle, { color: theme.text }]}>
+      <Icon name="folder-open" size={64} color={theme.colors.textSecondary} />
+      <Text style={[styles.emptyStateTitle, { color: theme.colors.text }]}>
         No categories found
       </Text>
-      <Text style={[styles.emptyStateSubtitle, { color: theme.textSecondary }]}>
+      <Text style={[styles.emptyStateSubtitle, { color: theme.colors.textSecondary }]}>
         {searchQuery.trim()
           ? 'Try adjusting your search or filters'
           : 'Tap + to create your first category'}
@@ -530,12 +513,12 @@ const CategoriesScreen = ({ navigation, route }) => {
           style={[
             styles.filterChip,
             activeFilter === filter.key && {
-              backgroundColor: theme.primary + '20',
+              backgroundColor: theme.colors.primary + '20',
             },
           ]}
           textStyle={{
             color:
-              activeFilter === filter.key ? theme.primary : theme.textSecondary,
+              activeFilter === filter.key ? theme.colors.primary : theme.colors.textSecondary,
             fontSize: 14,
           }}
         >
@@ -561,15 +544,15 @@ const CategoriesScreen = ({ navigation, route }) => {
         <View
           style={[
             styles.editModalContent,
-            { backgroundColor: theme.background },
+            { backgroundColor: theme.colors.background },
           ]}
         >
           <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
               Edit Category
             </Text>
             <TouchableOpacity onPress={() => setShowEditModal(false)}>
-              <Icon name="times" size={20} color={theme.textSecondary} />
+              <Icon name="times" size={20} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -586,10 +569,10 @@ const CategoriesScreen = ({ navigation, route }) => {
               style={styles.formInput}
               error={!!formErrors.name}
               mode="outlined"
-              theme={{ colors: { primary: theme.primary } }}
+              theme={{ colors: { primary: theme.colors.primary } }}
             />
             {formErrors.name && (
-              <Text style={[styles.errorText, { color: theme.error }]}>
+              <Text style={[styles.errorText, { color: theme.colors.error }]}>
                 {formErrors.name}
               </Text>
             )}
@@ -604,11 +587,11 @@ const CategoriesScreen = ({ navigation, route }) => {
               mode="outlined"
               multiline
               numberOfLines={3}
-              theme={{ colors: { primary: theme.primary } }}
+              theme={{ colors: { primary: theme.colors.primary } }}
             />
 
             <View style={styles.iconColorSection}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
                 Icon
               </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -621,8 +604,8 @@ const CategoriesScreen = ({ navigation, route }) => {
                         {
                           backgroundColor:
                             editForm.icon === iconName
-                              ? theme.primary + '20'
-                              : theme.surface,
+                              ? theme.colors.primary + '20'
+                              : theme.colors.surface,
                         },
                       ]}
                       onPress={() =>
@@ -634,8 +617,8 @@ const CategoriesScreen = ({ navigation, route }) => {
                         size={20}
                         color={
                           editForm.icon === iconName
-                            ? theme.primary
-                            : theme.textSecondary
+                            ? theme.colors.primary
+                            : theme.colors.textSecondary
                         }
                       />
                     </TouchableOpacity>
@@ -645,7 +628,7 @@ const CategoriesScreen = ({ navigation, route }) => {
             </View>
 
             <View style={styles.iconColorSection}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
                 Color
               </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -670,13 +653,13 @@ const CategoriesScreen = ({ navigation, route }) => {
             </View>
 
             <View style={styles.previewSection}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
                 Preview
               </Text>
               <View
                 style={[
                   styles.categoryCard,
-                  { backgroundColor: theme.surface },
+                  { backgroundColor: theme.colors.surface },
                 ]}
               >
                 <View style={styles.categoryCardContent}>
@@ -691,7 +674,7 @@ const CategoriesScreen = ({ navigation, route }) => {
                     </View>
                     <View style={styles.categoryInfo}>
                       <Text
-                        style={[styles.categoryName, { color: theme.text }]}
+                        style={[styles.categoryName, { color: theme.colors.text }]}
                         numberOfLines={1}
                       >
                         {editForm.name || 'Category Name'}
@@ -699,7 +682,7 @@ const CategoriesScreen = ({ navigation, route }) => {
                       <Text
                         style={[
                           styles.passwordCount,
-                          { color: theme.textSecondary },
+                          { color: theme.colors.textSecondary },
                         ]}
                         numberOfLines={1}
                       >
@@ -719,15 +702,15 @@ const CategoriesScreen = ({ navigation, route }) => {
             <Button
               mode="outlined"
               onPress={() => setShowEditModal(false)}
-              style={[styles.modalButton, { borderColor: theme.border }]}
-              textColor={theme.textSecondary}
+              style={[styles.modalButton, { borderColor: theme.colors.border }]}
+              textColor={theme.colors.textSecondary}
             >
               Cancel
             </Button>
             <Button
               mode="contained"
               onPress={handleSaveEdit}
-              style={[styles.modalButton, { backgroundColor: theme.primary }]}
+              style={[styles.modalButton, { backgroundColor: theme.colors.primary }]}
             >
               Save Changes
             </Button>
@@ -740,11 +723,11 @@ const CategoriesScreen = ({ navigation, route }) => {
   if (isLoading) {
     return (
       <SafeAreaView
-        style={[styles.container, { backgroundColor: theme.background }]}
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
       >
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.primary} />
-          <Text style={[styles.loadingText, { color: theme.text }]}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.text }]}>
             Loading categories...
           </Text>
         </View>
@@ -754,11 +737,11 @@ const CategoriesScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
           Categories
         </Text>
       </View>
@@ -769,9 +752,9 @@ const CategoriesScreen = ({ navigation, route }) => {
           placeholder="Search categories..."
           onChangeText={handleSearchChange}
           value={searchQuery}
-          style={[styles.searchBar, { backgroundColor: theme.surface, marginHorizontal: 16 }]}
-          inputStyle={{ color: theme.text }}
-          iconColor={theme.textSecondary}
+          style={[styles.searchBar, { backgroundColor: theme.colors.surface, marginHorizontal: 16 }]}
+          inputStyle={{ color: theme.colors.text }}
+          iconColor={theme.colors.textSecondary}
         />
       </View>
 
@@ -785,12 +768,12 @@ const CategoriesScreen = ({ navigation, route }) => {
           onDismiss={() => setShowSortMenu(false)}
           anchor={
             <TouchableOpacity
-              style={[styles.sortButton, { backgroundColor: theme.surface }]}
+              style={[styles.sortButton, { backgroundColor: theme.colors.surface }]}
               onPress={() => setShowSortMenu(true)}
             >
-              <Icon name="sort" size={16} color={theme.textSecondary} />
+              <Icon name="sort" size={16} color={theme.colors.textSecondary} />
               <Text
-                style={[styles.sortButtonText, { color: theme.textSecondary }]}
+                style={[styles.sortButtonText, { color: theme.colors.textSecondary }]}
               >
                 {sortBy === 'name_asc'
                   ? 'A–Z'
@@ -800,7 +783,7 @@ const CategoriesScreen = ({ navigation, route }) => {
                       ? 'Most Passwords'
                       : 'Least Passwords'}
               </Text>
-              <Icon name="chevron-down" size={12} color={theme.textSecondary} />
+              <Icon name="chevron-down" size={12} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           }
         >
@@ -840,7 +823,7 @@ const CategoriesScreen = ({ navigation, route }) => {
       {/* Floating Action Button */}
       <View style={styles.fabContainer}>
         <TouchableOpacity
-          style={[styles.fab, { backgroundColor: theme.primary }]}
+          style={[styles.fab, { backgroundColor: theme.colors.primary }]}
           onPress={handleFABPress}
         >
           <Icon name="plus" size={24} color="#fff" />
@@ -863,9 +846,9 @@ const CategoriesScreen = ({ navigation, route }) => {
         visible={snackbar.visible}
         onDismiss={() => setSnackbar({ visible: false, message: '' })}
         duration={3000}
-        style={{ backgroundColor: theme.surface }}
+        style={{ backgroundColor: theme.colors.surface }}
       >
-        <Text style={{ color: theme.text }}>{snackbar.message}</Text>
+        <Text style={{ color: theme.colors.text }}>{snackbar.message}</Text>
       </Snackbar>
     </SafeAreaView>
   );

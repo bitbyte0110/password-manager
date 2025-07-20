@@ -13,10 +13,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import clipboardService from '../services/clipboardService';
 import vaultService from '../services/vaultService';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useTheme } from '../contexts/ThemeContext';
 
 const CategoryDetailsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
+  const { theme } = useTheme();
   const { categoryId, categoryName, categoryColor, categoryIcon } =
     route.params;
 
@@ -69,20 +71,20 @@ const CategoryDetailsScreen = () => {
     if (item.decryptionError) {
       return (
         <TouchableOpacity
-          style={[styles.passwordCard, styles.errorCard]}
+          style={[styles.passwordCard, styles.errorCard, { backgroundColor: theme.colors.card }]}
           onPress={() => handlePasswordPress(item)}
         >
           <View style={styles.cardContent}>
             <View style={styles.cardLeft}>
-              <View style={styles.errorIcon}>
+              <View style={[styles.errorIcon, { backgroundColor: theme.colors.error }]}>
                 <Icon name="exclamation-triangle" size={16} color="#fff" />
               </View>
               <View style={styles.passwordInfo}>
-                <Text style={styles.errorText}>Unable to decrypt</Text>
-                <Text style={styles.errorSubtext}>Tap to view details</Text>
+                <Text style={[styles.errorText, { color: theme.colors.error }]}>Unable to decrypt</Text>
+                <Text style={[styles.errorSubtext, { color: theme.colors.textSecondary }]}>Tap to view details</Text>
               </View>
             </View>
-            <Icon name="chevron-right" size={16} color="#888" />
+            <Icon name="chevron-right" size={16} color={theme.colors.textSecondary} />
           </View>
         </TouchableOpacity>
       );
@@ -90,17 +92,17 @@ const CategoryDetailsScreen = () => {
 
     return (
       <TouchableOpacity
-        style={styles.passwordCard}
+        style={[styles.passwordCard, { backgroundColor: theme.colors.card }]}
         onPress={() => handlePasswordPress(item)}
         activeOpacity={0.7}
       >
         <View style={styles.cardContent}>
           <View style={styles.cardLeft}>
             <View style={styles.passwordInfo}>
-              <Text style={styles.passwordTitle} numberOfLines={1}>
+              <Text style={[styles.passwordTitle, { color: theme.colors.text }]} numberOfLines={1}>
                 {item.title || 'Untitled'}
               </Text>
-              <Text style={styles.passwordUsername} numberOfLines={1}>
+              <Text style={[styles.passwordUsername, { color: theme.colors.textSecondary }]} numberOfLines={1}>
                 {item.username || 'No username'}
               </Text>
             </View>
@@ -109,11 +111,11 @@ const CategoryDetailsScreen = () => {
             <IconButton
               icon="clipboard"
               size={20}
-              iconColor="#888"
+              iconColor={theme.colors.textSecondary}
               onPress={() => handleCopyUsername(item.username)}
               style={styles.copyButton}
             />
-            <Icon name="chevron-right" size={16} color="#888" />
+            <Icon name="chevron-right" size={16} color={theme.colors.textSecondary} />
           </View>
         </View>
       </TouchableOpacity>
@@ -122,9 +124,9 @@ const CategoryDetailsScreen = () => {
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Icon name="folder-open" size={64} color="#ccc" />
-      <Text style={styles.emptyTitle}>No passwords in this category</Text>
-      <Text style={styles.emptySubtitle}>
+      <Icon name="folder-open" size={64} color={theme.colors.textSecondary} />
+      <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>No passwords in this category</Text>
+      <Text style={[styles.emptySubtitle, { color: theme.colors.textSecondary }]}>
         Tap the + button to add your first password
       </Text>
     </View>
@@ -132,43 +134,43 @@ const CategoryDetailsScreen = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading passwords...</Text>
+          <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>Loading passwords...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Icon name="arrow-left" size={20} color="#333" />
+          <Icon name="arrow-left" size={20} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]} numberOfLines={1}>
           {categoryName || 'Category'}
         </Text>
         <View style={styles.headerRight} />
       </View>
 
       {/* Category Info */}
-      <View style={styles.categoryInfo}>
+      <View style={[styles.categoryInfo, { backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border }]}>
         <View
           style={[
             styles.categoryIcon,
-            { backgroundColor: categoryColor || '#8e44ad' },
+            { backgroundColor: categoryColor || theme.colors.primary },
           ]}
         >
           <Icon name={categoryIcon || 'folder'} size={24} color="#fff" />
         </View>
-        <Text style={styles.categoryTitle}>{categoryName}</Text>
-        <Text style={styles.passwordCount}>
+        <Text style={[styles.categoryTitle, { color: theme.colors.text }]}>{categoryName}</Text>
+        <Text style={[styles.passwordCount, { color: theme.colors.textSecondary }]}>
           {passwords.length} {passwords.length === 1 ? 'password' : 'passwords'}
         </Text>
       </View>
@@ -196,7 +198,7 @@ const CategoryDetailsScreen = () => {
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={['#9b59b6', '#3498db']}
+            colors={[theme.colors.primary, theme.colors.secondary]}
             style={styles.fabGradient}
           >
             <Icon name="plus" size={24} color="#fff" />
@@ -220,7 +222,6 @@ const CategoryDetailsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   header: {
     flexDirection: 'row',
@@ -229,9 +230,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 16,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   backButton: {
     padding: 4,
@@ -239,7 +238,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 20,
@@ -251,9 +249,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 24,
     paddingHorizontal: 20,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
   categoryIcon: {
     width: 56,
@@ -266,12 +262,10 @@ const styles = StyleSheet.create({
   categoryTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
     marginBottom: 4,
   },
   passwordCount: {
     fontSize: 14,
-    color: '#888',
   },
   passwordList: {
     flex: 1,
@@ -279,7 +273,6 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   passwordCard: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     marginBottom: 12,
     shadowColor: '#000',
@@ -309,12 +302,10 @@ const styles = StyleSheet.create({
   passwordTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
     marginBottom: 4,
   },
   passwordUsername: {
     fontSize: 14,
-    color: '#888',
   },
   cardRight: {
     flexDirection: 'row',
@@ -328,7 +319,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#e74c3c',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -336,12 +326,10 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#e74c3c',
     marginBottom: 2,
   },
   errorSubtext: {
     fontSize: 14,
-    color: '#999',
   },
   emptyState: {
     flex: 1,
@@ -352,13 +340,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#888',
     textAlign: 'center',
   },
   emptyListContainer: {
@@ -391,7 +377,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#888',
   },
   snackbar: {
     backgroundColor: '#333',
