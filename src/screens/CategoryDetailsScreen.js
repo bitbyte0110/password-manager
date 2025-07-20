@@ -71,20 +71,42 @@ const CategoryDetailsScreen = () => {
     if (item.decryptionError) {
       return (
         <TouchableOpacity
-          style={[styles.passwordCard, styles.errorCard, { backgroundColor: theme.colors.card }]}
+          style={[
+            styles.passwordCard,
+            styles.errorCard,
+            { backgroundColor: theme.colors.card },
+          ]}
           onPress={() => handlePasswordPress(item)}
         >
           <View style={styles.cardContent}>
             <View style={styles.cardLeft}>
-              <View style={[styles.errorIcon, { backgroundColor: theme.colors.error }]}>
+              <View
+                style={[
+                  styles.errorIcon,
+                  { backgroundColor: theme.colors.error },
+                ]}
+              >
                 <Icon name="exclamation-triangle" size={16} color="#fff" />
               </View>
               <View style={styles.passwordInfo}>
-                <Text style={[styles.errorText, { color: theme.colors.error }]}>Unable to decrypt</Text>
-                <Text style={[styles.errorSubtext, { color: theme.colors.textSecondary }]}>Tap to view details</Text>
+                <Text style={[styles.errorText, { color: theme.colors.error }]}>
+                  Unable to decrypt
+                </Text>
+                <Text
+                  style={[
+                    styles.errorSubtext,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  Tap to view details
+                </Text>
               </View>
             </View>
-            <Icon name="chevron-right" size={16} color={theme.colors.textSecondary} />
+            <Icon
+              name="chevron-right"
+              size={16}
+              color={theme.colors.textSecondary}
+            />
           </View>
         </TouchableOpacity>
       );
@@ -99,10 +121,19 @@ const CategoryDetailsScreen = () => {
         <View style={styles.cardContent}>
           <View style={styles.cardLeft}>
             <View style={styles.passwordInfo}>
-              <Text style={[styles.passwordTitle, { color: theme.colors.text }]} numberOfLines={1}>
+              <Text
+                style={[styles.passwordTitle, { color: theme.colors.text }]}
+                numberOfLines={1}
+              >
                 {item.title || 'Untitled'}
               </Text>
-              <Text style={[styles.passwordUsername, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+              <Text
+                style={[
+                  styles.passwordUsername,
+                  { color: theme.colors.textSecondary },
+                ]}
+                numberOfLines={1}
+              >
                 {item.username || 'No username'}
               </Text>
             </View>
@@ -115,7 +146,11 @@ const CategoryDetailsScreen = () => {
               onPress={() => handleCopyUsername(item.username)}
               style={styles.copyButton}
             />
-            <Icon name="chevron-right" size={16} color={theme.colors.textSecondary} />
+            <Icon
+              name="chevron-right"
+              size={16}
+              color={theme.colors.textSecondary}
+            />
           </View>
         </View>
       </TouchableOpacity>
@@ -125,8 +160,12 @@ const CategoryDetailsScreen = () => {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Icon name="folder-open" size={64} color={theme.colors.textSecondary} />
-      <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>No passwords in this category</Text>
-      <Text style={[styles.emptySubtitle, { color: theme.colors.textSecondary }]}>
+      <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
+        No passwords in this category
+      </Text>
+      <Text
+        style={[styles.emptySubtitle, { color: theme.colors.textSecondary }]}
+      >
         Tap the + button to add your first password
       </Text>
     </View>
@@ -134,18 +173,34 @@ const CategoryDetailsScreen = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+      >
         <View style={styles.loadingContainer}>
-          <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>Loading passwords...</Text>
+          <Text
+            style={[styles.loadingText, { color: theme.colors.textSecondary }]}
+          >
+            Loading passwords...
+          </Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border }]}>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: theme.colors.card,
+            borderBottomColor: theme.colors.border,
+          },
+        ]}
+      >
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
@@ -153,14 +208,25 @@ const CategoryDetailsScreen = () => {
         >
           <Icon name="arrow-left" size={20} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]} numberOfLines={1}>
+        <Text
+          style={[styles.headerTitle, { color: theme.colors.text }]}
+          numberOfLines={1}
+        >
           {categoryName || 'Category'}
         </Text>
         <View style={styles.headerRight} />
       </View>
 
       {/* Category Info */}
-      <View style={[styles.categoryInfo, { backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border }]}>
+      <View
+        style={[
+          styles.categoryInfo,
+          {
+            backgroundColor: theme.colors.card,
+            borderBottomColor: theme.colors.border,
+          },
+        ]}
+      >
         <View
           style={[
             styles.categoryIcon,
@@ -169,8 +235,12 @@ const CategoryDetailsScreen = () => {
         >
           <Icon name={categoryIcon || 'folder'} size={24} color="#fff" />
         </View>
-        <Text style={[styles.categoryTitle, { color: theme.colors.text }]}>{categoryName}</Text>
-        <Text style={[styles.passwordCount, { color: theme.colors.textSecondary }]}>
+        <Text style={[styles.categoryTitle, { color: theme.colors.text }]}>
+          {categoryName}
+        </Text>
+        <Text
+          style={[styles.passwordCount, { color: theme.colors.textSecondary }]}
+        >
           {passwords.length} {passwords.length === 1 ? 'password' : 'passwords'}
         </Text>
       </View>

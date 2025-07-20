@@ -96,10 +96,12 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
     setShowMFAModal(true);
   };
 
-  const handleMFASetupComplete = async (mfaEnabled) => {
+  const handleMFASetupComplete = async mfaEnabled => {
     setShowMFAModal(false);
-    
-    console.log(`MFA setup completed with result: ${mfaEnabled ? 'enabled' : 'disabled'}`);
+
+    console.log(
+      `MFA setup completed with result: ${mfaEnabled ? 'enabled' : 'disabled'}`
+    );
 
     // Set activity timestamp to establish authenticated session
     try {

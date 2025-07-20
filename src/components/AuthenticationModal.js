@@ -1,11 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -183,12 +177,19 @@ const AuthenticationModal = ({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={[styles.modalContainer, { backgroundColor: theme.colors.card }]}>
+        <View
+          style={[
+            styles.modalContainer,
+            { backgroundColor: theme.colors.card },
+          ]}
+        >
           <View style={styles.header}>
             <Text style={[styles.title, { color: theme.colors.text }]}>
               {getModalTitle()}
             </Text>
-            <Text style={[styles.message, { color: theme.colors.textSecondary }]}>
+            <Text
+              style={[styles.message, { color: theme.colors.textSecondary }]}
+            >
               {getModalMessage()}
             </Text>
           </View>
@@ -198,17 +199,26 @@ const AuthenticationModal = ({
             <View style={styles.biometricSection}>
               <Icon name="fingerprint" size={48} color={theme.colors.primary} />
               <Text
-                style={[styles.biometricText, { color: theme.colors.textSecondary }]}
+                style={[
+                  styles.biometricText,
+                  { color: theme.colors.textSecondary },
+                ]}
               >
                 Touch the fingerprint sensor
               </Text>
               <TouchableOpacity
-                style={[styles.retryButton, { borderColor: theme.colors.primary }]}
+                style={[
+                  styles.retryButton,
+                  { borderColor: theme.colors.primary },
+                ]}
                 onPress={handleBiometricAuth}
                 disabled={isLoading}
               >
                 <Text
-                  style={[styles.retryButtonText, { color: theme.colors.primary }]}
+                  style={[
+                    styles.retryButtonText,
+                    { color: theme.colors.primary },
+                  ]}
                 >
                   Retry Biometric
                 </Text>
@@ -256,7 +266,11 @@ const AuthenticationModal = ({
                   onPress={handleBiometricAuth}
                   disabled={isLoading}
                 >
-                  <Icon name="fingerprint" size={20} color={theme.colors.primary} />
+                  <Icon
+                    name="fingerprint"
+                    size={20}
+                    color={theme.colors.primary}
+                  />
                   <Text
                     style={[
                       styles.biometricAlternativeText,
@@ -286,7 +300,10 @@ const AuthenticationModal = ({
               <Button
                 mode="contained"
                 onPress={handlePasswordAuth}
-                style={[styles.button, { backgroundColor: theme.colors.primary }]}
+                style={[
+                  styles.button,
+                  { backgroundColor: theme.colors.primary },
+                ]}
                 loading={isLoading}
                 disabled={isLoading || !password.trim()}
               >

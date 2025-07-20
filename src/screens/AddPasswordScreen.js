@@ -53,7 +53,6 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [formErrors, setFormErrors] = useState({});
 
-
   useEffect(() => {
     initializeScreen();
   }, []);
@@ -441,7 +440,10 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
               onDismiss={() => setShowCategoryMenu(false)}
               anchor={
                 <TouchableOpacity
-                  style={[styles.categoryButton, { borderColor: theme.colors.border }]}
+                  style={[
+                    styles.categoryButton,
+                    { borderColor: theme.colors.border },
+                  ]}
                   onPress={() => setShowCategoryMenu(true)}
                   disabled={isLoadingCategories}
                 >
@@ -515,7 +517,10 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
               placeholder="e.g., Facebook, Gmail"
               value={formData.title}
               onChangeText={text => handleInputChange('title', text)}
-              style={[styles.textInput, { backgroundColor: theme.colors.background }]}
+              style={[
+                styles.textInput,
+                { backgroundColor: theme.colors.background },
+              ]}
               error={!!formErrors.title}
               theme={{
                 colors: {
@@ -545,7 +550,10 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
               placeholder="Enter username or email"
               value={formData.username}
               onChangeText={text => handleInputChange('username', text)}
-              style={[styles.textInput, { backgroundColor: theme.colors.background }]}
+              style={[
+                styles.textInput,
+                { backgroundColor: theme.colors.background },
+              ]}
               keyboardType="email-address"
               autoCapitalize="none"
               theme={{
@@ -571,7 +579,10 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
               value={formData.password}
               onChangeText={text => handleInputChange('password', text)}
               secureTextEntry={!showPassword}
-              style={[styles.textInput, { backgroundColor: theme.colors.background }]}
+              style={[
+                styles.textInput,
+                { backgroundColor: theme.colors.background },
+              ]}
               error={!!formErrors.password}
               right={
                 <TextInput.Icon
@@ -620,7 +631,10 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
               placeholder="https://example.com"
               value={formData.url}
               onChangeText={text => handleInputChange('url', text)}
-              style={[styles.textInput, { backgroundColor: theme.colors.background }]}
+              style={[
+                styles.textInput,
+                { backgroundColor: theme.colors.background },
+              ]}
               error={!!formErrors.url}
               keyboardType="url"
               autoCapitalize="none"
@@ -681,11 +695,15 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
                 name={formData.isFavorite ? 'star' : 'star-o'}
                 size={20}
                 color={
-                  formData.isFavorite ? theme.colors.primary : theme.colors.textSecondary
+                  formData.isFavorite
+                    ? theme.colors.primary
+                    : theme.colors.textSecondary
                 }
                 solid={formData.isFavorite}
               />
-              <Text style={[styles.favoriteLabel, { color: theme.colors.text }]}>
+              <Text
+                style={[styles.favoriteLabel, { color: theme.colors.text }]}
+              >
                 Mark as Favorite
               </Text>
             </TouchableOpacity>

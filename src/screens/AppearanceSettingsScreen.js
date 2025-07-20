@@ -96,7 +96,10 @@ const AppearanceSettingsScreen = () => {
               {option.label}
             </Text>
             <Text
-              style={[styles.themeDescription, { color: theme.colors.textSecondary }]}
+              style={[
+                styles.themeDescription,
+                { color: theme.colors.textSecondary },
+              ]}
             >
               {option.description}
             </Text>
@@ -207,7 +210,10 @@ const AppearanceSettingsScreen = () => {
 
           {/* Current Preview */}
           <View
-            style={[styles.currentPreview, { backgroundColor: theme.colors.card }]}
+            style={[
+              styles.currentPreview,
+              { backgroundColor: theme.colors.card },
+            ]}
           >
             <Text style={[styles.previewTitle, { color: theme.colors.text }]}>
               Current Theme Preview
@@ -251,13 +257,19 @@ const AppearanceSettingsScreen = () => {
                   <View
                     style={[
                       styles.contentLine,
-                      { backgroundColor: theme.colors.text + '60', width: '70%' },
+                      {
+                        backgroundColor: theme.colors.text + '60',
+                        width: '70%',
+                      },
                     ]}
                   />
                   <View
                     style={[
                       styles.contentLine,
-                      { backgroundColor: theme.colors.text + '40', width: '50%' },
+                      {
+                        backgroundColor: theme.colors.text + '40',
+                        width: '50%',
+                      },
                     ]}
                   />
                 </View>
@@ -269,7 +281,10 @@ const AppearanceSettingsScreen = () => {
 
       {/* Action Buttons */}
       <View
-        style={[styles.buttonContainer, { backgroundColor: theme.colors.background }]}
+        style={[
+          styles.buttonContainer,
+          { backgroundColor: theme.colors.background },
+        ]}
       >
         <Button
           mode="contained"

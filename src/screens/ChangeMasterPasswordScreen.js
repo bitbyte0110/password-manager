@@ -162,7 +162,10 @@ const ChangeMasterPasswordScreen = () => {
             </Text>
             <View style={styles.passwordInputContainer}>
               <TextInput
-                style={[styles.passwordInput, { backgroundColor: theme.colors.inputBackground }]}
+                style={[
+                  styles.passwordInput,
+                  { backgroundColor: theme.colors.inputBackground },
+                ]}
                 value={formData.oldPassword}
                 onChangeText={value =>
                   handlePasswordChange('oldPassword', value)
@@ -177,7 +180,9 @@ const ChangeMasterPasswordScreen = () => {
                     accent: theme.colors.inputBorderFocused,
                     text: theme.colors.inputText,
                     background: theme.colors.inputBackground,
-                    outline: errors.oldPassword ? theme.colors.error : theme.colors.inputBorder,
+                    outline: errors.oldPassword
+                      ? theme.colors.error
+                      : theme.colors.inputBorder,
                     placeholder: theme.colors.inputPlaceholder,
                     onSurfaceVariant: theme.colors.inputPlaceholder,
                   },
@@ -212,7 +217,10 @@ const ChangeMasterPasswordScreen = () => {
             </Text>
             <View style={styles.passwordInputContainer}>
               <TextInput
-                style={[styles.passwordInput, { backgroundColor: theme.colors.inputBackground }]}
+                style={[
+                  styles.passwordInput,
+                  { backgroundColor: theme.colors.inputBackground },
+                ]}
                 value={formData.newPassword}
                 onChangeText={value =>
                   handlePasswordChange('newPassword', value)
@@ -227,7 +235,9 @@ const ChangeMasterPasswordScreen = () => {
                     accent: theme.colors.inputBorderFocused,
                     text: theme.colors.inputText,
                     background: theme.colors.inputBackground,
-                    outline: errors.newPassword ? theme.colors.error : theme.colors.inputBorder,
+                    outline: errors.newPassword
+                      ? theme.colors.error
+                      : theme.colors.inputBorder,
                     placeholder: theme.colors.inputPlaceholder,
                     onSurfaceVariant: theme.colors.inputPlaceholder,
                   },
@@ -279,7 +289,10 @@ const ChangeMasterPasswordScreen = () => {
             {passwordStrength && passwordStrength.feedback.length > 0 && (
               <View style={styles.feedbackContainer}>
                 <Text
-                  style={[styles.feedbackTitle, { color: theme.colors.textSecondary }]}
+                  style={[
+                    styles.feedbackTitle,
+                    { color: theme.colors.textSecondary },
+                  ]}
                 >
                   Password should include:
                 </Text>
@@ -311,7 +324,10 @@ const ChangeMasterPasswordScreen = () => {
             </Text>
             <View style={styles.passwordInputContainer}>
               <TextInput
-                style={[styles.passwordInput, { backgroundColor: theme.colors.inputBackground }]}
+                style={[
+                  styles.passwordInput,
+                  { backgroundColor: theme.colors.inputBackground },
+                ]}
                 value={formData.confirmPassword}
                 onChangeText={value =>
                   handlePasswordChange('confirmPassword', value)
@@ -326,7 +342,9 @@ const ChangeMasterPasswordScreen = () => {
                     accent: theme.colors.inputBorderFocused,
                     text: theme.colors.inputText,
                     background: theme.colors.inputBackground,
-                    outline: errors.confirmPassword ? theme.colors.error : theme.colors.inputBorder,
+                    outline: errors.confirmPassword
+                      ? theme.colors.error
+                      : theme.colors.inputBorder,
                     placeholder: theme.colors.inputPlaceholder,
                     onSurfaceVariant: theme.colors.inputPlaceholder,
                   },
@@ -361,7 +379,10 @@ const ChangeMasterPasswordScreen = () => {
 
       {/* Action Buttons */}
       <View
-        style={[styles.buttonContainer, { backgroundColor: theme.colors.background }]}
+        style={[
+          styles.buttonContainer,
+          { backgroundColor: theme.colors.background },
+        ]}
       >
         <Button
           mode="contained"

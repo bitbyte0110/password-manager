@@ -32,7 +32,7 @@ export const getMFAEnabled = async () => {
 };
 
 /**
- * Get biometric enabled state from storage (centralized function)  
+ * Get biometric enabled state from storage (centralized function)
  * @returns {Promise<boolean>} Biometric enabled state
  */
 export const getBiometricEnabled = async () => {
@@ -45,7 +45,9 @@ export const getBiometricEnabled = async () => {
     }
 
     // Fallback to SecureStore
-    const biometricSecure = await SecureStore.getItemAsync('vault_biometricEnabled');
+    const biometricSecure = await SecureStore.getItemAsync(
+      'vault_biometricEnabled'
+    );
     return biometricSecure === 'true';
   } catch (error) {
     console.error('Error getting biometric state:', error);

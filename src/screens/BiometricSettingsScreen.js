@@ -216,7 +216,9 @@ const BiometricSettingsScreen = () => {
       >
         <View style={styles.content}>
           {/* Status Card */}
-          <View style={[styles.statusCard, { backgroundColor: theme.colors.card }]}>
+          <View
+            style={[styles.statusCard, { backgroundColor: theme.colors.card }]}
+          >
             <View style={styles.statusHeader}>
               <View
                 style={[
@@ -243,7 +245,9 @@ const BiometricSettingsScreen = () => {
                 />
               </View>
               <View style={styles.statusContent}>
-                <Text style={[styles.statusTitle, { color: theme.colors.text }]}>
+                <Text
+                  style={[styles.statusTitle, { color: theme.colors.text }]}
+                >
                   {getBiometricLabel()}
                 </Text>
                 <Text
@@ -276,7 +280,10 @@ const BiometricSettingsScreen = () => {
 
           {/* Device Compatibility */}
           <View
-            style={[styles.compatibilityCard, { backgroundColor: theme.colors.card }]}
+            style={[
+              styles.compatibilityCard,
+              { backgroundColor: theme.colors.card },
+            ]}
           >
             <Text style={[styles.cardTitle, { color: theme.colors.text }]}>
               Device Compatibility
@@ -284,7 +291,11 @@ const BiometricSettingsScreen = () => {
 
             <View style={styles.compatibilityList}>
               <View style={styles.compatibilityItem}>
-                <Icon name="info-circle" size={16} color={theme.colors.primary} />
+                <Icon
+                  name="info-circle"
+                  size={16}
+                  color={theme.colors.primary}
+                />
                 <Text
                   style={[
                     styles.compatibilityText,
@@ -314,29 +325,48 @@ const BiometricSettingsScreen = () => {
           </View>
 
           {/* Security Notice */}
-          <View style={[styles.securityCard, { backgroundColor: theme.colors.card }]}>
+          <View
+            style={[
+              styles.securityCard,
+              { backgroundColor: theme.colors.card },
+            ]}
+          >
             <Text style={[styles.cardTitle, { color: theme.colors.text }]}>
               Security Notice
             </Text>
 
-            <Text style={[styles.securityText, { color: theme.colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.securityText,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
               Biometric authentication provides convenience but may be less
               secure than a strong master password in certain scenarios:
             </Text>
 
             <View style={styles.securityList}>
               <Text
-                style={[styles.securityPoint, { color: theme.colors.textSecondary }]}
+                style={[
+                  styles.securityPoint,
+                  { color: theme.colors.textSecondary },
+                ]}
               >
                 • Biometrics can potentially be compromised
               </Text>
               <Text
-                style={[styles.securityPoint, { color: theme.colors.textSecondary }]}
+                style={[
+                  styles.securityPoint,
+                  { color: theme.colors.textSecondary },
+                ]}
               >
                 • Master password remains required for account recovery
               </Text>
               <Text
-                style={[styles.securityPoint, { color: theme.colors.textSecondary }]}
+                style={[
+                  styles.securityPoint,
+                  { color: theme.colors.textSecondary },
+                ]}
               >
                 • Use alongside other security measures for best protection
               </Text>
@@ -359,7 +389,9 @@ const BiometricSettingsScreen = () => {
             style={[
               styles.actionButton,
               {
-                backgroundColor: biometricEnabled ? theme.colors.error : theme.colors.primary,
+                backgroundColor: biometricEnabled
+                  ? theme.colors.error
+                  : theme.colors.primary,
               },
             ]}
             loading={isLoading}
