@@ -59,7 +59,6 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [formErrors, setFormErrors] = useState({});
 
-
   useEffect(() => {
     initializeScreen();
   }, []);
@@ -278,7 +277,7 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
 
       // Get the fresh entry data with all fields including category metadata
       const updatedEntry = await vaultService.getPasswordEntry(id);
-      
+
       // Update the password context with complete entry data
       updatePassword(id, updatedEntry);
 
@@ -390,7 +389,10 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
               onDismiss={() => setShowCategoryMenu(false)}
               anchor={
                 <TouchableOpacity
-                  style={[styles.categoryButton, { borderColor: theme.colors.border }]}
+                  style={[
+                    styles.categoryButton,
+                    { borderColor: theme.colors.border },
+                  ]}
                   onPress={() => setShowCategoryMenu(true)}
                   disabled={isLoadingCategories}
                 >
@@ -464,7 +466,10 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
               placeholder="e.g., Facebook, Gmail"
               value={formData.title}
               onChangeText={text => handleInputChange('title', text)}
-              style={[styles.textInput, { backgroundColor: theme.colors.inputBackground }]}
+              style={[
+                styles.textInput,
+                { backgroundColor: theme.colors.inputBackground },
+              ]}
               textColor={theme.colors.inputText}
               placeholderTextColor={theme.colors.inputPlaceholder}
               error={!!formErrors.title}
@@ -497,7 +502,10 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
               placeholder="Enter username or email"
               value={formData.username}
               onChangeText={text => handleInputChange('username', text)}
-              style={[styles.textInput, { backgroundColor: theme.colors.inputBackground }]}
+              style={[
+                styles.textInput,
+                { backgroundColor: theme.colors.inputBackground },
+              ]}
               textColor={theme.colors.inputText}
               placeholderTextColor={theme.colors.inputPlaceholder}
               keyboardType="email-address"
@@ -525,7 +533,10 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
               value={formData.password}
               onChangeText={text => handleInputChange('password', text)}
               secureTextEntry={!showPassword}
-              style={[styles.textInput, { backgroundColor: theme.colors.inputBackground }]}
+              style={[
+                styles.textInput,
+                { backgroundColor: theme.colors.inputBackground },
+              ]}
               textColor={theme.colors.inputText}
               placeholderTextColor={theme.colors.inputPlaceholder}
               error={!!formErrors.password}
@@ -577,7 +588,10 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
               placeholder="https://example.com"
               value={formData.url}
               onChangeText={text => handleInputChange('url', text)}
-              style={[styles.textInput, { backgroundColor: theme.colors.inputBackground }]}
+              style={[
+                styles.textInput,
+                { backgroundColor: theme.colors.inputBackground },
+              ]}
               textColor={theme.colors.inputText}
               placeholderTextColor={theme.colors.inputPlaceholder}
               error={!!formErrors.url}
@@ -643,11 +657,15 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
                 name={formData.isFavorite ? 'star' : 'star-o'}
                 size={20}
                 color={
-                  formData.isFavorite ? theme.colors.primary : theme.colors.textSecondary
+                  formData.isFavorite
+                    ? theme.colors.primary
+                    : theme.colors.textSecondary
                 }
                 solid={formData.isFavorite}
               />
-              <Text style={[styles.favoriteLabel, { color: theme.colors.text }]}>
+              <Text
+                style={[styles.favoriteLabel, { color: theme.colors.text }]}
+              >
                 Mark as Favorite
               </Text>
             </TouchableOpacity>
@@ -686,7 +704,10 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
             activeOpacity={0.8}
           >
             <Text
-              style={[styles.cancelButtonText, { color: theme.colors.textSecondary }]}
+              style={[
+                styles.cancelButtonText,
+                { color: theme.colors.textSecondary },
+              ]}
             >
               Cancel
             </Text>

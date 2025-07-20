@@ -53,7 +53,7 @@ const CategoriesScreen = ({ navigation, route }) => {
   useFocusEffect(
     useCallback(() => {
       loadCategories();
-      
+
       // Handle refresh from AddCategoryScreen or EditCategoryScreen
       if (route?.params?.refresh) {
         loadCategories();
@@ -86,20 +86,25 @@ const CategoriesScreen = ({ navigation, route }) => {
       ]);
     } catch (error) {
       console.error('Error initializing categories:', error);
-      
+
       if (
         error.message.includes('not authenticated') ||
         error.message.includes('master password') ||
         error.message.includes('session')
       ) {
-        console.log('Authentication error during initialization, redirecting to login');
+        console.log(
+          'Authentication error during initialization, redirecting to login'
+        );
         Alert.alert(
           'Session Expired',
           'Your session has expired. Please log in again.',
           [{ text: 'OK', onPress: () => navigation.replace('Login') }]
         );
       } else {
-        Alert.alert('Error', 'Failed to load categories data. Please try again.');
+        Alert.alert(
+          'Error',
+          'Failed to load categories data. Please try again.'
+        );
         navigation.goBack();
       }
     } finally {
@@ -161,7 +166,9 @@ const CategoriesScreen = ({ navigation, route }) => {
             filtered = filtered.filter(category => category.password_count > 0);
             break;
           case 'empty':
-            filtered = filtered.filter(category => category.password_count === 0);
+            filtered = filtered.filter(
+              category => category.password_count === 0
+            );
             break;
           case 'all':
           default:
@@ -317,11 +324,7 @@ const CategoriesScreen = ({ navigation, route }) => {
                 { backgroundColor: item.color || theme.colors.primary },
               ]}
             >
-              <Icon
-                name={item.icon || 'folder'}
-                size={16}
-                color="#fff"
-              />
+              <Icon name={item.icon || 'folder'} size={16} color="#fff" />
             </View>
             <View style={styles.categoryInfo}>
               <Text
@@ -351,7 +354,11 @@ const CategoriesScreen = ({ navigation, route }) => {
                   onPress={event => handleMoreOptions(item, event)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Icon name="ellipsis-v" size={16} color={theme.colors.textSecondary} />
+                  <Icon
+                    name="ellipsis-v"
+                    size={16}
+                    color={theme.colors.textSecondary}
+                  />
                 </TouchableOpacity>
               }
               contentStyle={[
@@ -372,7 +379,11 @@ const CategoriesScreen = ({ navigation, route }) => {
                 titleStyle={{ color: theme.colors.error }}
               />
             </Menu>
-            <Icon name="chevron-right" size={16} color={theme.colors.textSecondary} />
+            <Icon
+              name="chevron-right"
+              size={16}
+              color={theme.colors.textSecondary}
+            />
           </View>
         </View>
       </TouchableOpacity>
@@ -385,7 +396,12 @@ const CategoriesScreen = ({ navigation, route }) => {
       <Text style={[styles.emptyStateTitle, { color: theme.colors.text }]}>
         No categories found
       </Text>
-      <Text style={[styles.emptyStateSubtitle, { color: theme.colors.textSecondary }]}>
+      <Text
+        style={[
+          styles.emptyStateSubtitle,
+          { color: theme.colors.textSecondary },
+        ]}
+      >
         {searchQuery.trim()
           ? 'Try adjusting your search or filters'
           : 'Tap the + button to create your first category'}
@@ -437,7 +453,9 @@ const CategoriesScreen = ({ navigation, route }) => {
               name="list"
               size={20}
               color={
-                selectedFilter === 'all' ? theme.colors.primary : theme.colors.textSecondary
+                selectedFilter === 'all'
+                  ? theme.colors.primary
+                  : theme.colors.textSecondary
               }
             />
             <Text
@@ -445,13 +463,20 @@ const CategoriesScreen = ({ navigation, route }) => {
                 styles.filterOptionText,
                 {
                   color:
-                    selectedFilter === 'all' ? theme.colors.primary : theme.colors.text,
+                    selectedFilter === 'all'
+                      ? theme.colors.primary
+                      : theme.colors.text,
                 },
               ]}
             >
               All Categories
             </Text>
-            <Text style={[styles.filterCount, { color: theme.colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.filterCount,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
               {categories.length}
             </Text>
           </TouchableOpacity>
@@ -472,7 +497,9 @@ const CategoriesScreen = ({ navigation, route }) => {
               name="folder"
               size={20}
               color={
-                selectedFilter === 'with_passwords' ? theme.colors.primary : theme.colors.textSecondary
+                selectedFilter === 'with_passwords'
+                  ? theme.colors.primary
+                  : theme.colors.textSecondary
               }
             />
             <Text
@@ -488,7 +515,12 @@ const CategoriesScreen = ({ navigation, route }) => {
             >
               With Passwords
             </Text>
-            <Text style={[styles.filterCount, { color: theme.colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.filterCount,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
               {categories.filter(c => c.password_count > 0).length}
             </Text>
           </TouchableOpacity>
@@ -509,7 +541,9 @@ const CategoriesScreen = ({ navigation, route }) => {
               name="folder-open"
               size={20}
               color={
-                selectedFilter === 'empty' ? theme.colors.primary : theme.colors.textSecondary
+                selectedFilter === 'empty'
+                  ? theme.colors.primary
+                  : theme.colors.textSecondary
               }
             />
             <Text
@@ -525,7 +559,12 @@ const CategoriesScreen = ({ navigation, route }) => {
             >
               Empty Categories
             </Text>
-            <Text style={[styles.filterCount, { color: theme.colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.filterCount,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
               {categories.filter(c => c.password_count === 0).length}
             </Text>
           </TouchableOpacity>
@@ -592,7 +631,10 @@ const CategoriesScreen = ({ navigation, route }) => {
           {/* Keep the badge right-aligned, visually similar to MyVaultScreen */}
           <View style={{ position: 'absolute', right: 0 }}>
             <Badge
-              style={[styles.categoryCount, { backgroundColor: theme.colors.primary }]}
+              style={[
+                styles.categoryCount,
+                { backgroundColor: theme.colors.primary },
+              ]}
             >
               {categories.length}
             </Badge>
@@ -615,12 +657,18 @@ const CategoriesScreen = ({ navigation, route }) => {
       {/* Filter Button */}
       <View style={styles.filterButtonContainer}>
         <TouchableOpacity
-          style={[styles.filterButton, { backgroundColor: theme.colors.surface }]}
+          style={[
+            styles.filterButton,
+            { backgroundColor: theme.colors.surface },
+          ]}
           onPress={() => setShowFilterModal(true)}
         >
           <Icon name="sliders-h" size={16} color={theme.colors.textSecondary} />
           <Text
-            style={[styles.filterButtonText, { color: theme.colors.textSecondary }]}
+            style={[
+              styles.filterButtonText,
+              { color: theme.colors.textSecondary },
+            ]}
           >
             {selectedFilter === 'all'
               ? 'All Categories'
@@ -628,7 +676,11 @@ const CategoriesScreen = ({ navigation, route }) => {
                 ? 'With Passwords'
                 : 'Empty Categories'}
           </Text>
-          <Icon name="chevron-down" size={12} color={theme.colors.textSecondary} />
+          <Icon
+            name="chevron-down"
+            size={12}
+            color={theme.colors.textSecondary}
+          />
         </TouchableOpacity>
 
         {/* Sort Menu */}
@@ -637,21 +689,18 @@ const CategoriesScreen = ({ navigation, route }) => {
           onDismiss={() => setShowSortMenu(false)}
           anchor={
             <TouchableOpacity
-              style={[styles.sortButton, { backgroundColor: theme.colors.surface }]}
+              style={[
+                styles.sortButton,
+                { backgroundColor: theme.colors.surface },
+              ]}
               onPress={() => setShowSortMenu(true)}
             >
               <Icon name="sort" size={16} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           }
         >
-          <Menu.Item
-            onPress={() => handleSort('name_asc')}
-            title="A-Z"
-          />
-          <Menu.Item
-            onPress={() => handleSort('name_desc')}
-            title="Z-A"
-          />
+          <Menu.Item onPress={() => handleSort('name_asc')} title="A-Z" />
+          <Menu.Item onPress={() => handleSort('name_desc')} title="Z-A" />
           <Menu.Item
             onPress={() => handleSort('most_passwords')}
             title="Most Passwords"

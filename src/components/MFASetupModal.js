@@ -104,17 +104,29 @@ const MFASetupModal = ({ visible, onComplete }) => {
       onRequestClose={() => {}}
     >
       <View style={styles.overlay}>
-        <View style={[styles.modalContainer, { backgroundColor: theme.colors.card }]}>
+        <View
+          style={[
+            styles.modalContainer,
+            { backgroundColor: theme.colors.card },
+          ]}
+        >
           {/* Logo */}
           <View style={styles.logoContainer}>
-            <LinearGradient colors={[theme.colors.primary, theme.colors.secondary]} style={styles.logo}>
+            <LinearGradient
+              colors={[theme.colors.primary, theme.colors.secondary]}
+              style={styles.logo}
+            >
               <FontAwesome5 name="shield-alt" size={40} color="#fff" />
             </LinearGradient>
           </View>
 
           {/* Content */}
-          <Text style={[styles.title, { color: theme.colors.text }]}>Enable Multi-Factor Authentication?</Text>
-          <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
+          <Text style={[styles.title, { color: theme.colors.text }]}>
+            Enable Multi-Factor Authentication?
+          </Text>
+          <Text
+            style={[styles.subtitle, { color: theme.colors.textSecondary }]}
+          >
             Require both biometric and password for extra security
           </Text>
 
@@ -138,7 +150,10 @@ const MFASetupModal = ({ visible, onComplete }) => {
 
             {/* Skip Button */}
             <TouchableOpacity
-              style={[styles.secondaryButton, { backgroundColor: '#3A3A3C', borderColor: '#3A3A3C' }]}
+              style={[
+                styles.secondaryButton,
+                { backgroundColor: '#3A3A3C', borderColor: '#3A3A3C' },
+              ]}
               onPress={handleSkip}
               disabled={isEnabling || isDisabling}
             >

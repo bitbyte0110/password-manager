@@ -69,7 +69,6 @@ const EditCategoryScreen = ({ navigation, route }) => {
   const [formErrors, setFormErrors] = useState({});
   const [isFormValid, setIsFormValid] = useState(false);
 
-
   // Initialize screen and load category data
   useEffect(() => {
     initializeScreen();
@@ -344,7 +343,9 @@ const EditCategoryScreen = ({ navigation, route }) => {
 
   const renderIconSelection = () => (
     <View style={styles.iconColorSection}>
-      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Icon</Text>
+      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+        Icon
+      </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={styles.iconGrid}>
           {CATEGORY_ICONS.map(iconName => (
@@ -379,7 +380,9 @@ const EditCategoryScreen = ({ navigation, route }) => {
 
   const renderColorSelection = () => (
     <View style={styles.iconColorSection}>
-      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Color</Text>
+      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+        Color
+      </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={styles.colorGrid}>
           {CATEGORY_COLORS.map(color => (
@@ -404,8 +407,12 @@ const EditCategoryScreen = ({ navigation, route }) => {
 
   const renderPreview = () => (
     <View style={styles.previewSection}>
-      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Preview</Text>
-      <View style={[styles.categoryCard, { backgroundColor: theme.colors.card }]}>
+      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+        Preview
+      </Text>
+      <View
+        style={[styles.categoryCard, { backgroundColor: theme.colors.card }]}
+      >
         <View style={styles.categoryCardContent}>
           <View style={styles.categoryCardLeft}>
             <View
@@ -421,7 +428,10 @@ const EditCategoryScreen = ({ navigation, route }) => {
                 {formData.name || 'Category Name'}
               </Text>
               <Text
-                style={[styles.passwordCount, { color: theme.colors.textSecondary }]}
+                style={[
+                  styles.passwordCount,
+                  { color: theme.colors.textSecondary },
+                ]}
                 numberOfLines={1}
               >
                 {category?.password_count || 0} password
@@ -474,75 +484,86 @@ const EditCategoryScreen = ({ navigation, route }) => {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-            {/* Category Name Input */}
-            <TextInput
-              label="Category Name"
-              value={formData.name}
-              onChangeText={text =>
-                setFormData(prev => ({ ...prev, name: text }))
-              }
-              style={[styles.formInput, { backgroundColor: theme.colors.inputBackground }]}
-              error={!!formErrors.name}
-              mode="outlined"
-              maxLength={30}
-              theme={{
-                colors: {
-                  primary: theme.colors.inputBorderFocused,
-                  accent: theme.colors.inputBorderFocused,
-                  text: theme.colors.inputText,
-                  background: theme.colors.inputBackground,
-                  outline: formErrors.name ? theme.colors.error : theme.colors.inputBorder,
-                  placeholder: theme.colors.inputPlaceholder,
-                  onSurfaceVariant: theme.colors.inputPlaceholder,
-                },
-              }}
-              textColor={theme.colors.inputText}
-              placeholderTextColor={theme.colors.inputPlaceholder}
-            />
-            {formErrors.name && (
-              <Text style={[styles.errorText, { color: theme.colors.error }]}>
-                {formErrors.name}
-              </Text>
-            )}
+        {/* Category Name Input */}
+        <TextInput
+          label="Category Name"
+          value={formData.name}
+          onChangeText={text => setFormData(prev => ({ ...prev, name: text }))}
+          style={[
+            styles.formInput,
+            { backgroundColor: theme.colors.inputBackground },
+          ]}
+          error={!!formErrors.name}
+          mode="outlined"
+          maxLength={30}
+          theme={{
+            colors: {
+              primary: theme.colors.inputBorderFocused,
+              accent: theme.colors.inputBorderFocused,
+              text: theme.colors.inputText,
+              background: theme.colors.inputBackground,
+              outline: formErrors.name
+                ? theme.colors.error
+                : theme.colors.inputBorder,
+              placeholder: theme.colors.inputPlaceholder,
+              onSurfaceVariant: theme.colors.inputPlaceholder,
+            },
+          }}
+          textColor={theme.colors.inputText}
+          placeholderTextColor={theme.colors.inputPlaceholder}
+        />
+        {formErrors.name && (
+          <Text style={[styles.errorText, { color: theme.colors.error }]}>
+            {formErrors.name}
+          </Text>
+        )}
 
-            {/* Description Input */}
-            <TextInput
-              label="Description (Optional)"
-              value={formData.description}
-              onChangeText={text =>
-                setFormData(prev => ({ ...prev, description: text }))
-              }
-              style={[styles.formInput, { backgroundColor: theme.colors.inputBackground }]}
-              mode="outlined"
-              multiline
-              numberOfLines={3}
-              theme={{
-                colors: {
-                  primary: theme.colors.inputBorderFocused,
-                  accent: theme.colors.inputBorderFocused,
-                  text: theme.colors.inputText,
-                  background: theme.colors.inputBackground,
-                  outline: theme.colors.inputBorder,
-                  placeholder: theme.colors.inputPlaceholder,
-                  onSurfaceVariant: theme.colors.inputPlaceholder,
-                },
-              }}
-              textColor={theme.colors.inputText}
-              placeholderTextColor={theme.colors.inputPlaceholder}
-            />
+        {/* Description Input */}
+        <TextInput
+          label="Description (Optional)"
+          value={formData.description}
+          onChangeText={text =>
+            setFormData(prev => ({ ...prev, description: text }))
+          }
+          style={[
+            styles.formInput,
+            { backgroundColor: theme.colors.inputBackground },
+          ]}
+          mode="outlined"
+          multiline
+          numberOfLines={3}
+          theme={{
+            colors: {
+              primary: theme.colors.inputBorderFocused,
+              accent: theme.colors.inputBorderFocused,
+              text: theme.colors.inputText,
+              background: theme.colors.inputBackground,
+              outline: theme.colors.inputBorder,
+              placeholder: theme.colors.inputPlaceholder,
+              onSurfaceVariant: theme.colors.inputPlaceholder,
+            },
+          }}
+          textColor={theme.colors.inputText}
+          placeholderTextColor={theme.colors.inputPlaceholder}
+        />
 
-            {/* Icon Selection */}
-            {renderIconSelection()}
+        {/* Icon Selection */}
+        {renderIconSelection()}
 
-            {/* Color Selection */}
-            {renderColorSelection()}
+        {/* Color Selection */}
+        {renderColorSelection()}
 
-            {/* Preview */}
-            {renderPreview()}
-          </ScrollView>
+        {/* Preview */}
+        {renderPreview()}
+      </ScrollView>
 
       {/* Action Buttons */}
-      <View style={[styles.buttonContainer, { borderTopColor: theme.colors.border }]}>
+      <View
+        style={[
+          styles.buttonContainer,
+          { borderTopColor: theme.colors.border },
+        ]}
+      >
         <Button
           mode="outlined"
           onPress={handleDelete}

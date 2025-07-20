@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -50,10 +44,16 @@ const FABActionMenu = ({
           onPress={onClose}
         />
         <View
-          style={[styles.modalContent, { backgroundColor: theme.colors.background }]}
+          style={[
+            styles.modalContent,
+            { backgroundColor: theme.colors.background },
+          ]}
         >
           <View
-            style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}
+            style={[
+              styles.modalHeader,
+              { borderBottomColor: theme.colors.border },
+            ]}
           >
             <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
               Add New
@@ -69,12 +69,17 @@ const FABActionMenu = ({
             activeOpacity={0.7}
           >
             <View
-              style={[styles.addOptionIcon, { backgroundColor: theme.colors.primary }]}
+              style={[
+                styles.addOptionIcon,
+                { backgroundColor: theme.colors.primary },
+              ]}
             >
               <Icon name="key" size={20} color="#fff" />
             </View>
             <View style={styles.addOptionContent}>
-              <Text style={[styles.addOptionTitle, { color: theme.colors.text }]}>
+              <Text
+                style={[styles.addOptionTitle, { color: theme.colors.text }]}
+              >
                 Add Password
               </Text>
               <Text
@@ -102,7 +107,9 @@ const FABActionMenu = ({
               <Icon name="folder-plus" size={20} color="#fff" />
             </View>
             <View style={styles.addOptionContent}>
-              <Text style={[styles.addOptionTitle, { color: theme.colors.text }]}>
+              <Text
+                style={[styles.addOptionTitle, { color: theme.colors.text }]}
+              >
                 Add Category
               </Text>
               <Text

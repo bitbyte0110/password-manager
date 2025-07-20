@@ -117,7 +117,10 @@ const AutoLockSettingsScreen = () => {
             {option.label}
           </Text>
           <Text
-            style={[styles.optionDescription, { color: theme.colors.textSecondary }]}
+            style={[
+              styles.optionDescription,
+              { color: theme.colors.textSecondary },
+            ]}
           >
             {option.description}
           </Text>
@@ -175,7 +178,12 @@ const AutoLockSettingsScreen = () => {
               Select Auto-Lock Timeout
             </Text>
 
-            <View style={[styles.optionsList, { backgroundColor: theme.colors.card }]}>
+            <View
+              style={[
+                styles.optionsList,
+                { backgroundColor: theme.colors.card },
+              ]}
+            >
               {timeoutOptions.map((option, index) => (
                 <View key={option.value}>
                   {renderTimeoutOption(option)}
@@ -193,9 +201,19 @@ const AutoLockSettingsScreen = () => {
           </View>
 
           {/* Security Note */}
-          <View style={[styles.securityNote, { backgroundColor: theme.colors.card }]}>
+          <View
+            style={[
+              styles.securityNote,
+              { backgroundColor: theme.colors.card },
+            ]}
+          >
             <Icon name="shield-alt" size={18} color={theme.colors.primary} />
-            <Text style={[styles.securityText, { color: theme.colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.securityText,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
               For maximum security, we recommend using 2 minutes or less. Longer
               timeouts may expose your passwords if you leave your device
               unattended.
@@ -206,7 +224,10 @@ const AutoLockSettingsScreen = () => {
 
       {/* Action Buttons */}
       <View
-        style={[styles.buttonContainer, { backgroundColor: theme.colors.background }]}
+        style={[
+          styles.buttonContainer,
+          { backgroundColor: theme.colors.background },
+        ]}
       >
         <Button
           mode="contained"

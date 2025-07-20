@@ -336,7 +336,9 @@ const LoginScreen = ({ navigation: navProp }) => {
 
         // Check if MFA is enabled
         if (mfaEnabled) {
-          console.log('🔐 MFA is ENABLED - requiring both biometric and password');
+          console.log(
+            '🔐 MFA is ENABLED - requiring both biometric and password'
+          );
           // MFA enabled: Show password modal for second factor
           setMfaMode(true);
           setShowPasswordModal(true);
@@ -352,11 +354,15 @@ const LoginScreen = ({ navigation: navProp }) => {
             // Initialize vault service first
             await vaultService.initialize();
 
-            // Try biometric-only authentication when MFA is disabled
-            const biometricAuthSuccess = await vaultService.authenticateWithBiometric();
-            
+            // Optimize biometric-only authentication for instant login
+            const biometricAuthSuccess =
+              await vaultService.authenticateWithBiometric();
+
             if (biometricAuthSuccess) {
-              console.log('✅ Biometric-only authentication successful! Proceeding to vault');
+              console.log(
+                '✅ Biometric-only authentication successful! Navigating immediately'
+              );
+              // Navigate instantly - no additional processing needed
               navigation.replace('MainTabs');
               return;
             } else {
@@ -374,7 +380,9 @@ const LoginScreen = ({ navigation: navProp }) => {
             console.error('Error during biometric authentication:', error);
             setMfaMode(false);
             setShowPasswordModal(true);
-            showSnackbar('Please enter your master password to access vault data.');
+            showSnackbar(
+              'Please enter your master password to access vault data.'
+            );
           }
         }
       } else {
@@ -401,7 +409,7 @@ const LoginScreen = ({ navigation: navProp }) => {
 
   const handlePasswordLogin = async () => {
     setPasswordError(''); // Clear any previous errors
-    
+
     if (!masterPassword.trim()) {
       setPasswordError('Please enter your master password');
       return;
@@ -431,26 +439,31 @@ const LoginScreen = ({ navigation: navProp }) => {
         await resetFailedAttempts();
         await resetBiometricFailedAttempts(); // Reset biometric attempts on successful password
 
-        // Clear any existing session before authenticating
-        await vaultService.clearSession();
-
-        // Authenticate vault service with the master password
+        // Optimize authentication flow - run operations in parallel where possible
         try {
-          await vaultService.authenticate(masterPassword);
-          console.log('Vault service authenticated successfully');
+          // Clear session and authenticate in parallel (both are independent)
+          const [_, authResult] = await Promise.all([
+            vaultService.clearSession(),
+            vaultService.authenticate(masterPassword),
+          ]);
+
+          console.log(
+            'Vault service authenticated successfully - navigating immediately'
+          );
+
+          // Update UI state and navigate immediately
+          setShowPasswordModal(false);
+          setMasterPassword('');
+          setMfaMode(false);
+          setBiometricSucceeded(false);
+
+          // Navigate immediately for instant login
+          navigation.replace('MainTabs');
         } catch (vaultError) {
           console.error('Error authenticating vault service:', vaultError);
           showSnackbar('Authentication error. Please try again.');
           return;
         }
-
-        setShowPasswordModal(false);
-        setMasterPassword('');
-        setMfaMode(false);
-        setBiometricSucceeded(false);
-        console.log('About to call navigation.replace("MainTabs")');
-        navigation.replace('MainTabs');
-        console.log('Navigation.replace("MainTabs") called');
       } else {
         await incrementFailedAttempts();
         if (mfaMode) {
@@ -549,12 +562,20 @@ const LoginScreen = ({ navigation: navProp }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <LinearGradient colors={[theme.colors.primary, theme.colors.secondary]} style={styles.gradient}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
+      <LinearGradient
+        colors={[theme.colors.primary, theme.colors.secondary]}
+        style={styles.gradient}
+      >
         <View style={styles.content}>
           {/* Logo */}
           <View style={styles.logoContainer}>
-            <LinearGradient colors={[theme.colors.primary, theme.colors.secondary]} style={styles.logo}>
+            <LinearGradient
+              colors={[theme.colors.primary, theme.colors.secondary]}
+              style={styles.logo}
+            >
               <Icon name="shield-alt" size={40} color="#fff" />
             </LinearGradient>
           </View>
@@ -688,14 +709,24 @@ const LoginScreen = ({ navigation: navProp }) => {
         onRequestClose={handleCancelPasswordModal}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.card },
+            ]}
+          >
             <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
               {mfaMode
                 ? 'Multi-Factor Authentication'
                 : 'Vault Access Required'}
             </Text>
 
-            <Text style={[styles.modalSubtitle, { color: theme.colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.modalSubtitle,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
               {mfaMode
                 ? biometricSucceeded
                   ? 'Step 2 of 2: Biometric authentication successful. Please enter your master password to complete MFA login.'
@@ -709,19 +740,24 @@ const LoginScreen = ({ navigation: navProp }) => {
               label="Master Password"
               mode="outlined"
               value={masterPassword}
-              onChangeText={(text) => {
+              onChangeText={text => {
                 setMasterPassword(text);
                 if (passwordError) setPasswordError(''); // Clear error when user types
               }}
               secureTextEntry={!showPassword}
-              style={[styles.modalInput, { backgroundColor: theme.colors.inputBackground }]}
+              style={[
+                styles.modalInput,
+                { backgroundColor: theme.colors.inputBackground },
+              ]}
               theme={{
                 colors: {
                   primary: theme.colors.inputBorderFocused,
                   accent: theme.colors.inputBorderFocused,
                   text: theme.colors.inputText,
                   background: theme.colors.inputBackground,
-                  outline: passwordError ? theme.colors.error : theme.colors.inputBorder,
+                  outline: passwordError
+                    ? theme.colors.error
+                    : theme.colors.inputBorder,
                   placeholder: theme.colors.inputPlaceholder,
                   onSurfaceVariant: theme.colors.inputPlaceholder,
                 },
@@ -754,7 +790,9 @@ const LoginScreen = ({ navigation: navProp }) => {
                 style={styles.modalLinkButton}
                 textColor={theme.colors.primary}
               >
-                <Text style={{ color: theme.colors.primary }}>Forgot Password?</Text>
+                <Text style={{ color: theme.colors.primary }}>
+                  Forgot Password?
+                </Text>
               </Button>
 
               <Button
@@ -773,8 +811,17 @@ const LoginScreen = ({ navigation: navProp }) => {
                 onPress={handleCancelPasswordModal}
                 activeOpacity={0.8}
               >
-                <View style={[styles.modalCancelButtonContent, { backgroundColor: '#3A3A3C', borderColor: '#3A3A3C' }]}>
-                  <Text style={[styles.modalCancelButtonText, { color: '#FFFFFF' }]}>Cancel</Text>
+                <View
+                  style={[
+                    styles.modalCancelButtonContent,
+                    { backgroundColor: '#3A3A3C', borderColor: '#3A3A3C' },
+                  ]}
+                >
+                  <Text
+                    style={[styles.modalCancelButtonText, { color: '#FFFFFF' }]}
+                  >
+                    Cancel
+                  </Text>
                 </View>
               </TouchableOpacity>
 

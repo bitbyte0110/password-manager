@@ -112,7 +112,10 @@ const ClipboardSettingsScreen = () => {
             {option.label}
           </Text>
           <Text
-            style={[styles.optionDescription, { color: theme.colors.textSecondary }]}
+            style={[
+              styles.optionDescription,
+              { color: theme.colors.textSecondary },
+            ]}
           >
             {option.description}
           </Text>
@@ -170,7 +173,12 @@ const ClipboardSettingsScreen = () => {
               Select Auto-Clear Timeout
             </Text>
 
-            <View style={[styles.optionsList, { backgroundColor: theme.colors.card }]}>
+            <View
+              style={[
+                styles.optionsList,
+                { backgroundColor: theme.colors.card },
+              ]}
+            >
               {timeoutOptions.map((option, index) => (
                 <View key={option.value}>
                   {renderTimeoutOption(option)}
@@ -188,9 +196,19 @@ const ClipboardSettingsScreen = () => {
           </View>
 
           {/* Security Explanation */}
-          <View style={[styles.securityNote, { backgroundColor: theme.colors.card }]}>
+          <View
+            style={[
+              styles.securityNote,
+              { backgroundColor: theme.colors.card },
+            ]}
+          >
             <Icon name="shield-alt" size={18} color={theme.colors.primary} />
-            <Text style={[styles.securityText, { color: theme.colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.securityText,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
               <Text style={{ fontWeight: '600' }}>Why auto-clear?</Text>
               {'\n'}
               Other apps or malicious software could potentially access your
@@ -203,7 +221,10 @@ const ClipboardSettingsScreen = () => {
 
       {/* Action Buttons */}
       <View
-        style={[styles.buttonContainer, { backgroundColor: theme.colors.background }]}
+        style={[
+          styles.buttonContainer,
+          { backgroundColor: theme.colors.background },
+        ]}
       >
         <Button
           mode="contained"

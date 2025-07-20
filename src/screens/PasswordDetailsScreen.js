@@ -13,7 +13,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import clipboardService from '../services/clipboardService';
 import vaultService from '../services/vaultService';
-import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
+import {
+  useNavigation,
+  useRoute,
+  useFocusEffect,
+} from '@react-navigation/native';
 import { usePasswords } from '../PasswordContext';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -118,31 +122,49 @@ const PasswordDetailsScreen = () => {
 
   if (loading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
-        <Text style={[styles.loadingText, { color: theme.colors.text }]}>Loading...</Text>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: theme.colors.background },
+        ]}
+      >
+        <Text style={[styles.loadingText, { color: theme.colors.text }]}>
+          Loading...
+        </Text>
       </View>
     );
   }
 
   if (decryptionError || !entry) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
-        <Text style={[styles.errorText, { color: theme.colors.error }]}>Unable to decrypt entry.</Text>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: theme.colors.background },
+        ]}
+      >
+        <Text style={[styles.errorText, { color: theme.colors.error }]}>
+          Unable to decrypt entry.
+        </Text>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={{ marginTop: 20 }}
         >
-          <Text style={{ color: theme.colors.primary, fontWeight: 'bold' }}>Go Back</Text>
+          <Text style={{ color: theme.colors.primary, fontWeight: 'bold' }}>
+            Go Back
+          </Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       {/* Gradient Header */}
-      <LinearGradient colors={[theme.colors.primary, theme.colors.secondary]} style={styles.header}>
+      <LinearGradient
+        colors={[theme.colors.primary, theme.colors.secondary]}
+        style={styles.header}
+      >
         <TouchableOpacity
           style={styles.headerBack}
           onPress={() => navigation.goBack()}
@@ -162,7 +184,9 @@ const PasswordDetailsScreen = () => {
             <View
               style={[
                 styles.categoryIconCircle,
-                { backgroundColor: entry.categoryColor || theme.colors.primary },
+                {
+                  backgroundColor: entry.categoryColor || theme.colors.primary,
+                },
               ]}
             >
               <Icon
@@ -179,7 +203,9 @@ const PasswordDetailsScreen = () => {
               <Icon
                 name={favorite ? 'star' : 'star-o'}
                 size={26}
-                color={favorite ? theme.colors.primary : theme.colors.textSecondary}
+                color={
+                  favorite ? theme.colors.primary : theme.colors.textSecondary
+                }
                 solid={favorite}
               />
             </TouchableOpacity>
@@ -187,7 +213,11 @@ const PasswordDetailsScreen = () => {
 
           {/* Field List */}
           <View style={styles.fieldBlock}>
-            <Text style={[styles.fieldLabel, { color: theme.colors.textSecondary }]}>Title</Text>
+            <Text
+              style={[styles.fieldLabel, { color: theme.colors.textSecondary }]}
+            >
+              Title
+            </Text>
             <Text style={[styles.fieldValue, { color: theme.colors.text }]}>
               {entry.title || (
                 <Text style={styles.errorText}>Unable to decrypt</Text>
@@ -196,7 +226,11 @@ const PasswordDetailsScreen = () => {
           </View>
 
           <View style={styles.fieldBlock}>
-            <Text style={[styles.fieldLabel, { color: theme.colors.textSecondary }]}>Username / Email</Text>
+            <Text
+              style={[styles.fieldLabel, { color: theme.colors.textSecondary }]}
+            >
+              Username / Email
+            </Text>
             <Text style={[styles.fieldValue, { color: theme.colors.text }]}>
               {entry.username || (
                 <Text style={styles.errorText}>Unable to decrypt</Text>
@@ -205,7 +239,11 @@ const PasswordDetailsScreen = () => {
           </View>
 
           <View style={styles.fieldBlock}>
-            <Text style={[styles.fieldLabel, { color: theme.colors.textSecondary }]}>Password</Text>
+            <Text
+              style={[styles.fieldLabel, { color: theme.colors.textSecondary }]}
+            >
+              Password
+            </Text>
             <View style={styles.passwordRow}>
               <Text style={[styles.fieldValue, { color: theme.colors.text }]}>
                 {showPassword ? (
@@ -237,12 +275,22 @@ const PasswordDetailsScreen = () => {
 
           {entry.url ? (
             <View style={styles.fieldBlock}>
-              <Text style={[styles.fieldLabel, { color: theme.colors.textSecondary }]}>Website URL</Text>
+              <Text
+                style={[
+                  styles.fieldLabel,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
+                Website URL
+              </Text>
               <TouchableOpacity onPress={() => Linking.openURL(entry.url)}>
                 <Text
                   style={[
                     styles.fieldValue,
-                    { color: theme.colors.secondary, textDecorationLine: 'underline' },
+                    {
+                      color: theme.colors.secondary,
+                      textDecorationLine: 'underline',
+                    },
                   ]}
                   numberOfLines={1}
                 >
@@ -254,7 +302,14 @@ const PasswordDetailsScreen = () => {
 
           {entry.notes ? (
             <View style={styles.fieldBlock}>
-              <Text style={[styles.fieldLabel, { color: theme.colors.textSecondary }]}>Notes</Text>
+              <Text
+                style={[
+                  styles.fieldLabel,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
+                Notes
+              </Text>
               <Text style={[styles.fieldValue, { minHeight: 40 }]}>
                 {entry.notes}
               </Text>
@@ -262,13 +317,23 @@ const PasswordDetailsScreen = () => {
           ) : null}
 
           <View style={{ marginTop: 16 }}>
-            <Text style={[styles.timestampText, { color: theme.colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.timestampText,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
               Created:{' '}
               {entry.createdAt
                 ? new Date(entry.createdAt).toLocaleString()
                 : '-'}
             </Text>
-            <Text style={[styles.timestampText, { color: theme.colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.timestampText,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
               Last Updated:{' '}
               {entry.updatedAt
                 ? new Date(entry.updatedAt).toLocaleString()
@@ -279,7 +344,9 @@ const PasswordDetailsScreen = () => {
       </ScrollView>
 
       {/* Footer Actions */}
-      <View style={[styles.footerActions, { backgroundColor: theme.colors.card }]}>
+      <View
+        style={[styles.footerActions, { backgroundColor: theme.colors.card }]}
+      >
         <TouchableOpacity activeOpacity={0.85} onPress={handleEdit}>
           <LinearGradient
             colors={[theme.colors.primary, theme.colors.secondary]}
@@ -289,7 +356,11 @@ const PasswordDetailsScreen = () => {
           </LinearGradient>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
-          <Text style={[styles.deleteButtonText, { color: theme.colors.error }]}>Delete Password</Text>
+          <Text
+            style={[styles.deleteButtonText, { color: theme.colors.error }]}
+          >
+            Delete Password
+          </Text>
         </TouchableOpacity>
       </View>
 

@@ -348,7 +348,9 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
                   status={includeUppercase ? 'checked' : 'unchecked'}
                   color={theme.colors.primary}
                 />
-                <Text style={[styles.checkboxLabel, { color: theme.colors.text }]}>
+                <Text
+                  style={[styles.checkboxLabel, { color: theme.colors.text }]}
+                >
                   Include Uppercase (A-Z)
                 </Text>
               </TouchableOpacity>
@@ -363,7 +365,9 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
                   status={includeLowercase ? 'checked' : 'unchecked'}
                   color={theme.colors.primary}
                 />
-                <Text style={[styles.checkboxLabel, { color: theme.colors.text }]}>
+                <Text
+                  style={[styles.checkboxLabel, { color: theme.colors.text }]}
+                >
                   Include Lowercase (a-z)
                 </Text>
               </TouchableOpacity>
@@ -376,7 +380,9 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
                   status={includeNumbers ? 'checked' : 'unchecked'}
                   color={theme.colors.primary}
                 />
-                <Text style={[styles.checkboxLabel, { color: theme.colors.text }]}>
+                <Text
+                  style={[styles.checkboxLabel, { color: theme.colors.text }]}
+                >
                   Include Numbers (0-9)
                 </Text>
               </TouchableOpacity>
@@ -389,7 +395,9 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
                   status={includeSymbols ? 'checked' : 'unchecked'}
                   color={theme.colors.primary}
                 />
-                <Text style={[styles.checkboxLabel, { color: theme.colors.text }]}>
+                <Text
+                  style={[styles.checkboxLabel, { color: theme.colors.text }]}
+                >
                   Include Symbols (!@#$%^&*)
                 </Text>
               </TouchableOpacity>
@@ -417,12 +425,18 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
             />
             <View style={styles.sliderLabels}>
               <Text
-                style={[styles.sliderLabel, { color: theme.colors.textSecondary }]}
+                style={[
+                  styles.sliderLabel,
+                  { color: theme.colors.textSecondary },
+                ]}
               >
                 8
               </Text>
               <Text
-                style={[styles.sliderLabel, { color: theme.colors.textSecondary }]}
+                style={[
+                  styles.sliderLabel,
+                  { color: theme.colors.textSecondary },
+                ]}
               >
                 32
               </Text>

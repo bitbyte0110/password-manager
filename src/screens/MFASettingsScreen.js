@@ -210,7 +210,9 @@ const MFASettingsScreen = () => {
       >
         <View style={styles.content}>
           {/* Status Card */}
-          <View style={[styles.statusCard, { backgroundColor: theme.colors.card }]}>
+          <View
+            style={[styles.statusCard, { backgroundColor: theme.colors.card }]}
+          >
             <View style={styles.statusHeader}>
               <View
                 style={[
@@ -225,18 +227,24 @@ const MFASettingsScreen = () => {
                 <Icon
                   name={mfaEnabled ? 'shield-alt' : 'exclamation-triangle'}
                   size={24}
-                  color={mfaEnabled ? theme.colors.success : theme.colors.warning}
+                  color={
+                    mfaEnabled ? theme.colors.success : theme.colors.warning
+                  }
                 />
               </View>
               <View style={styles.statusContent}>
-                <Text style={[styles.statusTitle, { color: theme.colors.text }]}>
+                <Text
+                  style={[styles.statusTitle, { color: theme.colors.text }]}
+                >
                   MFA Status
                 </Text>
                 <Text
                   style={[
                     styles.statusSubtitle,
                     {
-                      color: mfaEnabled ? theme.colors.success : theme.colors.warning,
+                      color: mfaEnabled
+                        ? theme.colors.success
+                        : theme.colors.warning,
                     },
                   ]}
                 >
@@ -254,13 +262,21 @@ const MFASettingsScreen = () => {
 
           {/* Description Section */}
           <View
-            style={[styles.descriptionCard, { backgroundColor: theme.colors.card }]}
+            style={[
+              styles.descriptionCard,
+              { backgroundColor: theme.colors.card },
+            ]}
           >
-            <Text style={[styles.descriptionTitle, { color: theme.colors.text }]}>
+            <Text
+              style={[styles.descriptionTitle, { color: theme.colors.text }]}
+            >
               About Multi-Factor Authentication
             </Text>
             <Text
-              style={[styles.descriptionText, { color: theme.colors.textSecondary }]}
+              style={[
+                styles.descriptionText,
+                { color: theme.colors.textSecondary },
+              ]}
             >
               Multi-Factor Authentication adds an extra layer of security to
               your vault by requiring both your master password and a second
@@ -269,25 +285,46 @@ const MFASettingsScreen = () => {
 
             <View style={styles.benefitsList}>
               <View style={styles.benefitItem}>
-                <Icon name="check-circle" size={16} color={theme.colors.success} />
+                <Icon
+                  name="check-circle"
+                  size={16}
+                  color={theme.colors.success}
+                />
                 <Text
-                  style={[styles.benefitText, { color: theme.colors.textSecondary }]}
+                  style={[
+                    styles.benefitText,
+                    { color: theme.colors.textSecondary },
+                  ]}
                 >
                   Protection against password theft
                 </Text>
               </View>
               <View style={styles.benefitItem}>
-                <Icon name="check-circle" size={16} color={theme.colors.success} />
+                <Icon
+                  name="check-circle"
+                  size={16}
+                  color={theme.colors.success}
+                />
                 <Text
-                  style={[styles.benefitText, { color: theme.colors.textSecondary }]}
+                  style={[
+                    styles.benefitText,
+                    { color: theme.colors.textSecondary },
+                  ]}
                 >
                   Enhanced security for sensitive data
                 </Text>
               </View>
               <View style={styles.benefitItem}>
-                <Icon name="check-circle" size={16} color={theme.colors.success} />
+                <Icon
+                  name="check-circle"
+                  size={16}
+                  color={theme.colors.success}
+                />
                 <Text
-                  style={[styles.benefitText, { color: theme.colors.textSecondary }]}
+                  style={[
+                    styles.benefitText,
+                    { color: theme.colors.textSecondary },
+                  ]}
                 >
                   Peace of mind with two-factor protection
                 </Text>
@@ -314,7 +351,10 @@ const MFASettingsScreen = () => {
 
       {/* Action Button */}
       <View
-        style={[styles.buttonContainer, { backgroundColor: theme.colors.background }]}
+        style={[
+          styles.buttonContainer,
+          { backgroundColor: theme.colors.background },
+        ]}
       >
         <Button
           mode="contained"
@@ -322,16 +362,21 @@ const MFASettingsScreen = () => {
           style={[
             styles.actionButton,
             {
-              backgroundColor: mfaEnabled ? theme.colors.error : theme.colors.primary,
+              backgroundColor: mfaEnabled
+                ? theme.colors.error
+                : theme.colors.primary,
             },
           ]}
           loading={isLoading}
           disabled={isLoading}
         >
-          {isLoading 
-            ? (mfaEnabled ? 'Disabling MFA...' : 'Enabling MFA...')
-            : (mfaEnabled ? 'Disable MFA' : 'Enable MFA')
-          }
+          {isLoading
+            ? mfaEnabled
+              ? 'Disabling MFA...'
+              : 'Enabling MFA...'
+            : mfaEnabled
+              ? 'Disable MFA'
+              : 'Enable MFA'}
         </Button>
       </View>
     </SafeAreaView>
