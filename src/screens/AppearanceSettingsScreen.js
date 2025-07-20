@@ -77,7 +77,7 @@ const AppearanceSettingsScreen = () => {
   const renderThemeOption = option => (
     <TouchableOpacity
       key={option.value}
-      style={[styles.themeOption, { backgroundColor: theme.card }]}
+      style={[styles.themeOption, { backgroundColor: theme.colors.card }]}
       onPress={() => handleThemeChange(option.value)}
       activeOpacity={0.7}
     >
@@ -86,17 +86,17 @@ const AppearanceSettingsScreen = () => {
           <View
             style={[
               styles.themeIcon,
-              { backgroundColor: theme.primary + '20' },
+              { backgroundColor: theme.colors.primary + '20' },
             ]}
           >
-            <Icon name={option.icon} size={20} color={theme.primary} />
+            <Icon name={option.icon} size={20} color={theme.colors.primary} />
           </View>
           <View style={styles.themeInfo}>
-            <Text style={[styles.themeLabel, { color: theme.text }]}>
+            <Text style={[styles.themeLabel, { color: theme.colors.text }]}>
               {option.label}
             </Text>
             <Text
-              style={[styles.themeDescription, { color: theme.textSecondary }]}
+              style={[styles.themeDescription, { color: theme.colors.textSecondary }]}
             >
               {option.description}
             </Text>
@@ -110,7 +110,7 @@ const AppearanceSettingsScreen = () => {
                 styles.previewBox,
                 {
                   backgroundColor: option.colors.bg,
-                  borderColor: theme.border,
+                  borderColor: theme.colors.border,
                 },
               ]}
             >
@@ -138,7 +138,7 @@ const AppearanceSettingsScreen = () => {
             value={option.value}
             status={selectedTheme === option.value ? 'checked' : 'unchecked'}
             onPress={() => handleThemeChange(option.value)}
-            color={theme.primary}
+            color={theme.colors.primary}
           />
         </View>
       </View>
@@ -147,17 +147,17 @@ const AppearanceSettingsScreen = () => {
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-left" size={20} color={theme.text} />
+          <Icon name="arrow-left" size={20} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
           Appearance
         </Text>
         <View style={styles.headerRight} />
@@ -172,11 +172,11 @@ const AppearanceSettingsScreen = () => {
           <View
             style={[
               styles.infoSection,
-              { backgroundColor: theme.primary + '10' },
+              { backgroundColor: theme.colors.primary + '10' },
             ]}
           >
-            <Icon name="paint-brush" size={20} color={theme.primary} />
-            <Text style={[styles.infoText, { color: theme.text }]}>
+            <Icon name="paint-brush" size={20} color={theme.colors.primary} />
+            <Text style={[styles.infoText, { color: theme.colors.text }]}>
               Choose your preferred theme. Changes apply immediately and affect
               the entire app interface.
             </Text>
@@ -184,7 +184,7 @@ const AppearanceSettingsScreen = () => {
 
           {/* Theme Options */}
           <View style={styles.themeContainer}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
               Select Theme
             </Text>
 
@@ -196,7 +196,7 @@ const AppearanceSettingsScreen = () => {
                     <View
                       style={[
                         styles.divider,
-                        { backgroundColor: theme.border },
+                        { backgroundColor: theme.colors.border },
                       ]}
                     />
                   )}
@@ -207,9 +207,9 @@ const AppearanceSettingsScreen = () => {
 
           {/* Current Preview */}
           <View
-            style={[styles.currentPreview, { backgroundColor: theme.card }]}
+            style={[styles.currentPreview, { backgroundColor: theme.colors.card }]}
           >
-            <Text style={[styles.previewTitle, { color: theme.text }]}>
+            <Text style={[styles.previewTitle, { color: theme.colors.text }]}>
               Current Theme Preview
             </Text>
             <View style={styles.previewContainer}>
@@ -217,15 +217,15 @@ const AppearanceSettingsScreen = () => {
                 style={[
                   styles.largPreviewBox,
                   {
-                    backgroundColor: theme.background,
-                    borderColor: theme.border,
+                    backgroundColor: theme.colors.background,
+                    borderColor: theme.colors.border,
                   },
                 ]}
               >
                 <View
                   style={[
                     styles.largePreviewHeader,
-                    { backgroundColor: theme.primary },
+                    { backgroundColor: theme.colors.primary },
                   ]}
                 >
                   <View
@@ -245,19 +245,19 @@ const AppearanceSettingsScreen = () => {
                   <View
                     style={[
                       styles.contentLine,
-                      { backgroundColor: theme.text + '80' },
+                      { backgroundColor: theme.colors.text + '80' },
                     ]}
                   />
                   <View
                     style={[
                       styles.contentLine,
-                      { backgroundColor: theme.text + '60', width: '70%' },
+                      { backgroundColor: theme.colors.text + '60', width: '70%' },
                     ]}
                   />
                   <View
                     style={[
                       styles.contentLine,
-                      { backgroundColor: theme.text + '40', width: '50%' },
+                      { backgroundColor: theme.colors.text + '40', width: '50%' },
                     ]}
                   />
                 </View>
@@ -269,13 +269,13 @@ const AppearanceSettingsScreen = () => {
 
       {/* Action Buttons */}
       <View
-        style={[styles.buttonContainer, { backgroundColor: theme.background }]}
+        style={[styles.buttonContainer, { backgroundColor: theme.colors.background }]}
       >
         <Button
-          mode="outlined"
+          mode="contained"
           onPress={() => navigation.goBack()}
-          style={[styles.button, { borderColor: theme.border }]}
-          textColor={theme.textSecondary}
+          style={[styles.button, { backgroundColor: '#3A3A3C' }]}
+          textColor="#FFFFFF"
           disabled={isLoading}
         >
           Cancel
@@ -283,7 +283,7 @@ const AppearanceSettingsScreen = () => {
         <Button
           mode="contained"
           onPress={handleSave}
-          style={[styles.button, { backgroundColor: theme.primary }]}
+          style={[styles.button, { backgroundColor: theme.colors.primary }]}
           loading={isLoading}
           disabled={isLoading}
         >

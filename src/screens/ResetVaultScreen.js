@@ -6,7 +6,6 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  useColorScheme,
   Alert,
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
@@ -17,26 +16,14 @@ import { useNavigation } from '@react-navigation/native';
 import vaultService from '../services/vaultService';
 import databaseService from '../services/databaseService';
 import { usePasswords } from '../PasswordContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const ResetVaultScreen = () => {
   const navigation = useNavigation();
+  const { theme } = useTheme();
   const { clearPasswords } = usePasswords();
   const [confirmationText, setConfirmationText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
-  const colorScheme = useColorScheme();
-  const isDarkMode = colorScheme === 'dark';
-
-  const theme = {
-    background: isDarkMode ? '#121212' : '#ffffff',
-    card: isDarkMode ? '#2c2c2c' : '#ffffff',
-    primary: '#8e44ad',
-    text: isDarkMode ? '#ffffff' : '#333333',
-    textSecondary: isDarkMode ? '#b0b0b0' : '#666666',
-    border: isDarkMode ? '#333333' : '#e0e0e0',
-    error: '#e74c3c',
-    warning: '#f39c12',
-  };
 
   const handleResetVault = () => {
     if (confirmationText.toUpperCase() !== 'RESET') {
@@ -112,17 +99,17 @@ const ResetVaultScreen = () => {
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-left" size={20} color={theme.text} />
+          <Icon name="arrow-left" size={20} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
           Reset Vault
         </Text>
         <View style={styles.headerRight} />
@@ -135,52 +122,52 @@ const ResetVaultScreen = () => {
         <View style={styles.content}>
           {/* Danger Warning */}
           <View
-            style={[styles.dangerCard, { backgroundColor: theme.error + '15' }]}
+            style={[styles.dangerCard, { backgroundColor: theme.colors.error + '15' }]}
           >
-            <Icon name="exclamation-triangle" size={32} color={theme.error} />
-            <Text style={[styles.dangerTitle, { color: theme.error }]}>
+            <Icon name="exclamation-triangle" size={32} color={theme.colors.error} />
+            <Text style={[styles.dangerTitle, { color: theme.colors.error }]}>
               DANGER ZONE
             </Text>
-            <Text style={[styles.dangerSubtitle, { color: theme.text }]}>
+            <Text style={[styles.dangerSubtitle, { color: theme.colors.text }]}>
               This action cannot be undone
             </Text>
           </View>
 
           {/* Warning Message */}
-          <View style={[styles.warningCard, { backgroundColor: theme.card }]}>
-            <Text style={[styles.warningTitle, { color: theme.text }]}>
+          <View style={[styles.warningCard, { backgroundColor: theme.colors.card }]}>
+            <Text style={[styles.warningTitle, { color: theme.colors.text }]}>
               What will be deleted:
             </Text>
 
             <View style={styles.deletionList}>
               <View style={styles.deletionItem}>
-                <Icon name="times-circle" size={16} color={theme.error} />
+                <Icon name="times-circle" size={16} color={theme.colors.error} />
                 <Text
-                  style={[styles.deletionText, { color: theme.textSecondary }]}
+                  style={[styles.deletionText, { color: theme.colors.textSecondary }]}
                 >
                   All saved passwords and login credentials
                 </Text>
               </View>
               <View style={styles.deletionItem}>
-                <Icon name="times-circle" size={16} color={theme.error} />
+                <Icon name="times-circle" size={16} color={theme.colors.error} />
                 <Text
-                  style={[styles.deletionText, { color: theme.textSecondary }]}
+                  style={[styles.deletionText, { color: theme.colors.textSecondary }]}
                 >
                   All categories and organization
                 </Text>
               </View>
               <View style={styles.deletionItem}>
-                <Icon name="times-circle" size={16} color={theme.error} />
+                <Icon name="times-circle" size={16} color={theme.colors.error} />
                 <Text
-                  style={[styles.deletionText, { color: theme.textSecondary }]}
+                  style={[styles.deletionText, { color: theme.colors.textSecondary }]}
                 >
                   All encrypted data and security settings
                 </Text>
               </View>
               <View style={styles.deletionItem}>
-                <Icon name="times-circle" size={16} color={theme.error} />
+                <Icon name="times-circle" size={16} color={theme.colors.error} />
                 <Text
-                  style={[styles.deletionText, { color: theme.textSecondary }]}
+                  style={[styles.deletionText, { color: theme.colors.textSecondary }]}
                 >
                   Your master password and vault access
                 </Text>
@@ -190,11 +177,11 @@ const ResetVaultScreen = () => {
             <View
               style={[
                 styles.cautionBox,
-                { backgroundColor: theme.warning + '15' },
+                { backgroundColor: theme.colors.warning + '15' },
               ]}
             >
-              <Icon name="info-circle" size={18} color={theme.warning} />
-              <Text style={[styles.cautionText, { color: theme.text }]}>
+              <Icon name="info-circle" size={18} color={theme.colors.warning} />
+              <Text style={[styles.cautionText, { color: theme.colors.text }]}>
                 <Text style={{ fontWeight: 'bold' }}>Before proceeding:</Text>
                 {'\n'}
                 Make sure you have exported or backed up any passwords you want
@@ -206,15 +193,15 @@ const ResetVaultScreen = () => {
 
           {/* Confirmation Input */}
           <View
-            style={[styles.confirmationCard, { backgroundColor: theme.card }]}
+            style={[styles.confirmationCard, { backgroundColor: theme.colors.card }]}
           >
-            <Text style={[styles.confirmationTitle, { color: theme.text }]}>
+            <Text style={[styles.confirmationTitle, { color: theme.colors.text }]}>
               Type "RESET" to confirm
             </Text>
             <Text
               style={[
                 styles.confirmationSubtitle,
-                { color: theme.textSecondary },
+                { color: theme.colors.textSecondary },
               ]}
             >
               This extra step helps prevent accidental deletion.
@@ -223,7 +210,7 @@ const ResetVaultScreen = () => {
             <TextInput
               style={[
                 styles.confirmationInput,
-                { backgroundColor: theme.background },
+                { backgroundColor: theme.colors.inputBackground },
               ]}
               value={confirmationText}
               onChangeText={setConfirmationText}
@@ -233,7 +220,19 @@ const ResetVaultScreen = () => {
                 confirmationText.length > 0 &&
                 confirmationText.toUpperCase() !== 'RESET'
               }
-              theme={{ colors: { primary: theme.error } }}
+              theme={{
+                colors: {
+                  primary: theme.colors.error,
+                  accent: theme.colors.error,
+                  text: theme.colors.inputText,
+                  background: theme.colors.inputBackground,
+                  outline: theme.colors.inputBorder,
+                  placeholder: theme.colors.inputPlaceholder,
+                  onSurfaceVariant: theme.colors.inputPlaceholder,
+                },
+              }}
+              textColor={theme.colors.inputText}
+              placeholderTextColor={theme.colors.inputPlaceholder}
               autoCapitalize="characters"
             />
           </View>
@@ -242,13 +241,13 @@ const ResetVaultScreen = () => {
 
       {/* Action Buttons */}
       <View
-        style={[styles.buttonContainer, { backgroundColor: theme.background }]}
+        style={[styles.buttonContainer, { backgroundColor: theme.colors.background }]}
       >
         <Button
-          mode="outlined"
+          mode="contained"
           onPress={() => navigation.goBack()}
-          style={[styles.button, { borderColor: theme.border }]}
-          textColor={theme.textSecondary}
+          style={[styles.button, { backgroundColor: '#3A3A3C' }]}
+          textColor="#FFFFFF"
           disabled={isLoading}
         >
           Cancel
@@ -256,7 +255,7 @@ const ResetVaultScreen = () => {
         <Button
           mode="contained"
           onPress={handleResetVault}
-          style={[styles.button, { backgroundColor: theme.error }]}
+          style={[styles.button, { backgroundColor: theme.colors.error }]}
           loading={isLoading}
           disabled={isLoading || confirmationText.toUpperCase() !== 'RESET'}
         >

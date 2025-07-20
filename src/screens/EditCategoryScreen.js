@@ -5,7 +5,6 @@ import {
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
-  useColorScheme,
   Alert,
   Modal,
   Dimensions,
@@ -24,6 +23,7 @@ import { useFocusEffect } from '@react-navigation/native';
 
 import vaultService from '../services/vaultService';
 import databaseService from '../services/databaseService';
+import { useTheme } from '../contexts/ThemeContext';
 
 // Constants for activity tracking
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
@@ -53,6 +53,7 @@ const CATEGORY_COLORS = [
 const EditCategoryScreen = ({ navigation, route }) => {
   // Get category data from navigation params
   const { categoryId, categoryData } = route.params;
+  const { theme } = useTheme();
 
   // State management
   const [isLoading, setIsLoading] = useState(true);
@@ -71,23 +72,6 @@ const EditCategoryScreen = ({ navigation, route }) => {
   const [formErrors, setFormErrors] = useState({});
   const [isFormValid, setIsFormValid] = useState(false);
 
-  // Get color scheme for theme support
-  const colorScheme = useColorScheme();
-  const isDarkMode = colorScheme === 'dark';
-
-  // Theme colors
-  const theme = {
-    background: isDarkMode ? '#121212' : '#ffffff',
-    surface: isDarkMode ? '#1e1e1e' : '#f5f5f5',
-    primary: '#8e44ad',
-    secondary: '#3498db',
-    text: isDarkMode ? '#ffffff' : '#333333',
-    textSecondary: isDarkMode ? '#b0b0b0' : '#666666',
-    border: isDarkMode ? '#333333' : '#e0e0e0',
-    error: '#e74c3c',
-    success: '#2ecc71',
-    warning: '#f39c12',
-  };
 
   // Initialize screen and load category data
   useEffect(() => {
@@ -363,7 +347,7 @@ const EditCategoryScreen = ({ navigation, route }) => {
 
   const renderIconSelection = () => (
     <View style={styles.iconColorSection}>
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>Icon</Text>
+      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Icon</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={styles.iconGrid}>
           {CATEGORY_ICONS.map(iconName => (
@@ -374,8 +358,8 @@ const EditCategoryScreen = ({ navigation, route }) => {
                 {
                   backgroundColor:
                     formData.icon === iconName
-                      ? theme.primary + '20'
-                      : theme.surface,
+                      ? theme.colors.primary + '20'
+                      : theme.colors.card,
                 },
               ]}
               onPress={() => setFormData(prev => ({ ...prev, icon: iconName }))}
@@ -385,8 +369,8 @@ const EditCategoryScreen = ({ navigation, route }) => {
                 size={20}
                 color={
                   formData.icon === iconName
-                    ? theme.primary
-                    : theme.textSecondary
+                    ? theme.colors.primary
+                    : theme.colors.textSecondary
                 }
               />
             </TouchableOpacity>
@@ -398,7 +382,7 @@ const EditCategoryScreen = ({ navigation, route }) => {
 
   const renderColorSelection = () => (
     <View style={styles.iconColorSection}>
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>Color</Text>
+      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Color</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={styles.colorGrid}>
           {CATEGORY_COLORS.map(color => (
@@ -423,8 +407,8 @@ const EditCategoryScreen = ({ navigation, route }) => {
 
   const renderPreview = () => (
     <View style={styles.previewSection}>
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>Preview</Text>
-      <View style={[styles.categoryCard, { backgroundColor: theme.surface }]}>
+      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Preview</Text>
+      <View style={[styles.categoryCard, { backgroundColor: theme.colors.card }]}>
         <View style={styles.categoryCardContent}>
           <View style={styles.categoryCardLeft}>
             <View
@@ -434,13 +418,13 @@ const EditCategoryScreen = ({ navigation, route }) => {
             </View>
             <View style={styles.categoryInfo}>
               <Text
-                style={[styles.categoryName, { color: theme.text }]}
+                style={[styles.categoryName, { color: theme.colors.text }]}
                 numberOfLines={1}
               >
                 {formData.name || 'Category Name'}
               </Text>
               <Text
-                style={[styles.passwordCount, { color: theme.textSecondary }]}
+                style={[styles.passwordCount, { color: theme.colors.textSecondary }]}
                 numberOfLines={1}
               >
                 {category?.password_count || 0} password
@@ -456,11 +440,11 @@ const EditCategoryScreen = ({ navigation, route }) => {
   if (isLoading) {
     return (
       <SafeAreaView
-        style={[styles.container, { backgroundColor: theme.background }]}
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
       >
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.primary} />
-          <Text style={[styles.loadingText, { color: theme.text }]}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.text }]}>
             Loading category...
           </Text>
         </View>
@@ -482,17 +466,17 @@ const EditCategoryScreen = ({ navigation, route }) => {
           onPress={handleClose}
         />
         <View
-          style={[styles.modalContent, { backgroundColor: theme.background }]}
+          style={[styles.modalContent, { backgroundColor: theme.colors.card }]}
         >
           {/* Header */}
           <View
-            style={[styles.modalHeader, { borderBottomColor: theme.border }]}
+            style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}
           >
-            <Text style={[styles.modalTitle, { color: theme.text }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
               Edit Category
             </Text>
             <TouchableOpacity onPress={handleClose}>
-              <Icon name="times" size={20} color={theme.textSecondary} />
+              <Icon name="times" size={20} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -508,14 +492,26 @@ const EditCategoryScreen = ({ navigation, route }) => {
               onChangeText={text =>
                 setFormData(prev => ({ ...prev, name: text }))
               }
-              style={styles.formInput}
+              style={[styles.formInput, { backgroundColor: theme.colors.inputBackground }]}
               error={!!formErrors.name}
               mode="outlined"
               maxLength={30}
-              theme={{ colors: { primary: theme.primary } }}
+              theme={{
+                colors: {
+                  primary: theme.colors.inputBorderFocused,
+                  accent: theme.colors.inputBorderFocused,
+                  text: theme.colors.inputText,
+                  background: theme.colors.inputBackground,
+                  outline: formErrors.name ? theme.colors.error : theme.colors.inputBorder,
+                  placeholder: theme.colors.inputPlaceholder,
+                  onSurfaceVariant: theme.colors.inputPlaceholder,
+                },
+              }}
+              textColor={theme.colors.inputText}
+              placeholderTextColor={theme.colors.inputPlaceholder}
             />
             {formErrors.name && (
-              <Text style={[styles.errorText, { color: theme.error }]}>
+              <Text style={[styles.errorText, { color: theme.colors.error }]}>
                 {formErrors.name}
               </Text>
             )}
@@ -527,11 +523,23 @@ const EditCategoryScreen = ({ navigation, route }) => {
               onChangeText={text =>
                 setFormData(prev => ({ ...prev, description: text }))
               }
-              style={styles.formInput}
+              style={[styles.formInput, { backgroundColor: theme.colors.inputBackground }]}
               mode="outlined"
               multiline
               numberOfLines={3}
-              theme={{ colors: { primary: theme.primary } }}
+              theme={{
+                colors: {
+                  primary: theme.colors.inputBorderFocused,
+                  accent: theme.colors.inputBorderFocused,
+                  text: theme.colors.inputText,
+                  background: theme.colors.inputBackground,
+                  outline: theme.colors.inputBorder,
+                  placeholder: theme.colors.inputPlaceholder,
+                  onSurfaceVariant: theme.colors.inputPlaceholder,
+                },
+              }}
+              textColor={theme.colors.inputText}
+              placeholderTextColor={theme.colors.inputPlaceholder}
             />
 
             {/* Icon Selection */}
@@ -549,8 +557,8 @@ const EditCategoryScreen = ({ navigation, route }) => {
             <Button
               mode="outlined"
               onPress={handleDelete}
-              style={[styles.deleteButton, { borderColor: theme.error }]}
-              textColor={theme.error}
+              style={[styles.deleteButton, { borderColor: theme.colors.error }]}
+              textColor={theme.colors.error}
               disabled={isSaving}
             >
               Delete
@@ -558,7 +566,7 @@ const EditCategoryScreen = ({ navigation, route }) => {
             <Button
               mode="contained"
               onPress={handleSave}
-              style={[styles.saveButton, { backgroundColor: theme.primary }]}
+              style={[styles.saveButton, { backgroundColor: theme.colors.primary }]}
               disabled={!isFormValid || isSaving}
               loading={isSaving}
             >
@@ -573,9 +581,9 @@ const EditCategoryScreen = ({ navigation, route }) => {
         visible={snackbar.visible}
         onDismiss={() => setSnackbar({ visible: false, message: '' })}
         duration={3000}
-        style={{ backgroundColor: theme.surface }}
+        style={{ backgroundColor: theme.colors.card }}
       >
-        <Text style={{ color: theme.text }}>{snackbar.message}</Text>
+        <Text style={{ color: theme.colors.text }}>{snackbar.message}</Text>
       </Snackbar>
     </Modal>
   );

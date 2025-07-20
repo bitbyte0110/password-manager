@@ -6,7 +6,6 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  useColorScheme,
 } from 'react-native';
 import {
   Card,
@@ -22,6 +21,7 @@ import Slider from '@react-native-community/slider';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import zxcvbn from 'zxcvbn';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../contexts/ThemeContext';
 
 // Constants for activity tracking
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
@@ -30,6 +30,7 @@ const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
 
 const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
   const navigation = navProp || useNavigation();
+  const { theme } = useTheme();
 
   // State for password generation options
   const [generatedPassword, setGeneratedPassword] = useState('');
@@ -43,22 +44,6 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
   // UI state
   const [isLoading, setIsLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
-
-  // Get color scheme for theme support
-  const colorScheme = useColorScheme();
-  const isDarkMode = colorScheme === 'dark';
-
-  // Theme colors
-  const theme = {
-    background: isDarkMode ? '#121212' : '#ffffff',
-    surface: isDarkMode ? '#1e1e1e' : '#f5f5f5',
-    primary: '#8e44ad',
-    secondary: '#3498db',
-    text: isDarkMode ? '#ffffff' : '#000000',
-    textSecondary: isDarkMode ? '#b0b0b0' : '#666666',
-    border: isDarkMode ? '#333333' : '#e0e0e0',
-    cardBackground: isDarkMode ? '#1e1e1e' : '#ffffff',
-  };
 
   // Character sets for password generation
   const charSets = {
@@ -288,15 +273,15 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
           Password Generator
         </Text>
       </View>
-      <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+      <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
         Create strong, secure passwords
       </Text>
 
@@ -306,23 +291,23 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
         contentContainerStyle={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
       >
-        <Card style={[styles.card, { backgroundColor: theme.cardBackground }]}>
+        <Card style={[styles.card, { backgroundColor: theme.colors.card }]}>
           {/* Generated Password Display */}
           <View style={styles.passwordSection}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
               Generated Password
             </Text>
             <View
               style={[
                 styles.passwordDisplay,
-                { backgroundColor: theme.surface },
+                { backgroundColor: theme.colors.surface },
               ]}
             >
               <TextInput
                 style={styles.passwordInput}
                 value={generatedPassword}
                 placeholder="Click Generate"
-                placeholderTextColor={theme.textSecondary}
+                placeholderTextColor={theme.colors.textSecondary}
                 editable={false}
                 multiline
                 right={
@@ -330,14 +315,14 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
                     <TextInput.Icon
                       icon="content-copy"
                       onPress={copyToClipboard}
-                      iconColor={theme.primary}
+                      iconColor={theme.colors.primary}
                     />
                   ) : null
                 }
                 theme={{
                   colors: {
-                    primary: theme.primary,
-                    text: theme.text,
+                    primary: theme.colors.primary,
+                    text: theme.colors.text,
                     background: 'transparent',
                   },
                 }}
@@ -347,7 +332,7 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
 
           {/* Password Options */}
           <View style={styles.optionsSection}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
               Password Options
             </Text>
 
@@ -361,9 +346,9 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
               >
                 <Checkbox
                   status={includeUppercase ? 'checked' : 'unchecked'}
-                  color={theme.primary}
+                  color={theme.colors.primary}
                 />
-                <Text style={[styles.checkboxLabel, { color: theme.text }]}>
+                <Text style={[styles.checkboxLabel, { color: theme.colors.text }]}>
                   Include Uppercase (A-Z)
                 </Text>
               </TouchableOpacity>
@@ -376,9 +361,9 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
               >
                 <Checkbox
                   status={includeLowercase ? 'checked' : 'unchecked'}
-                  color={theme.primary}
+                  color={theme.colors.primary}
                 />
-                <Text style={[styles.checkboxLabel, { color: theme.text }]}>
+                <Text style={[styles.checkboxLabel, { color: theme.colors.text }]}>
                   Include Lowercase (a-z)
                 </Text>
               </TouchableOpacity>
@@ -389,9 +374,9 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
               >
                 <Checkbox
                   status={includeNumbers ? 'checked' : 'unchecked'}
-                  color={theme.primary}
+                  color={theme.colors.primary}
                 />
-                <Text style={[styles.checkboxLabel, { color: theme.text }]}>
+                <Text style={[styles.checkboxLabel, { color: theme.colors.text }]}>
                   Include Numbers (0-9)
                 </Text>
               </TouchableOpacity>
@@ -402,9 +387,9 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
               >
                 <Checkbox
                   status={includeSymbols ? 'checked' : 'unchecked'}
-                  color={theme.primary}
+                  color={theme.colors.primary}
                 />
-                <Text style={[styles.checkboxLabel, { color: theme.text }]}>
+                <Text style={[styles.checkboxLabel, { color: theme.colors.text }]}>
                   Include Symbols (!@#$%^&*)
                 </Text>
               </TouchableOpacity>
@@ -413,10 +398,10 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
 
           {/* Password Length */}
           <View style={styles.lengthSection}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
               Password Length
             </Text>
-            <Text style={[styles.lengthValue, { color: theme.primary }]}>
+            <Text style={[styles.lengthValue, { color: theme.colors.primary }]}>
               {passwordLength}
             </Text>
             <Slider
@@ -425,19 +410,19 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
               maximumValue={32}
               value={passwordLength}
               onValueChange={handleLengthChange}
-              minimumTrackTintColor={theme.primary}
-              maximumTrackTintColor={theme.border}
-              thumbTintColor={theme.primary}
+              minimumTrackTintColor={theme.colors.primary}
+              maximumTrackTintColor={theme.colors.border}
+              thumbTintColor={theme.colors.primary}
               step={1}
             />
             <View style={styles.sliderLabels}>
               <Text
-                style={[styles.sliderLabel, { color: theme.textSecondary }]}
+                style={[styles.sliderLabel, { color: theme.colors.textSecondary }]}
               >
                 8
               </Text>
               <Text
-                style={[styles.sliderLabel, { color: theme.textSecondary }]}
+                style={[styles.sliderLabel, { color: theme.colors.textSecondary }]}
               >
                 32
               </Text>
@@ -447,7 +432,7 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
           {/* Password Strength */}
           {passwordStrength && (
             <View style={styles.strengthSection}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
                 Password Strength
               </Text>
               <View style={styles.strengthIndicator}>

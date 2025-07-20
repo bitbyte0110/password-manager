@@ -4,9 +4,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
+import { useTheme } from '../contexts/ThemeContext';
 
 const MFASetupModal = ({ visible, onComplete }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const { theme } = useTheme();
 
   const handleEnable = async () => {
     setIsLoading(true);
@@ -101,17 +103,17 @@ const MFASetupModal = ({ visible, onComplete }) => {
       onRequestClose={() => {}}
     >
       <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.colors.card }]}>
           {/* Logo */}
           <View style={styles.logoContainer}>
-            <LinearGradient colors={['#7E57C2', '#26A69A']} style={styles.logo}>
+            <LinearGradient colors={[theme.colors.primary, theme.colors.secondary]} style={styles.logo}>
               <FontAwesome5 name="shield-alt" size={40} color="#fff" />
             </LinearGradient>
           </View>
 
           {/* Content */}
-          <Text style={styles.title}>Enable Multi-Factor Authentication?</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: theme.colors.text }]}>Enable Multi-Factor Authentication?</Text>
+          <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
             Require both biometric and password for extra security
           </Text>
 
@@ -124,7 +126,7 @@ const MFASetupModal = ({ visible, onComplete }) => {
               disabled={isLoading}
             >
               <LinearGradient
-                colors={['#9b59b6', '#3498db']}
+                colors={[theme.colors.primary, theme.colors.secondary]}
                 style={styles.primaryButtonGradient}
               >
                 <Text style={styles.primaryButtonText}>
@@ -135,11 +137,11 @@ const MFASetupModal = ({ visible, onComplete }) => {
 
             {/* Skip Button */}
             <TouchableOpacity
-              style={styles.secondaryButton}
+              style={[styles.secondaryButton, { backgroundColor: '#3A3A3C', borderColor: '#3A3A3C' }]}
               onPress={handleSkip}
               disabled={isLoading}
             >
-              <Text style={styles.secondaryButtonText}>
+              <Text style={[styles.secondaryButtonText, { color: '#FFFFFF' }]}>
                 {isLoading ? 'Disabling MFA...' : 'Skip'}
               </Text>
             </TouchableOpacity>
@@ -159,7 +161,6 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContainer: {
-    backgroundColor: '#fff',
     borderRadius: 20,
     padding: 24,
     width: '100%',
@@ -188,13 +189,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
     textAlign: 'center',
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 14,
-    color: '#666',
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,
@@ -222,12 +221,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#ddd',
     borderRadius: 8,
     backgroundColor: 'transparent',
   },
   secondaryButtonText: {
-    color: '#666',
     fontSize: 16,
     fontWeight: '500',
   },

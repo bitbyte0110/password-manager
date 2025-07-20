@@ -6,7 +6,6 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  useColorScheme,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -27,6 +26,7 @@ import {
 } from '@react-navigation/native';
 import vaultService from '../services/vaultService';
 import { usePasswords } from '../PasswordContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 // Constants for activity tracking
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
@@ -36,6 +36,7 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
   const route = useRoute();
   const { id } = route.params;
   const { updatePassword } = usePasswords();
+  const { theme } = useTheme();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -58,22 +59,6 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [formErrors, setFormErrors] = useState({});
 
-  // Get color scheme for theme support
-  const colorScheme = useColorScheme();
-  const isDarkMode = colorScheme === 'dark';
-
-  // Theme colors
-  const theme = {
-    background: isDarkMode ? '#121212' : '#ffffff',
-    surface: isDarkMode ? '#1e1e1e' : '#f5f5f5',
-    primary: '#8e44ad',
-    secondary: '#3498db',
-    text: isDarkMode ? '#ffffff' : '#333333',
-    textSecondary: isDarkMode ? '#b0b0b0' : '#666666',
-    border: isDarkMode ? '#333333' : '#e0e0e0',
-    error: '#e74c3c',
-    generateLink: '#3366FF',
-  };
 
   useEffect(() => {
     initializeScreen();
@@ -343,7 +328,7 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
       id: 'create_new',
       name: '+ Create New Category',
       icon: 'plus',
-      color: theme.primary,
+      color: theme.colors.primary,
       isCreateNew: true,
     },
   ];
@@ -352,11 +337,11 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
   if (isInitializing) {
     return (
       <SafeAreaView
-        style={[styles.container, { backgroundColor: theme.background }]}
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
       >
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.primary} />
-          <Text style={[styles.loadingText, { color: theme.text }]}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.text }]}>
             Loading password entry...
           </Text>
         </View>
@@ -366,18 +351,18 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={handleCancel}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Icon name="arrow-left" size={20} color={theme.text} />
+          <Icon name="arrow-left" size={20} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
           Edit Password
         </Text>
         <View style={styles.headerRight} />
@@ -397,7 +382,7 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
         >
           {/* Category Selection */}
           <View style={styles.fieldContainer}>
-            <Text style={[styles.fieldLabel, { color: theme.text }]}>
+            <Text style={[styles.fieldLabel, { color: theme.colors.text }]}>
               Category
             </Text>
             <Menu
@@ -405,7 +390,7 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
               onDismiss={() => setShowCategoryMenu(false)}
               anchor={
                 <TouchableOpacity
-                  style={[styles.categoryButton, { borderColor: theme.border }]}
+                  style={[styles.categoryButton, { borderColor: theme.colors.border }]}
                   onPress={() => setShowCategoryMenu(true)}
                   disabled={isLoadingCategories}
                 >
@@ -414,8 +399,8 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
                       styles.categoryButtonText,
                       {
                         color: formData.categoryId
-                          ? theme.text
-                          : theme.textSecondary,
+                          ? theme.colors.text
+                          : theme.colors.textSecondary,
                       },
                     ]}
                   >
@@ -426,11 +411,11 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
                   <Icon
                     name="chevron-down"
                     size={16}
-                    color={theme.textSecondary}
+                    color={theme.colors.textSecondary}
                   />
                 </TouchableOpacity>
               }
-              contentStyle={{ backgroundColor: theme.background }}
+              contentStyle={{ backgroundColor: theme.colors.background }}
             >
               {categoryMenuItems.map((item, index) => (
                 <View key={item.id}>
@@ -451,8 +436,8 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
                             styles.categoryMenuText,
                             {
                               color: item.isCreateNew
-                                ? theme.primary
-                                : theme.text,
+                                ? theme.colors.primary
+                                : theme.colors.text,
                               fontWeight: item.isCreateNew ? '600' : 'normal',
                             },
                           ]}
@@ -471,7 +456,7 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
 
           {/* Title Input */}
           <View style={styles.fieldContainer}>
-            <Text style={[styles.fieldLabel, { color: theme.text }]}>
+            <Text style={[styles.fieldLabel, { color: theme.colors.text }]}>
               Title
             </Text>
             <TextInput
@@ -479,21 +464,24 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
               placeholder="e.g., Facebook, Gmail"
               value={formData.title}
               onChangeText={text => handleInputChange('title', text)}
-              style={[styles.textInput, { backgroundColor: theme.background }]}
+              style={[styles.textInput, { backgroundColor: theme.colors.inputBackground }]}
+              textColor={theme.colors.inputText}
+              placeholderTextColor={theme.colors.inputPlaceholder}
               error={!!formErrors.title}
               theme={{
                 colors: {
-                  primary: theme.primary,
-                  error: theme.error,
-                  text: theme.text,
-                  placeholder: theme.textSecondary,
-                  background: theme.background,
-                  outline: theme.border,
+                  primary: theme.colors.inputBorderFocused,
+                  error: theme.colors.error,
+                  text: theme.colors.inputText,
+                  placeholder: theme.colors.inputPlaceholder,
+                  background: theme.colors.inputBackground,
+                  outline: theme.colors.inputBorder,
+                  onSurfaceVariant: theme.colors.inputPlaceholder,
                 },
               }}
             />
             {formErrors.title && (
-              <Text style={[styles.errorText, { color: theme.error }]}>
+              <Text style={[styles.errorText, { color: theme.colors.error }]}>
                 {formErrors.title}
               </Text>
             )}
@@ -501,7 +489,7 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
 
           {/* Username/Email Input */}
           <View style={styles.fieldContainer}>
-            <Text style={[styles.fieldLabel, { color: theme.text }]}>
+            <Text style={[styles.fieldLabel, { color: theme.colors.text }]}>
               Username or Email
             </Text>
             <TextInput
@@ -509,7 +497,9 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
               placeholder="Enter username or email"
               value={formData.username}
               onChangeText={text => handleInputChange('username', text)}
-              style={[styles.textInput, { backgroundColor: theme.background }]}
+              style={[styles.textInput, { backgroundColor: theme.colors.inputBackground }]}
+              textColor={theme.colors.inputText}
+              placeholderTextColor={theme.colors.inputPlaceholder}
               keyboardType="email-address"
               autoCapitalize="none"
               theme={{
@@ -526,7 +516,7 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
 
           {/* Password Input */}
           <View style={styles.fieldContainer}>
-            <Text style={[styles.fieldLabel, { color: theme.text }]}>
+            <Text style={[styles.fieldLabel, { color: theme.colors.text }]}>
               Password
             </Text>
             <TextInput
@@ -535,28 +525,31 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
               value={formData.password}
               onChangeText={text => handleInputChange('password', text)}
               secureTextEntry={!showPassword}
-              style={[styles.textInput, { backgroundColor: theme.background }]}
+              style={[styles.textInput, { backgroundColor: theme.colors.inputBackground }]}
+              textColor={theme.colors.inputText}
+              placeholderTextColor={theme.colors.inputPlaceholder}
               error={!!formErrors.password}
               right={
                 <TextInput.Icon
                   icon={showPassword ? 'eye-off' : 'eye'}
                   onPress={() => setShowPassword(!showPassword)}
-                  iconColor={theme.textSecondary}
+                  iconColor={theme.colors.textSecondary}
                 />
               }
               theme={{
                 colors: {
-                  primary: theme.primary,
-                  error: theme.error,
-                  text: theme.text,
-                  placeholder: theme.textSecondary,
-                  background: theme.background,
-                  outline: theme.border,
+                  primary: theme.colors.inputBorderFocused,
+                  error: theme.colors.error,
+                  text: theme.colors.inputText,
+                  placeholder: theme.colors.inputPlaceholder,
+                  background: theme.colors.inputBackground,
+                  outline: theme.colors.inputBorder,
+                  onSurfaceVariant: theme.colors.inputPlaceholder,
                 },
               }}
             />
             {formErrors.password && (
-              <Text style={[styles.errorText, { color: theme.error }]}>
+              <Text style={[styles.errorText, { color: theme.colors.error }]}>
                 {formErrors.password}
               </Text>
             )}
@@ -567,7 +560,7 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
               onPress={handleGeneratePassword}
             >
               <Text
-                style={[styles.generateLink, { color: theme.generateLink }]}
+                style={[styles.generateLink, { color: theme.colors.primary }]}
               >
                 Generate Strong Password
               </Text>
@@ -576,7 +569,7 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
 
           {/* URL Input */}
           <View style={styles.fieldContainer}>
-            <Text style={[styles.fieldLabel, { color: theme.text }]}>
+            <Text style={[styles.fieldLabel, { color: theme.colors.text }]}>
               Website URL (Optional)
             </Text>
             <TextInput
@@ -584,23 +577,26 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
               placeholder="https://example.com"
               value={formData.url}
               onChangeText={text => handleInputChange('url', text)}
-              style={[styles.textInput, { backgroundColor: theme.background }]}
+              style={[styles.textInput, { backgroundColor: theme.colors.inputBackground }]}
+              textColor={theme.colors.inputText}
+              placeholderTextColor={theme.colors.inputPlaceholder}
               error={!!formErrors.url}
               keyboardType="url"
               autoCapitalize="none"
               theme={{
                 colors: {
-                  primary: theme.primary,
-                  error: theme.error,
-                  text: theme.text,
-                  placeholder: theme.textSecondary,
-                  background: theme.background,
-                  outline: theme.border,
+                  primary: theme.colors.inputBorderFocused,
+                  error: theme.colors.error,
+                  text: theme.colors.inputText,
+                  placeholder: theme.colors.inputPlaceholder,
+                  background: theme.colors.inputBackground,
+                  outline: theme.colors.inputBorder,
+                  onSurfaceVariant: theme.colors.inputPlaceholder,
                 },
               }}
             />
             {formErrors.url && (
-              <Text style={[styles.errorText, { color: theme.error }]}>
+              <Text style={[styles.errorText, { color: theme.colors.error }]}>
                 {formErrors.url}
               </Text>
             )}
@@ -608,7 +604,7 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
 
           {/* Notes Input */}
           <View style={styles.fieldContainer}>
-            <Text style={[styles.fieldLabel, { color: theme.text }]}>
+            <Text style={[styles.fieldLabel, { color: theme.colors.text }]}>
               Notes (Optional)
             </Text>
             <TextInput
@@ -619,8 +615,10 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
               style={[
                 styles.textInput,
                 styles.notesInput,
-                { backgroundColor: theme.background },
+                { backgroundColor: theme.colors.inputBackground },
               ]}
+              textColor={theme.colors.inputText}
+              placeholderTextColor={theme.colors.inputPlaceholder}
               multiline
               numberOfLines={4}
               theme={{
@@ -645,11 +643,11 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
                 name={formData.isFavorite ? 'star' : 'star-o'}
                 size={20}
                 color={
-                  formData.isFavorite ? theme.primary : theme.textSecondary
+                  formData.isFavorite ? theme.colors.primary : theme.colors.textSecondary
                 }
                 solid={formData.isFavorite}
               />
-              <Text style={[styles.favoriteLabel, { color: theme.text }]}>
+              <Text style={[styles.favoriteLabel, { color: theme.colors.text }]}>
                 Mark as Favorite
               </Text>
             </TouchableOpacity>
@@ -688,7 +686,7 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
             activeOpacity={0.8}
           >
             <Text
-              style={[styles.cancelButtonText, { color: theme.textSecondary }]}
+              style={[styles.cancelButtonText, { color: theme.colors.textSecondary }]}
             >
               Cancel
             </Text>

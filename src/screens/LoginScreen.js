@@ -17,6 +17,7 @@ import bcrypt from 'bcryptjs';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useNavigation } from '@react-navigation/native';
 import vaultService from '../services/vaultService';
+import { useTheme } from '../contexts/ThemeContext';
 
 // Password lockout constants
 const FAILED_ATTEMPTS_KEY = 'vault_failedAttempts';
@@ -32,6 +33,7 @@ const BIOMETRIC_TIMEOUT_DURATION = 30 * 1000; // 30 seconds
 
 const LoginScreen = ({ navigation: navProp }) => {
   const navigation = navProp || useNavigation();
+  const { theme } = useTheme();
 
   // State management
   const [masterPassword, setMasterPassword] = useState('');
@@ -43,6 +45,7 @@ const LoginScreen = ({ navigation: navProp }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
   const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
 
   // New state for enhanced features
   const [biometricEnabled, setBiometricEnabled] = useState(false);
@@ -422,13 +425,15 @@ const LoginScreen = ({ navigation: navProp }) => {
   };
 
   const handlePasswordLogin = async () => {
+    setPasswordError(''); // Clear any previous errors
+    
     if (!masterPassword.trim()) {
-      showSnackbar('Please enter your master password');
+      setPasswordError('Please enter your master password');
       return;
     }
 
     if (isLocked) {
-      showSnackbar('Account is locked due to too many failed attempts');
+      setPasswordError('Account is locked due to too many failed attempts');
       return;
     }
 
@@ -474,11 +479,11 @@ const LoginScreen = ({ navigation: navProp }) => {
       } else {
         await incrementFailedAttempts();
         if (mfaMode) {
-          showSnackbar(
+          setPasswordError(
             'Invalid master password. MFA Step 2 failed - both biometric and password required.'
           );
         } else {
-          showSnackbar(
+          setPasswordError(
             `Invalid password. ${MAX_FAILED_ATTEMPTS - (failedAttempts + 1)} attempts remaining.`
           );
         }
@@ -542,6 +547,7 @@ const LoginScreen = ({ navigation: navProp }) => {
     setShowPassword(false);
     setMfaMode(false);
     setBiometricSucceeded(false);
+    setPasswordError(''); // Clear any error when modal is closed
   };
 
   const showSnackbar = message => {
@@ -568,12 +574,12 @@ const LoginScreen = ({ navigation: navProp }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#8e44ad', '#3498db']} style={styles.gradient}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <LinearGradient colors={[theme.colors.primary, theme.colors.secondary]} style={styles.gradient}>
         <View style={styles.content}>
           {/* Logo */}
           <View style={styles.logoContainer}>
-            <LinearGradient colors={['#7E57C2', '#26A69A']} style={styles.logo}>
+            <LinearGradient colors={[theme.colors.primary, theme.colors.secondary]} style={styles.logo}>
               <Icon name="shield-alt" size={40} color="#fff" />
             </LinearGradient>
           </View>
@@ -707,14 +713,14 @@ const LoginScreen = ({ navigation: navProp }) => {
         onRequestClose={handleCancelPasswordModal}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
               {mfaMode
                 ? 'Multi-Factor Authentication'
                 : 'Vault Access Required'}
             </Text>
 
-            <Text style={styles.modalSubtitle}>
+            <Text style={[styles.modalSubtitle, { color: theme.colors.textSecondary }]}>
               {mfaMode
                 ? biometricSucceeded
                   ? 'Step 2 of 2: Biometric authentication successful. Please enter your master password to complete MFA login.'
@@ -728,15 +734,26 @@ const LoginScreen = ({ navigation: navProp }) => {
               label="Master Password"
               mode="outlined"
               value={masterPassword}
-              onChangeText={setMasterPassword}
+              onChangeText={(text) => {
+                setMasterPassword(text);
+                if (passwordError) setPasswordError(''); // Clear error when user types
+              }}
               secureTextEntry={!showPassword}
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: theme.colors.inputBackground }]}
               theme={{
                 colors: {
-                  primary: '#9b59b6',
-                  accent: '#9b59b6',
+                  primary: theme.colors.inputBorderFocused,
+                  accent: theme.colors.inputBorderFocused,
+                  text: theme.colors.inputText,
+                  background: theme.colors.inputBackground,
+                  outline: passwordError ? theme.colors.error : theme.colors.inputBorder,
+                  placeholder: theme.colors.inputPlaceholder,
+                  onSurfaceVariant: theme.colors.inputPlaceholder,
                 },
               }}
+              textColor={theme.colors.inputText}
+              placeholderTextColor={theme.colors.inputPlaceholder}
+              error={!!passwordError}
               autoFocus
               returnKeyType="done"
               onSubmitEditing={handlePasswordLogin}
@@ -744,27 +761,34 @@ const LoginScreen = ({ navigation: navProp }) => {
                 <TextInput.Icon
                   icon={showPassword ? 'eye-off' : 'eye'}
                   onPress={() => setShowPassword(!showPassword)}
+                  iconColor={theme.colors.inputText}
                 />
               }
             />
+
+            {passwordError ? (
+              <Text style={[styles.errorText, { color: theme.colors.error }]}>
+                {passwordError}
+              </Text>
+            ) : null}
 
             <View style={styles.modalButtons}>
               <Button
                 mode="text"
                 onPress={handleForgotPassword}
                 style={styles.modalLinkButton}
-                textColor="#9b59b6"
+                textColor={theme.colors.primary}
               >
-                <Text>Forgot Password?</Text>
+                <Text style={{ color: theme.colors.primary }}>Forgot Password?</Text>
               </Button>
 
               <Button
                 mode="text"
                 onPress={handleResetVault}
                 style={styles.modalLinkButton}
-                textColor="#e74c3c"
+                textColor={theme.colors.error}
               >
-                <Text>Reset Vault</Text>
+                <Text style={{ color: theme.colors.error }}>Reset Vault</Text>
               </Button>
             </View>
 
@@ -774,8 +798,8 @@ const LoginScreen = ({ navigation: navProp }) => {
                 onPress={handleCancelPasswordModal}
                 activeOpacity={0.8}
               >
-                <View style={styles.modalCancelButtonContent}>
-                  <Text style={styles.modalCancelButtonText}>Cancel</Text>
+                <View style={[styles.modalCancelButtonContent, { backgroundColor: '#3A3A3C', borderColor: '#3A3A3C' }]}>
+                  <Text style={[styles.modalCancelButtonText, { color: '#FFFFFF' }]}>Cancel</Text>
                 </View>
               </TouchableOpacity>
 
@@ -786,7 +810,7 @@ const LoginScreen = ({ navigation: navProp }) => {
                 activeOpacity={0.8}
               >
                 <LinearGradient
-                  colors={['#9b59b6', '#3498db']}
+                  colors={[theme.colors.primary, theme.colors.secondary]}
                   style={[
                     styles.modalLoginButtonGradient,
                     (!masterPassword.trim() || isLoading) &&
@@ -974,7 +998,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalInput: {
-    marginBottom: 20,
+    marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 12,
+    marginTop: 4,
+    marginBottom: 16,
+    marginLeft: 12,
   },
   modalButtons: {
     flexDirection: 'row',
@@ -1002,10 +1032,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 40,
-    backgroundColor: '#fff',
   },
   modalCancelButtonText: {
-    color: '#666',
     fontSize: 16,
     fontWeight: 'bold',
   },

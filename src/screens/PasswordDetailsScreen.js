@@ -15,12 +15,14 @@ import clipboardService from '../services/clipboardService';
 import vaultService from '../services/vaultService';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { usePasswords } from '../PasswordContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const PasswordDetailsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { id } = route.params;
   const { deletePassword } = usePasswords();
+  const { theme } = useTheme();
 
   const [entry, setEntry] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -101,7 +103,10 @@ const PasswordDetailsScreen = () => {
             try {
               await vaultService.deletePasswordEntry(id);
               deletePassword(id); // Update context state immediately
-              navigation.goBack();
+              navigation.navigate('MainTabs', {
+                screen: 'MyVault',
+                params: { shouldRefresh: true },
+              });
             } catch (e) {
               setSnackbar({ visible: true, message: 'Delete failed' });
             }
@@ -113,47 +118,38 @@ const PasswordDetailsScreen = () => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+        <Text style={[styles.loadingText, { color: theme.colors.text }]}>Loading...</Text>
       </View>
     );
   }
 
   if (decryptionError || !entry) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.errorText}>Unable to decrypt entry.</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+        <Text style={[styles.errorText, { color: theme.colors.error }]}>Unable to decrypt entry.</Text>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={{ marginTop: 20 }}
         >
-          <Text style={{ color: '#8e44ad', fontWeight: 'bold' }}>Go Back</Text>
+          <Text style={{ color: theme.colors.primary, fontWeight: 'bold' }}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const theme = {
-    primary: '#8e44ad',
-    secondary: '#3498db',
-    card: '#fff',
-    text: '#333',
-    textSecondary: '#888',
-    error: '#e74c3c',
-    border: '#e0e0e0',
-  };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       {/* Gradient Header */}
-      <LinearGradient colors={['#9b59b6', '#3498db']} style={styles.header}>
+      <LinearGradient colors={[theme.colors.primary, theme.colors.secondary]} style={styles.header}>
         <TouchableOpacity
           style={styles.headerBack}
           onPress={() => navigation.goBack()}
         >
           <Icon name="arrow-left" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
+        <Text style={[styles.headerTitle, { color: '#fff' }]} numberOfLines={1}>
           {entry.title || 'Password Details'}
         </Text>
         <View style={{ width: 32 }} />
@@ -161,12 +157,12 @@ const PasswordDetailsScreen = () => {
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
         {/* Content Card */}
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
           <View style={styles.cardHeaderRow}>
             <View
               style={[
                 styles.categoryIconCircle,
-                { backgroundColor: entry.categoryColor || theme.primary },
+                { backgroundColor: entry.categoryColor || theme.colors.primary },
               ]}
             >
               <Icon
@@ -183,7 +179,7 @@ const PasswordDetailsScreen = () => {
               <Icon
                 name={favorite ? 'star' : 'star-o'}
                 size={26}
-                color={favorite ? theme.primary : theme.textSecondary}
+                color={favorite ? theme.colors.primary : theme.colors.textSecondary}
                 solid={favorite}
               />
             </TouchableOpacity>
@@ -191,8 +187,8 @@ const PasswordDetailsScreen = () => {
 
           {/* Field List */}
           <View style={styles.fieldBlock}>
-            <Text style={styles.fieldLabel}>Title</Text>
-            <Text style={styles.fieldValue}>
+            <Text style={[styles.fieldLabel, { color: theme.colors.textSecondary }]}>Title</Text>
+            <Text style={[styles.fieldValue, { color: theme.colors.text }]}>
               {entry.title || (
                 <Text style={styles.errorText}>Unable to decrypt</Text>
               )}
@@ -200,8 +196,8 @@ const PasswordDetailsScreen = () => {
           </View>
 
           <View style={styles.fieldBlock}>
-            <Text style={styles.fieldLabel}>Username / Email</Text>
-            <Text style={styles.fieldValue}>
+            <Text style={[styles.fieldLabel, { color: theme.colors.textSecondary }]}>Username / Email</Text>
+            <Text style={[styles.fieldValue, { color: theme.colors.text }]}>
               {entry.username || (
                 <Text style={styles.errorText}>Unable to decrypt</Text>
               )}
@@ -209,9 +205,9 @@ const PasswordDetailsScreen = () => {
           </View>
 
           <View style={styles.fieldBlock}>
-            <Text style={styles.fieldLabel}>Password</Text>
+            <Text style={[styles.fieldLabel, { color: theme.colors.textSecondary }]}>Password</Text>
             <View style={styles.passwordRow}>
-              <Text style={styles.fieldValue}>
+              <Text style={[styles.fieldValue, { color: theme.colors.text }]}>
                 {showPassword ? (
                   entry.password || (
                     <Text style={styles.errorText}>Unable to decrypt</Text>
@@ -225,7 +221,7 @@ const PasswordDetailsScreen = () => {
               <IconButton
                 icon={showPassword ? 'eye-off' : 'eye'}
                 size={20}
-                color={theme.textSecondary}
+                color={theme.colors.textSecondary}
                 onPress={() => setShowPassword(!showPassword)}
                 style={{ marginLeft: 0 }}
               />
@@ -241,12 +237,12 @@ const PasswordDetailsScreen = () => {
 
           {entry.url ? (
             <View style={styles.fieldBlock}>
-              <Text style={styles.fieldLabel}>Website URL</Text>
+              <Text style={[styles.fieldLabel, { color: theme.colors.textSecondary }]}>Website URL</Text>
               <TouchableOpacity onPress={() => Linking.openURL(entry.url)}>
                 <Text
                   style={[
                     styles.fieldValue,
-                    { color: theme.secondary, textDecorationLine: 'underline' },
+                    { color: theme.colors.secondary, textDecorationLine: 'underline' },
                   ]}
                   numberOfLines={1}
                 >
@@ -258,7 +254,7 @@ const PasswordDetailsScreen = () => {
 
           {entry.notes ? (
             <View style={styles.fieldBlock}>
-              <Text style={styles.fieldLabel}>Notes</Text>
+              <Text style={[styles.fieldLabel, { color: theme.colors.textSecondary }]}>Notes</Text>
               <Text style={[styles.fieldValue, { minHeight: 40 }]}>
                 {entry.notes}
               </Text>
@@ -266,13 +262,13 @@ const PasswordDetailsScreen = () => {
           ) : null}
 
           <View style={{ marginTop: 16 }}>
-            <Text style={styles.timestampText}>
+            <Text style={[styles.timestampText, { color: theme.colors.textSecondary }]}>
               Created:{' '}
               {entry.createdAt
                 ? new Date(entry.createdAt).toLocaleString()
                 : '-'}
             </Text>
-            <Text style={styles.timestampText}>
+            <Text style={[styles.timestampText, { color: theme.colors.textSecondary }]}>
               Last Updated:{' '}
               {entry.updatedAt
                 ? new Date(entry.updatedAt).toLocaleString()
@@ -283,17 +279,17 @@ const PasswordDetailsScreen = () => {
       </ScrollView>
 
       {/* Footer Actions */}
-      <View style={styles.footerActions}>
+      <View style={[styles.footerActions, { backgroundColor: theme.colors.card }]}>
         <TouchableOpacity activeOpacity={0.85} onPress={handleEdit}>
           <LinearGradient
-            colors={['#9b59b6', '#3498db']}
+            colors={[theme.colors.primary, theme.colors.secondary]}
             style={styles.editButton}
           >
-            <Text style={styles.editButtonText}>Edit</Text>
+            <Text style={[styles.editButtonText, { color: '#fff' }]}>Edit</Text>
           </LinearGradient>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
-          <Text style={styles.deleteButtonText}>Delete Password</Text>
+          <Text style={[styles.deleteButtonText, { color: theme.colors.error }]}>Delete Password</Text>
         </TouchableOpacity>
       </View>
 
@@ -301,7 +297,7 @@ const PasswordDetailsScreen = () => {
         visible={snackbar.visible}
         onDismiss={() => setSnackbar({ visible: false, message: '' })}
         duration={2000}
-        style={{ backgroundColor: '#333' }}
+        style={{ backgroundColor: theme.colors.surface }}
       >
         {snackbar.message}
       </Snackbar>
@@ -325,7 +321,6 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   headerTitle: {
-    color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
@@ -333,7 +328,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 40,
   },
   card: {
-    backgroundColor: '#fff',
     borderRadius: 16,
     padding: 20,
     shadowColor: '#000',
@@ -363,13 +357,11 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   fieldLabel: {
-    color: '#888',
     fontWeight: '600',
     fontSize: 14,
     marginBottom: 2,
   },
   fieldValue: {
-    color: '#222',
     fontSize: 16,
     marginBottom: 2,
   },
@@ -379,7 +371,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   timestampText: {
-    color: '#aaa',
     fontSize: 12,
     marginTop: 2,
   },
@@ -391,7 +382,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   editButtonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -400,7 +390,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   deleteButtonText: {
-    color: '#e74c3c',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -409,7 +398,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#fff',
     padding: 20,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
@@ -423,14 +411,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
   },
   loadingText: {
-    color: '#888',
     fontSize: 16,
   },
   errorText: {
-    color: '#e74c3c',
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',

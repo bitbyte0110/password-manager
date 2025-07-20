@@ -5,9 +5,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   Modal,
-  useColorScheme,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
+import { useTheme } from '../contexts/ThemeContext';
 
 const FABActionMenu = ({
   visible,
@@ -16,18 +16,7 @@ const FABActionMenu = ({
   onAddPassword,
   onAddCategory,
 }) => {
-  const colorScheme = useColorScheme();
-  const isDarkMode = colorScheme === 'dark';
-
-  const theme = {
-    background: isDarkMode ? '#121212' : '#ffffff',
-    surface: isDarkMode ? '#1e1e1e' : '#f5f5f5',
-    primary: '#8e44ad',
-    secondary: '#3498db',
-    text: isDarkMode ? '#ffffff' : '#000000',
-    textSecondary: isDarkMode ? '#b0b0b0' : '#666666',
-    border: isDarkMode ? '#333333' : '#e0e0e0',
-  };
+  const { theme } = useTheme();
 
   const handleAddPassword = () => {
     onClose();
@@ -61,16 +50,16 @@ const FABActionMenu = ({
           onPress={onClose}
         />
         <View
-          style={[styles.modalContent, { backgroundColor: theme.background }]}
+          style={[styles.modalContent, { backgroundColor: theme.colors.background }]}
         >
           <View
-            style={[styles.modalHeader, { borderBottomColor: theme.border }]}
+            style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}
           >
-            <Text style={[styles.modalTitle, { color: theme.text }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
               Add New
             </Text>
             <TouchableOpacity onPress={onClose}>
-              <Icon name="times" size={20} color={theme.textSecondary} />
+              <Icon name="times" size={20} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -80,18 +69,18 @@ const FABActionMenu = ({
             activeOpacity={0.7}
           >
             <View
-              style={[styles.addOptionIcon, { backgroundColor: theme.primary }]}
+              style={[styles.addOptionIcon, { backgroundColor: theme.colors.primary }]}
             >
               <Icon name="key" size={20} color="#fff" />
             </View>
             <View style={styles.addOptionContent}>
-              <Text style={[styles.addOptionTitle, { color: theme.text }]}>
+              <Text style={[styles.addOptionTitle, { color: theme.colors.text }]}>
                 Add Password
               </Text>
               <Text
                 style={[
                   styles.addOptionSubtitle,
-                  { color: theme.textSecondary },
+                  { color: theme.colors.textSecondary },
                 ]}
               >
                 Store a new login credential
@@ -107,19 +96,19 @@ const FABActionMenu = ({
             <View
               style={[
                 styles.addOptionIcon,
-                { backgroundColor: theme.secondary },
+                { backgroundColor: theme.colors.secondary },
               ]}
             >
               <Icon name="folder-plus" size={20} color="#fff" />
             </View>
             <View style={styles.addOptionContent}>
-              <Text style={[styles.addOptionTitle, { color: theme.text }]}>
+              <Text style={[styles.addOptionTitle, { color: theme.colors.text }]}>
                 Add Category
               </Text>
               <Text
                 style={[
                   styles.addOptionSubtitle,
-                  { color: theme.textSecondary },
+                  { color: theme.colors.textSecondary },
                 ]}
               >
                 Create a new category

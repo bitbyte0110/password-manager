@@ -6,31 +6,19 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  useColorScheme,
   Alert,
 } from 'react-native';
 import { Button, RadioButton } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme } from '../contexts/ThemeContext';
 
 const ClipboardSettingsScreen = () => {
   const navigation = useNavigation();
+  const { theme } = useTheme();
   const [selectedTimeout, setSelectedTimeout] = useState('30');
   const [isLoading, setIsLoading] = useState(false);
-
-  const colorScheme = useColorScheme();
-  const isDarkMode = colorScheme === 'dark';
-
-  const theme = {
-    background: isDarkMode ? '#121212' : '#ffffff',
-    card: isDarkMode ? '#2c2c2c' : '#ffffff',
-    primary: '#8e44ad',
-    text: isDarkMode ? '#ffffff' : '#333333',
-    textSecondary: isDarkMode ? '#b0b0b0' : '#666666',
-    border: isDarkMode ? '#333333' : '#e0e0e0',
-    success: '#2ecc71',
-  };
 
   const timeoutOptions = [
     {
@@ -114,17 +102,17 @@ const ClipboardSettingsScreen = () => {
   const renderTimeoutOption = option => (
     <TouchableOpacity
       key={option.value}
-      style={[styles.optionItem, { backgroundColor: theme.card }]}
+      style={[styles.optionItem, { backgroundColor: theme.colors.card }]}
       onPress={() => setSelectedTimeout(option.value)}
       activeOpacity={0.7}
     >
       <View style={styles.optionContent}>
         <View style={styles.optionLeft}>
-          <Text style={[styles.optionLabel, { color: theme.text }]}>
+          <Text style={[styles.optionLabel, { color: theme.colors.text }]}>
             {option.label}
           </Text>
           <Text
-            style={[styles.optionDescription, { color: theme.textSecondary }]}
+            style={[styles.optionDescription, { color: theme.colors.textSecondary }]}
           >
             {option.description}
           </Text>
@@ -133,7 +121,7 @@ const ClipboardSettingsScreen = () => {
           value={option.value}
           status={selectedTimeout === option.value ? 'checked' : 'unchecked'}
           onPress={() => setSelectedTimeout(option.value)}
-          color={theme.primary}
+          color={theme.colors.primary}
         />
       </View>
     </TouchableOpacity>
@@ -141,17 +129,17 @@ const ClipboardSettingsScreen = () => {
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-left" size={20} color={theme.text} />
+          <Icon name="arrow-left" size={20} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
           Clipboard Auto-Clear
         </Text>
         <View style={styles.headerRight} />
@@ -166,11 +154,11 @@ const ClipboardSettingsScreen = () => {
           <View
             style={[
               styles.infoSection,
-              { backgroundColor: theme.primary + '10' },
+              { backgroundColor: theme.colors.primary + '10' },
             ]}
           >
-            <Icon name="info-circle" size={20} color={theme.primary} />
-            <Text style={[styles.infoText, { color: theme.text }]}>
+            <Icon name="info-circle" size={20} color={theme.colors.primary} />
+            <Text style={[styles.infoText, { color: theme.colors.text }]}>
               For security, passwords copied to your clipboard are automatically
               cleared after the selected timeout to prevent unauthorized access.
             </Text>
@@ -178,11 +166,11 @@ const ClipboardSettingsScreen = () => {
 
           {/* Timeout Options */}
           <View style={styles.optionsContainer}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
               Select Auto-Clear Timeout
             </Text>
 
-            <View style={[styles.optionsList, { backgroundColor: theme.card }]}>
+            <View style={[styles.optionsList, { backgroundColor: theme.colors.card }]}>
               {timeoutOptions.map((option, index) => (
                 <View key={option.value}>
                   {renderTimeoutOption(option)}
@@ -190,7 +178,7 @@ const ClipboardSettingsScreen = () => {
                     <View
                       style={[
                         styles.divider,
-                        { backgroundColor: theme.border },
+                        { backgroundColor: theme.colors.border },
                       ]}
                     />
                   )}
@@ -200,9 +188,9 @@ const ClipboardSettingsScreen = () => {
           </View>
 
           {/* Security Explanation */}
-          <View style={[styles.securityNote, { backgroundColor: theme.card }]}>
-            <Icon name="shield-alt" size={18} color={theme.primary} />
-            <Text style={[styles.securityText, { color: theme.textSecondary }]}>
+          <View style={[styles.securityNote, { backgroundColor: theme.colors.card }]}>
+            <Icon name="shield-alt" size={18} color={theme.colors.primary} />
+            <Text style={[styles.securityText, { color: theme.colors.textSecondary }]}>
               <Text style={{ fontWeight: '600' }}>Why auto-clear?</Text>
               {'\n'}
               Other apps or malicious software could potentially access your
@@ -215,13 +203,13 @@ const ClipboardSettingsScreen = () => {
 
       {/* Action Buttons */}
       <View
-        style={[styles.buttonContainer, { backgroundColor: theme.background }]}
+        style={[styles.buttonContainer, { backgroundColor: theme.colors.background }]}
       >
         <Button
-          mode="outlined"
+          mode="contained"
           onPress={() => navigation.goBack()}
-          style={[styles.button, { borderColor: theme.border }]}
-          textColor={theme.textSecondary}
+          style={[styles.button, { backgroundColor: '#3A3A3C' }]}
+          textColor="#FFFFFF"
           disabled={isLoading}
         >
           Cancel
@@ -229,7 +217,7 @@ const ClipboardSettingsScreen = () => {
         <Button
           mode="contained"
           onPress={handleSave}
-          style={[styles.button, { backgroundColor: theme.primary }]}
+          style={[styles.button, { backgroundColor: theme.colors.primary }]}
           loading={isLoading}
           disabled={isLoading}
         >
