@@ -14,11 +14,13 @@ import Icon from 'react-native-vector-icons/FontAwesome5';
 import clipboardService from '../services/clipboardService';
 import vaultService from '../services/vaultService';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
+import { usePasswords } from '../PasswordContext';
 
 const PasswordDetailsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { id } = route.params;
+  const { deletePassword } = usePasswords();
 
   const [entry, setEntry] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -98,8 +100,8 @@ const PasswordDetailsScreen = () => {
           onPress: async () => {
             try {
               await vaultService.deletePasswordEntry(id);
+              deletePassword(id); // Update context state immediately
               navigation.goBack();
-              // Optionally: trigger refresh in parent
             } catch (e) {
               setSnackbar({ visible: true, message: 'Delete failed' });
             }
