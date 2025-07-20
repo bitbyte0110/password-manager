@@ -164,22 +164,23 @@ const SessionManager = ({ children, navigationRef }) => {
           // Check if we're already on the login screen
           const currentRoute = navigationRef.current.getCurrentRoute();
           if (currentRoute?.name !== 'Login') {
-            navigationRef.current.replace('Login');
+            // Use reset instead of replace for navigation container ref
+            navigationRef.current.reset({
+              index: 0,
+              routes: [{ name: 'Login' }],
+            });
             console.log('Successfully navigated to Login screen');
           } else {
             console.log('Already on Login screen, no navigation needed');
           }
         } catch (navError) {
           console.error('Error during navigation:', navError);
-          // Fallback: try to reset the navigation stack
+          // Secondary fallback: try basic navigation
           try {
-            navigationRef.current.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            });
-            console.log('Successfully reset navigation to Login screen');
-          } catch (resetError) {
-            console.error('Error resetting navigation:', resetError);
+            navigationRef.current.navigate('Login');
+            console.log('Successfully navigated to Login using navigate');
+          } catch (navigateError) {
+            console.error('Error with navigate fallback:', navigateError);
           }
         }
       } else {
@@ -197,6 +198,13 @@ const SessionManager = ({ children, navigationRef }) => {
           console.log('Emergency navigation to Login completed');
         } catch (emergencyNavError) {
           console.error('Emergency navigation failed:', emergencyNavError);
+          // Final fallback
+          try {
+            navigationRef.current.navigate('Login');
+            console.log('Emergency navigate to Login completed');
+          } catch (finalError) {
+            console.error('All navigation methods failed:', finalError);
+          }
         }
       }
     }

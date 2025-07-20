@@ -904,15 +904,37 @@ class DatabaseService {
         throw new Error('No password entry was updated');
       }
 
-      // Store password history if password changed
-      if (
-        oldEntry.password_encrypted !== JSON.stringify(encryptedEntry.password)
-      ) {
-        await this.db.runAsync(
-          `INSERT INTO password_history (password_id, old_password_encrypted)
-           VALUES (?, ?)`,
-          [id, oldEntry.password_encrypted]
-        );
+      // Store password history - always store the old encrypted password for audit purposes
+      // First, we need to get the old encrypted password in the correct format
+      let oldPasswordEncrypted = null;
+
+      try {
+        // Check if old entry uses legacy format
+        if (
+          oldEntry.password_encrypted &&
+          oldEntry.password_encrypted !== 'null'
+        ) {
+          // Legacy format - use the existing encrypted password
+          oldPasswordEncrypted = oldEntry.password_encrypted;
+        } else if (oldEntry.encrypted_payload) {
+          // New format - extract password from payload
+          const oldPayload = JSON.parse(oldEntry.encrypted_payload);
+          if (oldPayload && oldPayload.password) {
+            oldPasswordEncrypted = JSON.stringify(oldPayload.password);
+          }
+        }
+
+        // If we have an old password, store it in history
+        if (oldPasswordEncrypted && oldPasswordEncrypted !== 'null') {
+          await this.db.runAsync(
+            `INSERT INTO password_history (password_id, old_password_encrypted)
+             VALUES (?, ?)`,
+            [id, oldPasswordEncrypted]
+          );
+        }
+      } catch (historyError) {
+        console.warn('Failed to store password history:', historyError);
+        // Don't fail the update if history storage fails
       }
 
       // Log the action

@@ -833,7 +833,7 @@ const CategoriesScreen = ({ navigation, route }) => {
         contentContainerStyle={
           filteredCategories.length === 0
             ? styles.emptyListContainer
-            : { paddingTop: 8, paddingBottom: 200 }
+            : { paddingBottom: 200 }
         }
       />
 
@@ -920,7 +920,7 @@ const styles = StyleSheet.create({
   },
   sortContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 4,
     alignItems: 'flex-end',
   },
   sortButton: {
