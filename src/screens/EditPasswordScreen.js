@@ -20,7 +20,11 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/FontAwesome5';
-import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
+import {
+  useNavigation,
+  useFocusEffect,
+  useRoute,
+} from '@react-navigation/native';
 import vaultService from '../services/vaultService';
 import { usePasswords } from '../PasswordContext';
 
@@ -92,7 +96,7 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
 
       // Load the existing password entry
       await loadPasswordEntry();
-      
+
       // Load categories after database is initialized
       await loadCategories();
     } catch (error) {
@@ -273,9 +277,8 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
     }
 
     try {
-      // Prepare password entry for database
+      // Prepare password entry for database (ID should be passed separately)
       const passwordEntry = {
-        id: id,
         title: formData.title.trim(),
         username: formData.username.trim(),
         password: formData.password,
@@ -285,12 +288,12 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
         isFavorite: formData.isFavorite,
       };
 
-      // Update in database using existing vaultService
-      await vaultService.updatePasswordEntry(passwordEntry);
-      
+      // Update in database using existing vaultService (pass ID as first parameter)
+      await vaultService.updatePasswordEntry(id, passwordEntry);
+
       // Update the password context
-      updatePassword(passwordEntry);
-      
+      updatePassword({ id, ...passwordEntry });
+
       showSnackbar('Password updated successfully!');
 
       // Navigate back after successful update
@@ -651,7 +654,10 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
 
           {/* Update Button */}
           <TouchableOpacity
-            style={[styles.updateButton, !isFormValid() && styles.disabledButton]}
+            style={[
+              styles.updateButton,
+              !isFormValid() && styles.disabledButton,
+            ]}
             onPress={handleUpdatePassword}
             disabled={!isFormValid() || isUpdating}
             activeOpacity={0.8}
@@ -678,7 +684,9 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
             disabled={isUpdating}
             activeOpacity={0.8}
           >
-            <Text style={[styles.cancelButtonText, { color: theme.textSecondary }]}>
+            <Text
+              style={[styles.cancelButtonText, { color: theme.textSecondary }]}
+            >
               Cancel
             </Text>
           </TouchableOpacity>

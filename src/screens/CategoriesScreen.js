@@ -421,7 +421,7 @@ const CategoriesScreen = ({ navigation, route }) => {
   };
 
   const renderCategoryCard = ({ item }) => (
-    <View>
+    <View style={styles.categoryCardContainer}>
       <TouchableOpacity
         style={[styles.categoryCard, { backgroundColor: theme.surface }]}
         onPress={() => handleCategoryPress(item)}
@@ -453,34 +453,38 @@ const CategoriesScreen = ({ navigation, route }) => {
               </Text>
             </View>
           </View>
-          <TouchableOpacity
-            style={styles.moreButton}
-            onPress={event => handleMoreOptions(item, event)}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          <Menu
+            visible={menuVisible[item.id] || false}
+            onDismiss={() => setMenuVisible({})}
+            anchor={
+              <TouchableOpacity
+                style={styles.moreButton}
+                onPress={event => handleMoreOptions(item, event)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Icon name="ellipsis-v" size={16} color={theme.textSecondary} />
+              </TouchableOpacity>
+            }
+            contentStyle={[
+              styles.menuContent,
+              { backgroundColor: theme.surface },
+            ]}
           >
-            <Icon name="ellipsis-v" size={16} color={theme.textSecondary} />
-          </TouchableOpacity>
+            <Menu.Item
+              onPress={handleEditCategory}
+              title="Edit Category"
+              leadingIcon="pencil"
+              titleStyle={{ color: theme.text }}
+            />
+            <Menu.Item
+              onPress={handleDeleteCategory}
+              title="Delete Category"
+              leadingIcon="trash"
+              titleStyle={{ color: theme.error }}
+            />
+          </Menu>
         </View>
       </TouchableOpacity>
-      <Menu
-        visible={menuVisible[item.id] || false}
-        onDismiss={() => setMenuVisible({})}
-        anchor={<View style={{ position: 'absolute', top: 16, right: 16 }} />}
-        contentStyle={[styles.menuContent, { backgroundColor: theme.surface }]}
-      >
-        <Menu.Item
-          onPress={handleEditCategory}
-          title="Edit Category"
-          leadingIcon="pencil"
-          titleStyle={{ color: theme.text }}
-        />
-        <Menu.Item
-          onPress={handleDeleteCategory}
-          title="Delete Category"
-          leadingIcon="trash"
-          titleStyle={{ color: theme.error }}
-        />
-      </Menu>
     </View>
   );
 
@@ -829,7 +833,7 @@ const CategoriesScreen = ({ navigation, route }) => {
         contentContainerStyle={
           filteredCategories.length === 0
             ? styles.emptyListContainer
-            : { paddingTop: 4 }
+            : { paddingTop: 8, paddingBottom: 200 }
         }
       />
 
@@ -905,7 +909,7 @@ const styles = StyleSheet.create({
   },
   filterChipsContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 0,
+    paddingVertical: 8,
   },
   filterChipsContent: {
     paddingRight: 16,
@@ -916,7 +920,7 @@ const styles = StyleSheet.create({
   },
   sortContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 0,
+    paddingVertical: 8,
     alignItems: 'flex-end',
   },
   sortButton: {
@@ -936,6 +940,9 @@ const styles = StyleSheet.create({
   },
   emptyListContainer: {
     paddingTop: 20,
+  },
+  categoryCardContainer: {
+    position: 'relative',
   },
   categoryCard: {
     borderRadius: 12,

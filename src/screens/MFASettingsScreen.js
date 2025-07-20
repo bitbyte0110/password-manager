@@ -60,7 +60,7 @@ const MFASettingsScreen = () => {
         mfaEnabled: false,
         biometricEnabled: false,
       };
-      
+
       if (settings) {
         const parsedSettings = JSON.parse(settings);
         // Merge with defaults to ensure no undefined values
@@ -168,7 +168,10 @@ const MFASettingsScreen = () => {
       };
 
       // Save to both AsyncStorage and SecureStore for consistency
-      await AsyncStorage.setItem('userSettings', JSON.stringify(updatedSettings));
+      await AsyncStorage.setItem(
+        'userSettings',
+        JSON.stringify(updatedSettings)
+      );
       await SecureStore.setItemAsync('vault_mfaEnabled', enabled.toString());
 
       setMfaEnabled(enabled);

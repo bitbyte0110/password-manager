@@ -14,15 +14,18 @@ const BiometricSetupModal = ({ visible, onComplete }) => {
       // Save to both AsyncStorage and SecureStore for consistency
       const settings = await AsyncStorage.getItem('userSettings');
       const parsedSettings = settings ? JSON.parse(settings) : {};
-      
+
       const updatedSettings = {
         ...parsedSettings,
         biometricEnabled: true,
       };
-      
-      await AsyncStorage.setItem('userSettings', JSON.stringify(updatedSettings));
+
+      await AsyncStorage.setItem(
+        'userSettings',
+        JSON.stringify(updatedSettings)
+      );
       await SecureStore.setItemAsync('vault_biometricEnabled', 'true');
-      
+
       console.log('Biometric enabled during initial setup');
       onComplete(true);
     } catch (error) {
@@ -40,15 +43,18 @@ const BiometricSetupModal = ({ visible, onComplete }) => {
       // Save to both AsyncStorage and SecureStore for consistency
       const settings = await AsyncStorage.getItem('userSettings');
       const parsedSettings = settings ? JSON.parse(settings) : {};
-      
+
       const updatedSettings = {
         ...parsedSettings,
         biometricEnabled: false,
       };
-      
-      await AsyncStorage.setItem('userSettings', JSON.stringify(updatedSettings));
+
+      await AsyncStorage.setItem(
+        'userSettings',
+        JSON.stringify(updatedSettings)
+      );
       await SecureStore.setItemAsync('vault_biometricEnabled', 'false');
-      
+
       console.log('Biometric skipped during initial setup');
       onComplete(false);
     } catch (error) {

@@ -57,7 +57,7 @@ const BiometricSettingsScreen = () => {
       const defaults = {
         biometricEnabled: false,
       };
-      
+
       if (settings) {
         const parsedSettings = JSON.parse(settings);
         // Merge with defaults to ensure no undefined values
@@ -78,17 +78,26 @@ const BiometricSettingsScreen = () => {
     try {
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-      const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
-      
+      const supportedTypes =
+        await LocalAuthentication.supportedAuthenticationTypesAsync();
+
       if (!hasHardware || !isEnrolled) {
         setBiometricType('none');
         return;
       }
 
       // Determine the type based on supported authentication types
-      if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+      if (
+        supportedTypes.includes(
+          LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION
+        )
+      ) {
         setBiometricType('face');
-      } else if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+      } else if (
+        supportedTypes.includes(
+          LocalAuthentication.AuthenticationType.FINGERPRINT
+        )
+      ) {
         setBiometricType('fingerprint');
       } else {
         setBiometricType('none');
@@ -147,22 +156,26 @@ const BiometricSettingsScreen = () => {
       }
 
       // Save to both AsyncStorage and SecureStore for consistency
-      await AsyncStorage.setItem('userSettings', JSON.stringify(updatedSettings));
-      await SecureStore.setItemAsync('vault_biometricEnabled', enabled.toString());
+      await AsyncStorage.setItem(
+        'userSettings',
+        JSON.stringify(updatedSettings)
+      );
+      await SecureStore.setItemAsync(
+        'vault_biometricEnabled',
+        enabled.toString()
+      );
 
       setBiometricEnabled(enabled);
 
-      const message = enabled 
+      const message = enabled
         ? 'Biometric login has been enabled'
-        : parsedSettings.mfaEnabled 
+        : parsedSettings.mfaEnabled
           ? 'Biometric login has been disabled. Multi-factor authentication has also been disabled since it requires biometric authentication.'
           : 'Biometric login has been disabled';
 
-      Alert.alert(
-        'Settings Saved',
-        message,
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
+      Alert.alert('Settings Saved', message, [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
     } catch (error) {
       console.error('Error saving biometric settings:', error);
       Alert.alert('Error', 'Failed to save biometric settings');

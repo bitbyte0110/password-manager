@@ -58,7 +58,7 @@ const SettingsScreen = () => {
         clipboardTimeout: 30, // seconds default
         theme: 'light',
       };
-      
+
       if (settings) {
         // Merge loaded settings with defaults to ensure no undefined values
         const parsed = JSON.parse(settings);
@@ -102,7 +102,7 @@ const SettingsScreen = () => {
     }
   };
 
-  const handleAuthSuccess = (authResult) => {
+  const handleAuthSuccess = authResult => {
     setShowAuthModal(false);
     if (pendingNavigation) {
       navigation.navigate(pendingNavigation);
@@ -178,7 +178,10 @@ const SettingsScreen = () => {
           </Text>
           {subtitle && (
             <Text
-              style={[styles.settingSubtitle, { color: theme.colors.textSecondary }]}
+              style={[
+                styles.settingSubtitle,
+                { color: theme.colors.textSecondary },
+              ]}
             >
               {subtitle}
             </Text>
@@ -188,7 +191,11 @@ const SettingsScreen = () => {
       <View style={styles.settingItemRight}>
         {rightComponent}
         {showChevron && (
-          <Icon name="chevron-right" size={14} color={theme.colors.textSecondary} />
+          <Icon
+            name="chevron-right"
+            size={14}
+            color={theme.colors.textSecondary}
+          />
         )}
       </View>
     </TouchableOpacity>
@@ -196,17 +203,23 @@ const SettingsScreen = () => {
 
   const renderSection = (title, children) => (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
+      <Text
+        style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
+      >
         {title}
       </Text>
-      <View style={[styles.sectionContent, { backgroundColor: theme.colors.card }]}>
+      <View
+        style={[styles.sectionContent, { backgroundColor: theme.colors.card }]}
+      >
         {children}
       </View>
     </View>
   );
 
   const renderDivider = () => (
-    <Divider style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+    <Divider
+      style={[styles.divider, { backgroundColor: theme.colors.border }]}
+    />
   );
 
   return (

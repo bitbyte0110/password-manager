@@ -53,7 +53,10 @@ class ClipboardService {
       }
 
       const parsedSettings = JSON.parse(settings);
-      const timeout = parsedSettings.clipboardTimeout !== undefined ? parsedSettings.clipboardTimeout : 30;
+      const timeout =
+        parsedSettings.clipboardTimeout !== undefined
+          ? parsedSettings.clipboardTimeout
+          : 30;
 
       console.log(`Setting up clipboard auto-clear with timeout: ${timeout}s`);
 
@@ -99,24 +102,34 @@ class ClipboardService {
   async clearClipboard() {
     try {
       console.log('Attempting to clear clipboard...');
-      
+
       // Get current clipboard content
       const currentContent = await Clipboard.getStringAsync();
-      console.log(`Current clipboard content length: ${currentContent?.length || 0}`);
-      console.log(`Expected content length: ${this.lastCopiedContent?.length || 0}`);
+      console.log(
+        `Current clipboard content length: ${currentContent?.length || 0}`
+      );
+      console.log(
+        `Expected content length: ${this.lastCopiedContent?.length || 0}`
+      );
 
       // Only clear if it matches what we copied (to avoid clearing user's other content)
-      if (currentContent && this.lastCopiedContent && currentContent === this.lastCopiedContent) {
+      if (
+        currentContent &&
+        this.lastCopiedContent &&
+        currentContent === this.lastCopiedContent
+      ) {
         // Clear clipboard by setting it to empty string
         await Clipboard.setStringAsync('');
         console.log('✅ Clipboard successfully cleared after timeout');
-        
+
         // Verify clearing worked
         const verifyContent = await Clipboard.getStringAsync();
         if (verifyContent === '') {
           console.log('✅ Clipboard clear verification successful');
         } else {
-          console.warn('⚠️ Clipboard may not have been cleared properly, trying again...');
+          console.warn(
+            '⚠️ Clipboard may not have been cleared properly, trying again...'
+          );
           // Try a different approach - set to a single space then empty
           await Clipboard.setStringAsync(' ');
           await new Promise(resolve => setTimeout(resolve, 100));

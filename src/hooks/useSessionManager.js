@@ -39,7 +39,7 @@ export const useSessionManager = () => {
   const checkSessionExpiry = async () => {
     try {
       const lastActiveTime = await AsyncStorage.getItem(LAST_ACTIVE_TIME_KEY);
-      
+
       if (!lastActiveTime) {
         return false; // No activity recorded
       }
@@ -50,17 +50,19 @@ export const useSessionManager = () => {
       const timeDifference = now - lastActive;
 
       if (timeDifference > activityTimeout) {
-        console.log(`Session expired due to inactivity (${Math.round(timeDifference / 1000)}s > ${activityTimeout / 1000}s)`);
-        
+        console.log(
+          `Session expired due to inactivity (${Math.round(timeDifference / 1000)}s > ${activityTimeout / 1000}s)`
+        );
+
         // Clear session data
         await vaultService.clearSession();
         await AsyncStorage.removeItem(LAST_ACTIVE_TIME_KEY);
-        
+
         // Navigate to login screen
         navigation.replace('Login');
         return true;
       }
-      
+
       return false;
     } catch (error) {
       console.error('Error checking session expiry:', error);
@@ -68,8 +70,11 @@ export const useSessionManager = () => {
     }
   };
 
-  const handleAppStateChange = async (nextAppState) => {
-    if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+  const handleAppStateChange = async nextAppState => {
+    if (
+      appState.current.match(/inactive|background/) &&
+      nextAppState === 'active'
+    ) {
       // App came to foreground, check session expiry
       await checkSessionExpiry();
     } else if (nextAppState.match(/inactive|background/)) {
@@ -103,7 +108,10 @@ export const useSessionManager = () => {
     startSessionMonitoring();
 
     // Set up app state listener
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    const subscription = AppState.addEventListener(
+      'change',
+      handleAppStateChange
+    );
 
     return () => {
       subscription?.remove();

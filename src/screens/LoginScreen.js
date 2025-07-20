@@ -111,7 +111,9 @@ const LoginScreen = ({ navigation: navProp }) => {
 
     // Auto-trigger biometric if enabled in settings, available, and not locked
     if (biometricHWAvailable && biometricEnabled && !biometricLocked) {
-      console.log('Auto-triggering biometric authentication (enabled in settings)');
+      console.log(
+        'Auto-triggering biometric authentication (enabled in settings)'
+      );
       setIsAutoAuthenticating(true);
       setTimeout(() => {
         handleBiometricLogin(true);
@@ -120,7 +122,7 @@ const LoginScreen = ({ navigation: navProp }) => {
       console.log('Biometric auto-trigger skipped:', {
         hwAvailable: biometricHWAvailable,
         enabled: biometricEnabled,
-        locked: biometricLocked
+        locked: biometricLocked,
       });
     }
   };
@@ -128,7 +130,7 @@ const LoginScreen = ({ navigation: navProp }) => {
   const loadUserPreferences = async () => {
     try {
       console.log('Loading user preferences from storage...');
-      
+
       // Load from AsyncStorage (primary source) and SecureStore (fallback)
       const settings = await AsyncStorage.getItem('userSettings');
       let biometricEnabledValue = false;
@@ -138,22 +140,30 @@ const LoginScreen = ({ navigation: navProp }) => {
         const parsedSettings = JSON.parse(settings);
         biometricEnabledValue = parsedSettings.biometricEnabled || false;
         mfaEnabledValue = parsedSettings.mfaEnabled || false;
-        console.log('Loaded settings from AsyncStorage:', { biometricEnabledValue, mfaEnabledValue });
+        console.log('Loaded settings from AsyncStorage:', {
+          biometricEnabledValue,
+          mfaEnabledValue,
+        });
       } else {
         // Fallback to SecureStore
-        const biometricSecure = await SecureStore.getItemAsync('vault_biometricEnabled');
+        const biometricSecure = await SecureStore.getItemAsync(
+          'vault_biometricEnabled'
+        );
         const mfaSecure = await SecureStore.getItemAsync('vault_mfaEnabled');
         biometricEnabledValue = biometricSecure === 'true';
         mfaEnabledValue = mfaSecure === 'true';
-        console.log('Loaded settings from SecureStore:', { biometricEnabledValue, mfaEnabledValue });
+        console.log('Loaded settings from SecureStore:', {
+          biometricEnabledValue,
+          mfaEnabledValue,
+        });
       }
 
       setBiometricEnabled(biometricEnabledValue);
       setMfaEnabled(mfaEnabledValue);
-      
-      console.log('Final login options:', { 
-        biometricEnabled: biometricEnabledValue, 
-        mfaEnabled: mfaEnabledValue 
+
+      console.log('Final login options:', {
+        biometricEnabled: biometricEnabledValue,
+        mfaEnabled: mfaEnabledValue,
       });
     } catch (error) {
       console.error('Error loading user preferences:', error);
@@ -353,14 +363,39 @@ const LoginScreen = ({ navigation: navProp }) => {
           );
         } else {
           console.log(
-            'MFA disabled, requesting master password for vault access'
+            'MFA disabled, trying to restore vault access with existing session'
           );
-          // MFA disabled: Need master password for vault service authentication
-          setMfaMode(false); // Not MFA, just vault authentication
-          setShowPasswordModal(true);
-          showSnackbar(
-            'Biometric authentication successful. Please enter master password to access vault.'
-          );
+          // MFA disabled: Try to restore session or proceed with stored credentials
+          try {
+            // Initialize vault service first
+            await vaultService.initialize();
+
+            // Check if vault service can restore authentication
+            if (vaultService.isUserAuthenticated()) {
+              console.log(
+                'Vault service already authenticated, proceeding to vault'
+              );
+              navigation.replace('MainTabs');
+              return;
+            } else {
+              console.log(
+                'Vault service not authenticated, requesting master password'
+              );
+              // Still need master password for vault access
+              setMfaMode(false);
+              setShowPasswordModal(true);
+              showSnackbar(
+                'Please enter your master password to access vault data.'
+              );
+            }
+          } catch (error) {
+            console.error('Error checking vault authentication:', error);
+            setMfaMode(false);
+            setShowPasswordModal(true);
+            showSnackbar(
+              'Please enter your master password to access vault data.'
+            );
+          }
         }
       } else {
         if (result.error === 'user_cancel') {
@@ -598,23 +633,23 @@ const LoginScreen = ({ navigation: navProp }) => {
                 }
                 activeOpacity={0.8}
               >
-              <LinearGradient
-                colors={['#3366cc', '#3B82F6']}
-                style={[
-                  styles.buttonGradient,
-                  (!biometricAvailable || isLocked || biometricLocked) &&
-                    styles.disabledGradient,
-                ]}
-              >
-                <Icon
-                  name="fingerprint"
-                  size={20}
-                  color="#FFFFFF"
-                  style={styles.buttonIcon}
-                />
-                <Text style={styles.buttonText}>Login with Biometric</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+                <LinearGradient
+                  colors={['#3366cc', '#3B82F6']}
+                  style={[
+                    styles.buttonGradient,
+                    (!biometricAvailable || isLocked || biometricLocked) &&
+                      styles.disabledGradient,
+                  ]}
+                >
+                  <Icon
+                    name="fingerprint"
+                    size={20}
+                    color="#FFFFFF"
+                    style={styles.buttonIcon}
+                  />
+                  <Text style={styles.buttonText}>Login with Biometric</Text>
+                </LinearGradient>
+              </TouchableOpacity>
             )}
 
             {/* Password Login Button */}
@@ -679,7 +714,7 @@ const LoginScreen = ({ navigation: navProp }) => {
 
             <Text style={styles.modalSubtitle}>
               {mfaMode
-                ? biometricSucceeded 
+                ? biometricSucceeded
                   ? 'Biometric authentication successful. Please enter your master password to complete login.'
                   : 'Please enter your master password to complete multi-factor authentication.'
                 : biometricSucceeded

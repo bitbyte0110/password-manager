@@ -695,11 +695,15 @@ class VaultService {
         throw new Error('Vault service authentication mismatch');
       }
 
-      console.log('VaultService: Old password verified, starting data re-encryption...');
+      console.log(
+        'VaultService: Old password verified, starting data re-encryption...'
+      );
 
       // Get all password entries
       const allEntries = await this.dbService.getPasswordEntries();
-      console.log(`VaultService: Found ${allEntries.length} entries to re-encrypt`);
+      console.log(
+        `VaultService: Found ${allEntries.length} entries to re-encrypt`
+      );
 
       // Create new password hash
       const saltRounds = 12;
@@ -710,23 +714,24 @@ class VaultService {
       for (const entry of allEntries) {
         try {
           console.log(`VaultService: Re-encrypting entry ${entry.id}...`);
-          
+
           // Decrypt with old password
           const decryptedEntry = await this.decryptPasswordEntry(entry);
-          
+
           // Re-encrypt with new password
-          const reEncryptedData = encryptionService.encryptPasswordEntryOptimized(
-            {
-              title: decryptedEntry.title,
-              username: decryptedEntry.username,
-              password: decryptedEntry.password,
-              url: decryptedEntry.url,
-              notes: decryptedEntry.notes,
-              categoryId: decryptedEntry.categoryId,
-              isFavorite: decryptedEntry.isFavorite,
-            },
-            newPassword
-          );
+          const reEncryptedData =
+            encryptionService.encryptPasswordEntryOptimized(
+              {
+                title: decryptedEntry.title,
+                username: decryptedEntry.username,
+                password: decryptedEntry.password,
+                url: decryptedEntry.url,
+                notes: decryptedEntry.notes,
+                categoryId: decryptedEntry.categoryId,
+                isFavorite: decryptedEntry.isFavorite,
+              },
+              newPassword
+            );
 
           reEncryptedEntries.push({
             id: entry.id,
@@ -734,11 +739,15 @@ class VaultService {
           });
         } catch (error) {
           console.error(`Failed to re-encrypt entry ${entry.id}:`, error);
-          throw new Error(`Failed to re-encrypt password entry: ${error.message}`);
+          throw new Error(
+            `Failed to re-encrypt password entry: ${error.message}`
+          );
         }
       }
 
-      console.log('VaultService: All entries re-encrypted, updating database...');
+      console.log(
+        'VaultService: All entries re-encrypted, updating database...'
+      );
 
       // Update all entries in database with new encrypted data
       for (const entry of reEncryptedEntries) {
@@ -760,7 +769,9 @@ class VaultService {
       // Create new session token with new password
       await this.createSessionToken(newPassword);
 
-      console.log('VaultService: Master password change completed successfully');
+      console.log(
+        'VaultService: Master password change completed successfully'
+      );
       return true;
     } catch (error) {
       console.error('VaultService: Error changing master password:', error);

@@ -6,7 +6,10 @@ import clipboardService from '../services/clipboardService';
  * @param {number} timeoutSeconds - Optional custom timeout in seconds
  * @returns {Promise<boolean>} Success status
  */
-export const copyPasswordToClipboard = async (password, timeoutSeconds = null) => {
+export const copyPasswordToClipboard = async (
+  password,
+  timeoutSeconds = null
+) => {
   if (!password) {
     console.warn('No password provided to copy');
     return false;
@@ -29,7 +32,7 @@ export const copyPasswordToClipboard = async (password, timeoutSeconds = null) =
  * @param {string} text - Text to copy
  * @returns {Promise<boolean>} Success status
  */
-export const copyTextToClipboard = async (text) => {
+export const copyTextToClipboard = async text => {
   if (!text) {
     console.warn('No text provided to copy');
     return false;
