@@ -314,6 +314,12 @@ const MyVaultScreen = ({ navigation, route }) => {
   };
 
   const renderPasswordCard = ({ item }) => {
+    // Handle invalid/malformed items
+    if (!item || typeof item !== 'object') {
+      console.error('MyVaultScreen: Invalid item in renderPasswordCard:', item);
+      return null;
+    }
+
     // Handle decryption errors
     if (item.decryptionError) {
       return (
@@ -772,7 +778,7 @@ const MyVaultScreen = ({ navigation, route }) => {
       <FlatList
         data={filteredPasswords}
         renderItem={renderPasswordCard}
-        keyExtractor={item => item.id.toString()}
+        keyExtractor={(item, index) => item && item.id ? item.id.toString() : `password_${index}`}
         style={styles.passwordList}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmptyState}

@@ -223,9 +223,72 @@ const TrashScreen = ({ navigation }) => {
           onPress: async () => {
             try {
               console.log('TrashScreen: Attempting to restore password with ID:', item.id);
-              await vaultService.restorePasswordFromTrash(item.id);
-              console.log('TrashScreen: Password restoration successful');
+              
+              // Restore password and get the new password ID
+              const restoredPasswordId = await vaultService.restorePasswordFromTrash(item.id);
+              console.log('TrashScreen: Password restoration successful, new ID:', restoredPasswordId);
+              
+              // Add restored password to main context using the data we already have
+              try {
+                console.log('TrashScreen: Creating restored password object from existing data');
+                
+                // Create the restored password object using the data we already have from the trash item
+                // This avoids the race condition of trying to fetch immediately after restoration
+                const restoredPassword = {
+                  id: restoredPasswordId, // Use the new password ID returned from restoration
+                  title: item.title,
+                  username: item.username,
+                  password: item.password,
+                  url: item.url,
+                  notes: item.notes,
+                  categoryId: item.category_id,
+                  categoryName: item.category_name,
+                  categoryColor: item.category_color,
+                  categoryIcon: item.category_icon,
+                  isFavorite: item.is_favorite === 1,
+                  createdAt: item.original_created_at || item.created_at,
+                  updatedAt: item.original_updated_at || item.updated_at,
+                  lastAccessed: item.original_last_accessed || item.last_accessed,
+                };
+                
+                console.log('TrashScreen: Restored password object created:', restoredPassword.title);
+                
+                // Add to main password context for immediate UI update
+                if (addPassword) {
+                  addPassword(restoredPassword);
+                  console.log('TrashScreen: Added restored password to main context');
+                } else {
+                  console.warn('TrashScreen: addPassword function not available from context');
+                }
+              } catch (contextError) {
+                console.warn('TrashScreen: Could not add restored password to context:', contextError);
+                
+                // Fallback: try to fetch after a short delay
+                setTimeout(async () => {
+                  try {
+                    console.log('TrashScreen: Attempting delayed fetch as fallback');
+                    const restoredPassword = await vaultService.getPasswordEntry(restoredPasswordId);
+                    if (addPassword) {
+                      addPassword(restoredPassword);
+                      console.log('TrashScreen: Successfully added via delayed fallback');
+                    }
+                  } catch (delayedError) {
+                    console.error('TrashScreen: Delayed fallback also failed:', delayedError);
+                  }
+                }, 500); // 500ms delay to ensure database transaction is committed
+              }
+              
+              // Update trash list to remove the restored item
               await loadDeletedPasswords();
+              
+              // Also set navigation parameter as backup to ensure MyVault refreshes
+              // This is redundant with context update but provides extra safety
+              try {
+                navigation.getParent()?.setParams({ shouldRefresh: true });
+              } catch (navError) {
+                console.warn('TrashScreen: Could not set navigation refresh parameter:', navError);
+              }
+              
               Alert.alert('Success', 'Password restored successfully');
             } catch (err) {
               console.error('TrashScreen: Error restoring password:', err);
