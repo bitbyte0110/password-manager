@@ -3,7 +3,6 @@ import bcrypt from 'bcryptjs';
 import { Buffer } from 'buffer';
 import databaseService from './databaseService';
 import encryptionService from './encryptionService';
-import { usePasswords } from '../PasswordContext';
 import { getMFAEnabled } from '../utils/authUtils';
 
 /**
@@ -38,6 +37,9 @@ class VaultService {
       await this.dbService.initialize();
 
       console.log('VaultService: Database service initialized successfully');
+
+      // Run auto-cleanup of expired trash items
+      await this.autoCleanupExpiredTrash();
 
       // Try to restore authentication if session is valid
       await this.tryRestoreAuthentication();
@@ -714,20 +716,153 @@ class VaultService {
   }
 
   /**
-   * Delete a password entry
+   * Delete a password entry (move to trash)
    * @param {number} id - Entry ID
+   * @param {number} retentionDays - Days to keep in trash (optional, uses user setting)
    * @returns {Promise<boolean>} Delete success
    */
-  async deletePasswordEntry(id) {
+  async deletePasswordEntry(id, retentionDays = null) {
     if (!this.isUserAuthenticated()) {
       throw new Error('User not authenticated');
     }
 
     try {
-      return await this.dbService.deletePassword(id);
+      // Get user's retention setting if not provided
+      if (retentionDays === null) {
+        retentionDays = await this.getUserRetentionDays();
+      }
+
+      return await this.dbService.deletePasswordEntry(id, retentionDays);
     } catch (error) {
       console.error('Error deleting password entry:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Get user's trash retention setting
+   * @returns {Promise<number>} Retention days
+   */
+  async getUserRetentionDays() {
+    try {
+      const AsyncStorage = require('@react-native-async-storage/async-storage')
+        .default;
+      const settings = await AsyncStorage.getItem('userSettings');
+      if (settings) {
+        const parsedSettings = JSON.parse(settings);
+        return parsedSettings.trashRetentionDays || 30;
+      }
+      return 30; // Default to 30 days
+    } catch (error) {
+      console.warn('Error getting user retention setting:', error);
+      return 30; // Default to 30 days
+    }
+  }
+
+  /**
+   * Get all deleted passwords from trash
+   * @returns {Promise<Array>} Array of deleted password entries
+   */
+  async getAllDeletedPasswords() {
+    if (!this.isUserAuthenticated()) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      return await this.dbService.getAllDeletedPasswords();
+    } catch (error) {
+      console.error('Error getting deleted passwords:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Restore password from trash
+   * @param {number} deletedPasswordId - Deleted password ID
+   * @returns {Promise<number>} Restored password ID
+   */
+  async restorePasswordFromTrash(deletedPasswordId) {
+    if (!this.isUserAuthenticated()) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      return await this.dbService.restorePasswordFromTrash(deletedPasswordId);
+    } catch (error) {
+      console.error('Error restoring password from trash:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Permanently delete password from trash
+   * @param {number} deletedPasswordId - Deleted password ID
+   * @returns {Promise<boolean>} Delete success
+   */
+  async permanentlyDeletePassword(deletedPasswordId) {
+    if (!this.isUserAuthenticated()) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      return await this.dbService.permanentlyDeletePassword(deletedPasswordId);
+    } catch (error) {
+      console.error('Error permanently deleting password:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Empty trash
+   * @param {boolean} deleteAll - Delete all items or just expired ones
+   * @returns {Promise<number>} Number of items deleted
+   */
+  async emptyTrash(deleteAll = false) {
+    if (!this.isUserAuthenticated()) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      return await this.dbService.emptyTrash(deleteAll);
+    } catch (error) {
+      console.error('Error emptying trash:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cleanup expired trash items
+   * @returns {Promise<number>} Number of items cleaned up
+   */
+  async cleanupExpiredTrashItems() {
+    if (!this.isUserAuthenticated()) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      return await this.dbService.cleanupExpiredTrashItems();
+    } catch (error) {
+      console.error('Error cleaning up expired trash items:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Auto-cleanup expired trash items (can run without authentication)
+   * @returns {Promise<number>} Number of items cleaned up
+   */
+  async autoCleanupExpiredTrash() {
+    try {
+      const cleanedCount = await this.dbService.cleanupExpiredTrashItems();
+      if (cleanedCount > 0) {
+        console.log(
+          `Auto-cleanup: Removed ${cleanedCount} expired items from trash`
+        );
+      }
+      return cleanedCount;
+    } catch (error) {
+      console.warn('Auto-cleanup warning (non-critical):', error.message);
+      return 0;
     }
   }
 
