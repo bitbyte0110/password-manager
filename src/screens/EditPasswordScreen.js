@@ -540,6 +540,10 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
               textColor={theme.colors.inputText}
               placeholderTextColor={theme.colors.inputPlaceholder}
               error={!!formErrors.password}
+              autoCorrect={false}
+              autoCapitalize="none"
+              keyboardType="default"
+              textContentType="password"
               right={
                 <TextInput.Icon
                   icon={showPassword ? 'eye-off' : 'eye'}

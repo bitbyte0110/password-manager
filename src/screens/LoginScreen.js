@@ -8,7 +8,7 @@ import {
   Modal,
   Alert,
 } from 'react-native';
-import { Button, TextInput, Snackbar } from 'react-native-paper';
+import { Button, Snackbar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -18,6 +18,7 @@ import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useNavigation } from '@react-navigation/native';
 import vaultService from '../services/vaultService';
 import { useTheme } from '../contexts/ThemeContext';
+import SecureTextInput from '../components/SecureTextInput';
 import { getMFAEnabled, getBiometricEnabled } from '../utils/authUtils';
 
 // Password lockout constants
@@ -740,45 +741,23 @@ const LoginScreen = ({ navigation: navProp }) => {
                   : 'Please enter your master password to access your vault.'}
             </Text>
 
-            <TextInput
+            <SecureTextInput
               label="Master Password"
-              mode="outlined"
               value={masterPassword}
               onChangeText={text => {
                 setMasterPassword(text);
                 if (passwordError) setPasswordError(''); // Clear error when user types
               }}
-              secureTextEntry={!showPassword}
-              style={[
-                styles.modalInput,
-                { backgroundColor: theme.colors.inputBackground },
-              ]}
-              theme={{
-                colors: {
-                  primary: theme.colors.inputBorderFocused,
-                  accent: theme.colors.inputBorderFocused,
-                  text: theme.colors.inputText,
-                  background: theme.colors.inputBackground,
-                  outline: passwordError
-                    ? theme.colors.error
-                    : theme.colors.inputBorder,
-                  placeholder: theme.colors.inputPlaceholder,
-                  onSurfaceVariant: theme.colors.inputPlaceholder,
-                },
-              }}
-              textColor={theme.colors.inputText}
-              placeholderTextColor={theme.colors.inputPlaceholder}
+              showPassword={showPassword}
+              onTogglePassword={() => setShowPassword(!showPassword)}
+              placeholder="Enter your master password"
               error={!!passwordError}
+              errorText={passwordError}
               autoFocus
               returnKeyType="done"
               onSubmitEditing={handlePasswordLogin}
-              right={
-                <TextInput.Icon
-                  icon={showPassword ? 'eye-off' : 'eye'}
-                  onPress={() => setShowPassword(!showPassword)}
-                  iconColor={theme.colors.inputText}
-                />
-              }
+              style={styles.modalInput}
+              testID="login-password-input"
             />
 
             {passwordError ? (

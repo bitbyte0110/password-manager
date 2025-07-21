@@ -8,11 +8,12 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { TextInput, Button } from 'react-native-paper';
+import { Button } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useNavigation } from '@react-navigation/native';
 import vaultService from '../services/vaultService';
 import { useTheme } from '../contexts/ThemeContext';
+import SecureTextInput from '../components/SecureTextInput';
 
 const ChangeMasterPasswordScreen = () => {
   const navigation = useNavigation();
@@ -157,107 +158,40 @@ const ChangeMasterPasswordScreen = () => {
         <View style={styles.content}>
           {/* Current Password */}
           <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
-              Current Password
-            </Text>
-            <View style={styles.passwordInputContainer}>
-              <TextInput
-                style={[
-                  styles.passwordInput,
-                  { backgroundColor: theme.colors.inputBackground },
-                ]}
-                value={formData.oldPassword}
-                onChangeText={value =>
-                  handlePasswordChange('oldPassword', value)
-                }
-                secureTextEntry={!showPasswords.old}
-                placeholder="Enter current password"
-                error={!!errors.oldPassword}
-                mode="outlined"
-                theme={{
-                  colors: {
-                    primary: theme.colors.inputBorderFocused,
-                    accent: theme.colors.inputBorderFocused,
-                    text: theme.colors.inputText,
-                    background: theme.colors.inputBackground,
-                    outline: errors.oldPassword
-                      ? theme.colors.error
-                      : theme.colors.inputBorder,
-                    placeholder: theme.colors.inputPlaceholder,
-                    onSurfaceVariant: theme.colors.inputPlaceholder,
-                  },
-                }}
-                textColor={theme.colors.inputText}
-                placeholderTextColor={theme.colors.inputPlaceholder}
-              />
-              <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={() =>
-                  setShowPasswords(prev => ({ ...prev, old: !prev.old }))
-                }
-              >
-                <Icon
-                  name={showPasswords.old ? 'eye-slash' : 'eye'}
-                  size={18}
-                  color={theme.colors.textSecondary}
-                />
-              </TouchableOpacity>
-            </View>
-            {errors.oldPassword && (
-              <Text style={[styles.errorText, { color: theme.colors.error }]}>
-                {errors.oldPassword}
-              </Text>
-            )}
+            <SecureTextInput
+              label="Current Password"
+              value={formData.oldPassword}
+              onChangeText={value =>
+                handlePasswordChange('oldPassword', value)
+              }
+              showPassword={showPasswords.old}
+              onTogglePassword={() =>
+                setShowPasswords(prev => ({ ...prev, old: !prev.old }))
+              }
+              placeholder="Enter current password"
+              error={!!errors.oldPassword}
+              errorText={errors.oldPassword}
+              testID="current-password-input"
+            />
           </View>
 
           {/* New Password */}
           <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
-              New Password
-            </Text>
-            <View style={styles.passwordInputContainer}>
-              <TextInput
-                style={[
-                  styles.passwordInput,
-                  { backgroundColor: theme.colors.inputBackground },
-                ]}
-                value={formData.newPassword}
-                onChangeText={value =>
-                  handlePasswordChange('newPassword', value)
-                }
-                secureTextEntry={!showPasswords.new}
-                placeholder="Enter new password"
-                error={!!errors.newPassword}
-                mode="outlined"
-                theme={{
-                  colors: {
-                    primary: theme.colors.inputBorderFocused,
-                    accent: theme.colors.inputBorderFocused,
-                    text: theme.colors.inputText,
-                    background: theme.colors.inputBackground,
-                    outline: errors.newPassword
-                      ? theme.colors.error
-                      : theme.colors.inputBorder,
-                    placeholder: theme.colors.inputPlaceholder,
-                    onSurfaceVariant: theme.colors.inputPlaceholder,
-                  },
-                }}
-                textColor={theme.colors.inputText}
-                placeholderTextColor={theme.colors.inputPlaceholder}
-              />
-              <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={() =>
-                  setShowPasswords(prev => ({ ...prev, new: !prev.new }))
-                }
-              >
-                <Icon
-                  name={showPasswords.new ? 'eye-slash' : 'eye'}
-                  size={18}
-                  color={theme.colors.textSecondary}
-                />
-              </TouchableOpacity>
-            </View>
+            <SecureTextInput
+              label="New Password"
+              value={formData.newPassword}
+              onChangeText={value =>
+                handlePasswordChange('newPassword', value)
+              }
+              showPassword={showPasswords.new}
+              onTogglePassword={() =>
+                setShowPasswords(prev => ({ ...prev, new: !prev.new }))
+              }
+              placeholder="Enter new password"
+              error={!!errors.newPassword}
+              errorText={errors.newPassword}
+              testID="new-password-input"
+            />
 
             {/* Password Strength Indicator */}
             {formData.newPassword && passwordStrength && (
@@ -309,70 +243,28 @@ const ChangeMasterPasswordScreen = () => {
                 ))}
               </View>
             )}
-
-            {errors.newPassword && (
-              <Text style={[styles.errorText, { color: theme.colors.error }]}>
-                {errors.newPassword}
-              </Text>
-            )}
           </View>
 
           {/* Confirm Password */}
           <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
-              Confirm New Password
-            </Text>
-            <View style={styles.passwordInputContainer}>
-              <TextInput
-                style={[
-                  styles.passwordInput,
-                  { backgroundColor: theme.colors.inputBackground },
-                ]}
-                value={formData.confirmPassword}
-                onChangeText={value =>
-                  handlePasswordChange('confirmPassword', value)
-                }
-                secureTextEntry={!showPasswords.confirm}
-                placeholder="Confirm new password"
-                error={!!errors.confirmPassword}
-                mode="outlined"
-                theme={{
-                  colors: {
-                    primary: theme.colors.inputBorderFocused,
-                    accent: theme.colors.inputBorderFocused,
-                    text: theme.colors.inputText,
-                    background: theme.colors.inputBackground,
-                    outline: errors.confirmPassword
-                      ? theme.colors.error
-                      : theme.colors.inputBorder,
-                    placeholder: theme.colors.inputPlaceholder,
-                    onSurfaceVariant: theme.colors.inputPlaceholder,
-                  },
-                }}
-                textColor={theme.colors.inputText}
-                placeholderTextColor={theme.colors.inputPlaceholder}
-              />
-              <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={() =>
-                  setShowPasswords(prev => ({
-                    ...prev,
-                    confirm: !prev.confirm,
-                  }))
-                }
-              >
-                <Icon
-                  name={showPasswords.confirm ? 'eye-slash' : 'eye'}
-                  size={18}
-                  color={theme.colors.textSecondary}
-                />
-              </TouchableOpacity>
-            </View>
-            {errors.confirmPassword && (
-              <Text style={[styles.errorText, { color: theme.colors.error }]}>
-                {errors.confirmPassword}
-              </Text>
-            )}
+            <SecureTextInput
+              label="Confirm New Password"
+              value={formData.confirmPassword}
+              onChangeText={value =>
+                handlePasswordChange('confirmPassword', value)
+              }
+              showPassword={showPasswords.confirm}
+              onTogglePassword={() =>
+                setShowPasswords(prev => ({
+                  ...prev,
+                  confirm: !prev.confirm,
+                }))
+              }
+              placeholder="Confirm new password"
+              error={!!errors.confirmPassword}
+              errorText={errors.confirmPassword}
+              testID="confirm-password-input"
+            />
           </View>
         </View>
       </ScrollView>
