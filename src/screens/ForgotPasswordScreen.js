@@ -15,11 +15,13 @@ import bcrypt from 'bcryptjs';
 import zxcvbn from 'zxcvbn';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
+import { useTheme } from '../contexts/ThemeContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 const ForgotPasswordScreen = ({ navigation: navProp }) => {
   const navigation = navProp || useNavigation();
+  const { theme } = useTheme();
 
   // Step management state
   const [currentStep, setCurrentStep] = useState(1); // 1 = verify phrase, 2 = set password
@@ -313,11 +315,24 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
                     numberOfLines={4}
                     autoCapitalize="none"
                     autoCorrect={false}
-                    style={styles.textInput}
+                    style={[
+                      styles.textInput,
+                      {
+                        backgroundColor: theme.colors.inputBackground,
+                        color: theme.colors.inputText,
+                      },
+                    ]}
+                    textColor={theme.colors.inputText}
+                    placeholderTextColor={theme.colors.inputPlaceholder}
                     theme={{
                       colors: {
-                        primary: '#9b59b6',
-                        accent: '#9b59b6',
+                        primary: theme.colors.inputBorderFocused,
+                        accent: theme.colors.inputBorderFocused,
+                        text: theme.colors.inputText,
+                        background: theme.colors.inputBackground,
+                        outline: theme.colors.inputBorder,
+                        placeholder: theme.colors.inputPlaceholder,
+                        onSurfaceVariant: theme.colors.inputPlaceholder,
                       },
                     }}
                   />
@@ -410,17 +425,31 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
                     value={newPassword}
                     onChangeText={setNewPassword}
                     secureTextEntry={!showNewPassword}
-                    style={styles.textInput}
+                    style={[
+                      styles.textInput,
+                      {
+                        backgroundColor: theme.colors.inputBackground,
+                        color: theme.colors.inputText,
+                      },
+                    ]}
+                    textColor={theme.colors.inputText}
+                    placeholderTextColor={theme.colors.inputPlaceholder}
                     theme={{
                       colors: {
-                        primary: '#9b59b6',
-                        accent: '#9b59b6',
+                        primary: theme.colors.inputBorderFocused,
+                        accent: theme.colors.inputBorderFocused,
+                        text: theme.colors.inputText,
+                        background: theme.colors.inputBackground,
+                        outline: theme.colors.inputBorder,
+                        placeholder: theme.colors.inputPlaceholder,
+                        onSurfaceVariant: theme.colors.inputPlaceholder,
                       },
                     }}
                     right={
                       <TextInput.Icon
                         icon={showNewPassword ? 'eye-off' : 'eye'}
                         onPress={() => setShowNewPassword(!showNewPassword)}
+                        iconColor={theme.colors.inputPlaceholder}
                       />
                     }
                   />
@@ -465,11 +494,24 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     secureTextEntry={!showConfirmPassword}
-                    style={styles.textInput}
+                    style={[
+                      styles.textInput,
+                      {
+                        backgroundColor: theme.colors.inputBackground,
+                        color: theme.colors.inputText,
+                      },
+                    ]}
+                    textColor={theme.colors.inputText}
+                    placeholderTextColor={theme.colors.inputPlaceholder}
                     theme={{
                       colors: {
-                        primary: '#9b59b6',
-                        accent: '#9b59b6',
+                        primary: theme.colors.inputBorderFocused,
+                        accent: theme.colors.inputBorderFocused,
+                        text: theme.colors.inputText,
+                        background: theme.colors.inputBackground,
+                        outline: theme.colors.inputBorder,
+                        placeholder: theme.colors.inputPlaceholder,
+                        onSurfaceVariant: theme.colors.inputPlaceholder,
                       },
                     }}
                     right={
@@ -478,6 +520,7 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
                         onPress={() =>
                           setShowConfirmPassword(!showConfirmPassword)
                         }
+                        iconColor={theme.colors.inputPlaceholder}
                       />
                     }
                   />

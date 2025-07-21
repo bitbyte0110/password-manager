@@ -19,8 +19,10 @@ import zxcvbn from 'zxcvbn';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { generateMnemonic } from '@scure/bip39';
 import { wordlist } from '@scure/bip39/wordlists/english';
+import { useTheme } from '../contexts/ThemeContext';
 
 const SetMasterPasswordScreen = ({ navigation }) => {
+  const { theme } = useTheme();
   const [masterPassword, setMasterPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const confirmPasswordRef = useRef(null);
@@ -236,7 +238,15 @@ const SetMasterPasswordScreen = ({ navigation }) => {
                 onChangeText={setMasterPassword}
                 secureTextEntry={!showPassword}
                 error={!!errors.masterPassword}
-                style={styles.input}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme.colors.inputBackground,
+                    color: theme.colors.inputText,
+                  },
+                ]}
+                textColor={theme.colors.inputText}
+                placeholderTextColor={theme.colors.inputPlaceholder}
                 autoFocus={true}
                 keyboardType="default"
                 returnKeyType="next"
@@ -254,8 +264,21 @@ const SetMasterPasswordScreen = ({ navigation }) => {
                   <TextInput.Icon
                     icon={showPassword ? 'eye-off' : 'eye'}
                     onPress={() => setShowPassword(!showPassword)}
+                    iconColor={theme.colors.inputPlaceholder}
                   />
                 }
+                theme={{
+                  colors: {
+                    primary: theme.colors.inputBorderFocused,
+                    accent: theme.colors.inputBorderFocused,
+                    text: theme.colors.inputText,
+                    background: theme.colors.inputBackground,
+                    outline: theme.colors.inputBorder,
+                    placeholder: theme.colors.inputPlaceholder,
+                    onSurfaceVariant: theme.colors.inputPlaceholder,
+                    error: theme.colors.error,
+                  },
+                }}
               />
               {errors.masterPassword && (
                 <Text style={styles.errorText}>{errors.masterPassword}</Text>
@@ -301,7 +324,15 @@ const SetMasterPasswordScreen = ({ navigation }) => {
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showConfirmPassword}
                 error={!!errors.confirmPassword}
-                style={styles.input}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme.colors.inputBackground,
+                    color: theme.colors.inputText,
+                  },
+                ]}
+                textColor={theme.colors.inputText}
+                placeholderTextColor={theme.colors.inputPlaceholder}
                 keyboardType="default"
                 returnKeyType="done"
                 textContentType="newPassword"
@@ -313,8 +344,21 @@ const SetMasterPasswordScreen = ({ navigation }) => {
                   <TextInput.Icon
                     icon={showConfirmPassword ? 'eye-off' : 'eye'}
                     onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    iconColor={theme.colors.inputPlaceholder}
                   />
                 }
+                theme={{
+                  colors: {
+                    primary: theme.colors.inputBorderFocused,
+                    accent: theme.colors.inputBorderFocused,
+                    text: theme.colors.inputText,
+                    background: theme.colors.inputBackground,
+                    outline: theme.colors.inputBorder,
+                    placeholder: theme.colors.inputPlaceholder,
+                    onSurfaceVariant: theme.colors.inputPlaceholder,
+                    error: theme.colors.error,
+                  },
+                }}
               />
               {errors.confirmPassword && (
                 <Text style={styles.errorText}>{errors.confirmPassword}</Text>

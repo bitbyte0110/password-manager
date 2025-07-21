@@ -29,6 +29,7 @@ const SettingsScreen = () => {
     autoLockTimeout: 120, // seconds
     clipboardTimeout: 30, // seconds
     theme: 'light',
+    trashRetentionDays: 30, // days
   });
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState(null);
@@ -143,6 +144,33 @@ const SettingsScreen = () => {
             } catch (error) {
               console.error('Error during logout:', error);
               Alert.alert('Error', 'Failed to log out. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRetentionSettings = () => {
+    navigation.navigate('RetentionSettings');
+  };
+
+  const handleEmptyTrash = () => {
+    Alert.alert(
+      'Empty Trash',
+      'Are you sure you want to permanently delete all items in trash? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Empty Trash',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const deletedCount = await vaultService.emptyTrash(true);
+              Alert.alert('Success', `${deletedCount} items permanently deleted`);
+            } catch (error) {
+              console.error('Error emptying trash:', error);
+              Alert.alert('Error', 'Failed to empty trash');
             }
           },
         },
@@ -294,6 +322,33 @@ const SettingsScreen = () => {
               'Delete all stored data permanently',
               'exclamation-triangle',
               () => handleSettingPress('ResetVault')
+            )}
+          </>
+        )}
+
+        {/* Deleted Password Recovery Section */}
+        {renderSection(
+          'DELETED PASSWORD RECOVERY',
+          <>
+            {renderSettingItem(
+              'Trash',
+              'View and restore deleted passwords',
+              'trash-alt',
+              () => navigation.navigate('Trash')
+            )}
+            {renderDivider()}
+            {renderSettingItem(
+              'Retention Period',
+              `${userSettings.trashRetentionDays || 30} days`,
+              'calendar-alt',
+              () => handleRetentionSettings()
+            )}
+            {renderDivider()}
+            {renderSettingItem(
+              'Empty Trash',
+              'Permanently delete all items in trash',
+              'trash',
+              () => handleEmptyTrash()
             )}
           </>
         )}

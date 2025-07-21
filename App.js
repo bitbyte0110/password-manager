@@ -34,6 +34,8 @@ import ResetVaultScreen from './src/screens/ResetVaultScreen';
 import AppearanceSettingsScreen from './src/screens/AppearanceSettingsScreen';
 import AboutScreen from './src/screens/AboutScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import TrashScreen from './src/screens/TrashScreen';
+import RetentionSettingsScreen from './src/screens/RetentionSettingsScreen';
 import { PasswordProvider } from './src/PasswordContext';
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 
@@ -337,6 +339,14 @@ const AppNavigator = () => {
         console.error('Error loading auto-lock settings:', error);
       }
 
+      // Skip session timeout check if user set timeout to 0 (Never)
+      if (activityTimeout === 0) {
+        console.log('Auto-lock disabled (timeout: 0), accessing MainTabs');
+        // Update activity timestamp
+        await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, Date.now().toString());
+        return 'MainTabs';
+      }
+
       if (timeDifference > activityTimeout) {
         // Session expired, require re-authentication
         console.log(
@@ -433,6 +443,16 @@ const AppNavigator = () => {
         component={AppearanceSettingsScreen}
       />
       <Stack.Screen name="About" component={AboutScreen} />
+      <Stack.Screen
+        name="Trash"
+        component={TrashScreen}
+        options={{ title: 'Trash' }}
+      />
+      <Stack.Screen
+        name="RetentionSettings"
+        component={RetentionSettingsScreen}
+        options={{ title: 'Retention Period' }}
+      />
     </Stack.Navigator>
   );
 };

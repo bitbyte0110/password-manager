@@ -10,7 +10,7 @@ class DatabaseService {
     this.db = null;
     this.dbName = 'passwordManager.db';
     this.dbVersion = '1.0';
-    this.currentSchemaVersion = 1;
+    this.currentSchemaVersion = 2;
     this.isInitialized = false;
     this.isInitializing = false; // Add initialization lock
     this.initializationPromise = null; // Store the initialization promise
@@ -155,8 +155,9 @@ class DatabaseService {
         // Initial schema - already handled by createTables
         break;
       case 2:
-        // Future migration example: Add new column
-        // await this.db.execAsync('ALTER TABLE passwords ADD COLUMN new_field TEXT;');
+        // Add trash functionality
+        await this.addTrashTables();
+        await this.addTrashIndexes();
         break;
       default:
         console.warn(`No migration defined for version ${version}`);
@@ -412,6 +413,89 @@ class DatabaseService {
       console.log('All tables created successfully');
     } catch (error) {
       throw new Error(`Failed to create tables: ${error.message}`);
+    }
+  }
+
+  /**
+   * Create trash tables for deleted password recovery
+   * @returns {Promise<void>}
+   */
+  async addTrashTables() {
+    try {
+      if (!this.db) {
+        throw new Error('Database connection is null in addTrashTables');
+      }
+
+      // Deleted passwords table
+      await this.execAsyncSafe(`
+        CREATE TABLE IF NOT EXISTS deleted_passwords (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          original_password_id INTEGER NOT NULL,
+          encrypted_payload TEXT NOT NULL,
+          category_id INTEGER,
+          original_category_data TEXT,
+          is_favorite INTEGER DEFAULT 0,
+          deleted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          expires_at DATETIME NOT NULL,
+          original_created_at DATETIME,
+          original_updated_at DATETIME,
+          original_last_accessed DATETIME
+        );
+      `);
+
+      // Deleted categories table
+      await this.execAsyncSafe(`
+        CREATE TABLE IF NOT EXISTS deleted_categories (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          original_category_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          description TEXT,
+          icon TEXT DEFAULT 'folder',
+          color TEXT DEFAULT '#007AFF',
+          is_default INTEGER DEFAULT 0,
+          deleted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          expires_at DATETIME NOT NULL,
+          original_created_at DATETIME,
+          original_updated_at DATETIME
+        );
+      `);
+
+      console.log('Trash tables created successfully');
+    } catch (error) {
+      throw new Error(`Failed to create trash tables: ${error.message}`);
+    }
+  }
+
+  /**
+   * Create indexes for trash tables
+   * @returns {Promise<void>}
+   */
+  async addTrashIndexes() {
+    try {
+      if (!this.db) {
+        throw new Error('Database connection is null in addTrashIndexes');
+      }
+
+      const trashIndexes = [
+        // Deleted passwords indexes
+        'CREATE INDEX IF NOT EXISTS idx_deleted_passwords_deleted_at ON deleted_passwords (deleted_at DESC);',
+        'CREATE INDEX IF NOT EXISTS idx_deleted_passwords_expires_at ON deleted_passwords (expires_at);',
+        'CREATE INDEX IF NOT EXISTS idx_deleted_passwords_original_id ON deleted_passwords (original_password_id);',
+        'CREATE INDEX IF NOT EXISTS idx_deleted_passwords_category_id ON deleted_passwords (category_id);',
+
+        // Deleted categories indexes
+        'CREATE INDEX IF NOT EXISTS idx_deleted_categories_deleted_at ON deleted_categories (deleted_at DESC);',
+        'CREATE INDEX IF NOT EXISTS idx_deleted_categories_expires_at ON deleted_categories (expires_at);',
+        'CREATE INDEX IF NOT EXISTS idx_deleted_categories_original_id ON deleted_categories (original_category_id);',
+      ];
+
+      for (const indexQuery of trashIndexes) {
+        await this.execAsyncSafe(indexQuery);
+      }
+
+      console.log('Trash indexes created successfully');
+    } catch (error) {
+      throw new Error(`Failed to create trash indexes: ${error.message}`);
     }
   }
 
@@ -946,11 +1030,12 @@ class DatabaseService {
   }
 
   /**
-   * Delete password entry with transaction support (enhanced version)
+   * Move password entry to trash (soft delete)
    * @param {number} id - Password entry ID
+   * @param {number} retentionDays - Days to keep in trash (default 30)
    * @returns {Promise<boolean>} Delete success status
    */
-  async deletePasswordEntry(id) {
+  async deletePasswordEntry(id, retentionDays = 30) {
     return await this.executeTransaction(async () => {
       if (!this.db) throw new Error('Database not initialized');
 
@@ -959,12 +1044,60 @@ class DatabaseService {
         throw new Error('Valid password ID is required');
       }
 
-      // Get entry for audit log
-      const oldEntry = await this.getPasswordById(id);
+      // Get entry with category data for trash
+      const oldEntry = await this.db.getFirstAsync(
+        `SELECT p.*, c.name as category_name, c.description as category_description,
+                c.icon as category_icon, c.color as category_color, c.is_default as category_is_default,
+                c.created_at as category_created_at, c.updated_at as category_updated_at
+         FROM passwords p
+         LEFT JOIN categories c ON p.category_id = c.id
+         WHERE p.id = ?`,
+        [id]
+      );
+
       if (!oldEntry) {
         throw new Error(`Password entry with ID ${id} not found`);
       }
 
+      // Calculate expiration date
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + retentionDays);
+
+      // Prepare category data for restoration
+      let originalCategoryData = null;
+      if (oldEntry.category_id) {
+        originalCategoryData = JSON.stringify({
+          id: oldEntry.category_id,
+          name: oldEntry.category_name,
+          description: oldEntry.category_description,
+          icon: oldEntry.category_icon,
+          color: oldEntry.category_color,
+          is_default: oldEntry.category_is_default,
+          created_at: oldEntry.category_created_at,
+          updated_at: oldEntry.category_updated_at,
+        });
+      }
+
+      // Move to trash
+      await this.db.runAsync(
+        `INSERT INTO deleted_passwords 
+         (original_password_id, encrypted_payload, category_id, original_category_data, 
+          is_favorite, expires_at, original_created_at, original_updated_at, original_last_accessed)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          oldEntry.id,
+          oldEntry.encrypted_payload,
+          oldEntry.category_id,
+          originalCategoryData,
+          oldEntry.is_favorite,
+          expiresAt.toISOString(),
+          oldEntry.created_at,
+          oldEntry.updated_at,
+          oldEntry.last_accessed,
+        ]
+      );
+
+      // Remove from main table
       const result = await this.db.runAsync(
         'DELETE FROM passwords WHERE id = ?',
         [id]
@@ -975,10 +1108,206 @@ class DatabaseService {
       }
 
       // Log the action
-      await this.logAuditAction('DELETE', 'passwords', id, oldEntry, null);
+      await this.logAuditAction(
+        'MOVE_TO_TRASH',
+        'passwords',
+        id,
+        oldEntry,
+        null
+      );
 
       return true;
     });
+  }
+
+  /**
+   * Get all deleted passwords from trash
+   * @returns {Promise<Array>} Array of deleted password entries
+   */
+  async getAllDeletedPasswords() {
+    return await this.executeWithRetry(async () => {
+      if (!this.db) throw new Error('Database not initialized');
+
+      const result = await this.db.getAllAsync(
+        `SELECT dp.*, c.name as category_name, c.color as category_color
+         FROM deleted_passwords dp
+         LEFT JOIN categories c ON dp.category_id = c.id
+         ORDER BY dp.deleted_at DESC`
+      );
+
+      return result;
+    }, 'Get all deleted passwords');
+  }
+
+  /**
+   * Restore password from trash
+   * @param {number} deletedPasswordId - Deleted password ID
+   * @returns {Promise<number>} Restored password ID
+   */
+  async restorePasswordFromTrash(deletedPasswordId) {
+    return await this.executeTransaction(async () => {
+      if (!this.db) throw new Error('Database not initialized');
+
+      // Get deleted password entry
+      const deletedEntry = await this.db.getFirstAsync(
+        'SELECT * FROM deleted_passwords WHERE id = ?',
+        [deletedPasswordId]
+      );
+
+      if (!deletedEntry) {
+        throw new Error(
+          `Deleted password with ID ${deletedPasswordId} not found`
+        );
+      }
+
+      let categoryId = deletedEntry.category_id;
+
+      // Restore category if it was deleted and we have the data
+      if (deletedEntry.original_category_data && !categoryId) {
+        const categoryData = JSON.parse(deletedEntry.original_category_data);
+        
+        // Check if category still exists
+        const existingCategory = await this.db.getFirstAsync(
+          'SELECT id FROM categories WHERE id = ?',
+          [categoryData.id]
+        );
+
+        if (!existingCategory) {
+          // Restore the category
+          const categoryResult = await this.db.runAsync(
+            `INSERT INTO categories (name, description, icon, color, is_default, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [
+              categoryData.name,
+              categoryData.description,
+              categoryData.icon,
+              categoryData.color,
+              categoryData.is_default,
+              categoryData.created_at,
+              categoryData.updated_at,
+            ]
+          );
+          categoryId = categoryResult.lastInsertRowId;
+        } else {
+          categoryId = categoryData.id;
+        }
+      }
+
+      // Restore password to main table
+      const result = await this.db.runAsync(
+        `INSERT INTO passwords 
+         (encrypted_payload, category_id, is_favorite, created_at, updated_at, last_accessed)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          deletedEntry.encrypted_payload,
+          categoryId,
+          deletedEntry.is_favorite,
+          deletedEntry.original_created_at,
+          deletedEntry.original_updated_at,
+          deletedEntry.original_last_accessed,
+        ]
+      );
+
+      // Remove from trash
+      await this.db.runAsync('DELETE FROM deleted_passwords WHERE id = ?', [
+        deletedPasswordId,
+      ]);
+
+      // Log the action
+      await this.logAuditAction(
+        'RESTORE_FROM_TRASH',
+        'passwords',
+        result.lastInsertRowId,
+        null,
+        deletedEntry
+      );
+
+      return result.lastInsertRowId;
+    });
+  }
+
+  /**
+   * Permanently delete password from trash
+   * @param {number} deletedPasswordId - Deleted password ID
+   * @returns {Promise<boolean>} Delete success status
+   */
+  async permanentlyDeletePassword(deletedPasswordId) {
+    return await this.executeTransaction(async () => {
+      if (!this.db) throw new Error('Database not initialized');
+
+      // Get entry for audit log
+      const deletedEntry = await this.db.getFirstAsync(
+        'SELECT * FROM deleted_passwords WHERE id = ?',
+        [deletedPasswordId]
+      );
+
+      if (!deletedEntry) {
+        throw new Error(
+          `Deleted password with ID ${deletedPasswordId} not found`
+        );
+      }
+
+      const result = await this.db.runAsync(
+        'DELETE FROM deleted_passwords WHERE id = ?',
+        [deletedPasswordId]
+      );
+
+      if (result.changes === 0) {
+        throw new Error('No deleted password was permanently removed');
+      }
+
+      // Log the action
+      await this.logAuditAction(
+        'PERMANENT_DELETE',
+        'passwords',
+        deletedEntry.original_password_id,
+        deletedEntry,
+        null
+      );
+
+      return true;
+    });
+  }
+
+  /**
+   * Empty trash (delete all expired or all items)
+   * @param {boolean} deleteAll - If true, delete all items; if false, only expired items
+   * @returns {Promise<number>} Number of items deleted
+   */
+  async emptyTrash(deleteAll = false) {
+    return await this.executeTransaction(async () => {
+      if (!this.db) throw new Error('Database not initialized');
+
+      let query, params;
+      if (deleteAll) {
+        query = 'DELETE FROM deleted_passwords';
+        params = [];
+      } else {
+        query = 'DELETE FROM deleted_passwords WHERE expires_at <= ?';
+        params = [new Date().toISOString()];
+      }
+
+      const result = await this.db.runAsync(query, params);
+
+      // Log the action
+      await this.logAuditAction(
+        'EMPTY_TRASH',
+        'deleted_passwords',
+        null,
+        null,
+        { deleteAll, deletedCount: result.changes }
+      );
+
+      return result.changes;
+    });
+  }
+
+  /**
+   * Auto-cleanup expired trash items (to be called periodically)
+   * @returns {Promise<number>} Number of items cleaned up
+   */
+  async cleanupExpiredTrashItems() {
+    return await this.emptyTrash(false);
   }
 
   /**
