@@ -167,7 +167,10 @@ const SettingsScreen = () => {
           onPress: async () => {
             try {
               const deletedCount = await vaultService.emptyTrash(true);
-              Alert.alert('Success', `${deletedCount} items permanently deleted`);
+              Alert.alert(
+                'Success',
+                `${deletedCount} items permanently deleted`
+              );
             } catch (error) {
               console.error('Error emptying trash:', error);
               Alert.alert('Error', 'Failed to empty trash');
@@ -309,6 +312,26 @@ const SettingsScreen = () => {
               `${userSettings.clipboardTimeout === 0 ? 'Never' : `${userSettings.clipboardTimeout}s`}`,
               'clipboard',
               () => handleSettingPress('ClipboardSettings', false)
+            )}
+          </>
+        )}
+
+        {/* Data Management Section */}
+        {renderSection(
+          'DATA MANAGEMENT',
+          <>
+            {renderSettingItem(
+              'Export Vault',
+              'Export all passwords to encrypted file',
+              'download',
+              () => handleSettingPress('Export', true)
+            )}
+            {renderDivider()}
+            {renderSettingItem(
+              'Import Vault',
+              'Import passwords from encrypted file',
+              'upload',
+              () => handleSettingPress('Import', true)
             )}
           </>
         )}

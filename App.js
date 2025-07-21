@@ -36,6 +36,8 @@ import AboutScreen from './src/screens/AboutScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import TrashScreen from './src/screens/TrashScreen';
 import RetentionSettingsScreen from './src/screens/RetentionSettingsScreen';
+import ExportScreen from './src/screens/ExportScreen';
+import ImportScreen from './src/screens/ImportScreen';
 import { PasswordProvider } from './src/PasswordContext';
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 
@@ -452,6 +454,16 @@ const AppNavigator = () => {
         name="RetentionSettings"
         component={RetentionSettingsScreen}
         options={{ title: 'Retention Period' }}
+      />
+      <Stack.Screen
+        name="Export"
+        component={ExportScreen}
+        options={{ title: 'Export Vault' }}
+      />
+      <Stack.Screen
+        name="Import"
+        component={ImportScreen}
+        options={{ title: 'Import Vault' }}
       />
     </Stack.Navigator>
   );

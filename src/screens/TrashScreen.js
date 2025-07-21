@@ -33,22 +33,31 @@ const TrashScreen = ({ navigation }) => {
     try {
       setError(null);
       console.log('TrashScreen: Loading deleted passwords...');
-      
+
       const deletedData = await vaultService.getAllDeletedPasswords();
       console.log('TrashScreen: Raw deleted data count:', deletedData.length);
-      
+
       // Decrypt and process the data
       const decryptedPasswords = await Promise.all(
         deletedData.map(async (item, index) => {
           try {
-            console.log(`TrashScreen: Processing item ${index + 1}/${deletedData.length}:`);
+            console.log(
+              `TrashScreen: Processing item ${index + 1}/${deletedData.length}:`
+            );
             console.log(`  - Raw item ID: ${item.id}`);
-            console.log(`  - Original password ID: ${item.original_password_id}`);
-            console.log(`  - Has encrypted_payload: ${!!item.encrypted_payload}`);
+            console.log(
+              `  - Original password ID: ${item.original_password_id}`
+            );
+            console.log(
+              `  - Has encrypted_payload: ${!!item.encrypted_payload}`
+            );
             console.log(`  - Full item keys:`, Object.keys(item));
-            
+
             if (!item.id) {
-              console.error('TrashScreen: Item completely missing ID field!', item);
+              console.error(
+                'TrashScreen: Item completely missing ID field!',
+                item
+              );
               return {
                 ...item,
                 id: `corrupted_${index}`, // Fallback ID
@@ -62,9 +71,12 @@ const TrashScreen = ({ navigation }) => {
                 isExpired: true,
               };
             }
-            
+
             if (!item.encrypted_payload) {
-              console.warn('TrashScreen: Item missing encrypted_payload:', item.id);
+              console.warn(
+                'TrashScreen: Item missing encrypted_payload:',
+                item.id
+              );
               return {
                 ...item,
                 title: 'Corrupted Entry',
@@ -78,18 +90,24 @@ const TrashScreen = ({ navigation }) => {
               };
             }
 
-            const decryptedPayload = encryptionService.decryptPasswordEntryOptimized(
-              { 
-                ...item, 
-                encrypted_payload: JSON.parse(item.encrypted_payload) 
-              },
-              vaultService.masterPassword
-            );
+            const decryptedPayload =
+              encryptionService.decryptPasswordEntryOptimized(
+                {
+                  ...item,
+                  encrypted_payload: JSON.parse(item.encrypted_payload),
+                },
+                vaultService.masterPassword
+              );
 
             // Calculate days remaining
-            const expiresAt = item.expires_at ? new Date(item.expires_at) : new Date();
+            const expiresAt = item.expires_at
+              ? new Date(item.expires_at)
+              : new Date();
             const now = new Date();
-            const daysRemaining = Math.max(0, Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24)));
+            const daysRemaining = Math.max(
+              0,
+              Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24))
+            );
 
             const result = {
               ...item, // Keep original database fields (including id)
@@ -99,17 +117,20 @@ const TrashScreen = ({ navigation }) => {
               isExpired: daysRemaining === 0,
               decryptionError: false,
             };
-            
+
             console.log(`TrashScreen: Successfully decrypted item:`);
             console.log(`  - Original item ID: ${item.id}`);
             console.log(`  - Decrypted payload ID: ${decryptedPayload.id}`);
             console.log(`  - Final result ID: ${result.id}`);
             console.log(`  - Title: "${result.title}"`);
-            
+
             return result;
           } catch (decryptError) {
-            console.error(`TrashScreen: Error decrypting deleted password ${item.id}:`, decryptError);
-            
+            console.error(
+              `TrashScreen: Error decrypting deleted password ${item.id}:`,
+              decryptError
+            );
+
             // Return item with error flag instead of null, preserving the original id
             return {
               ...item,
@@ -130,7 +151,10 @@ const TrashScreen = ({ navigation }) => {
       // Validate all items have proper IDs before setting state
       const validatedPasswords = decryptedPasswords.filter(item => {
         if (!item || !item.id) {
-          console.error('TrashScreen: Filtering out item without valid ID:', item);
+          console.error(
+            'TrashScreen: Filtering out item without valid ID:',
+            item
+          );
           return false;
         }
         return true;
@@ -139,16 +163,24 @@ const TrashScreen = ({ navigation }) => {
       // Include all valid items, even those with decryption errors
       setDeletedPasswords(validatedPasswords);
       setFilteredPasswords(validatedPasswords);
-      
-      const successCount = validatedPasswords.filter(p => !p.decryptionError).length;
-      const errorCount = validatedPasswords.filter(p => p.decryptionError).length;
-      const filteredCount = decryptedPasswords.length - validatedPasswords.length;
-      
-      console.log(`TrashScreen: Loaded ${successCount} passwords successfully, ${errorCount} with errors`);
+
+      const successCount = validatedPasswords.filter(
+        p => !p.decryptionError
+      ).length;
+      const errorCount = validatedPasswords.filter(
+        p => p.decryptionError
+      ).length;
+      const filteredCount =
+        decryptedPasswords.length - validatedPasswords.length;
+
+      console.log(
+        `TrashScreen: Loaded ${successCount} passwords successfully, ${errorCount} with errors`
+      );
       if (filteredCount > 0) {
-        console.warn(`TrashScreen: Filtered out ${filteredCount} items without valid IDs`);
+        console.warn(
+          `TrashScreen: Filtered out ${filteredCount} items without valid IDs`
+        );
       }
-      
     } catch (err) {
       console.error('TrashScreen: Error loading deleted passwords:', err);
       setError('Failed to load deleted passwords');
@@ -163,11 +195,12 @@ const TrashScreen = ({ navigation }) => {
     if (!searchQuery.trim()) {
       setFilteredPasswords(deletedPasswords);
     } else {
-      const filtered = deletedPasswords.filter((item) =>
-        item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.url?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.category_name?.toLowerCase().includes(searchQuery.toLowerCase())
+      const filtered = deletedPasswords.filter(
+        item =>
+          item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.url?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.category_name?.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredPasswords(filtered);
     }
@@ -187,13 +220,13 @@ const TrashScreen = ({ navigation }) => {
   }, [loadDeletedPasswords]);
 
   // Restore password
-  const handleRestore = (item) => {
+  const handleRestore = item => {
     console.log('TrashScreen: handleRestore called with item:', {
       hasItem: !!item,
       hasId: !!(item && item.id),
       id: item?.id,
       title: item?.title,
-      decryptionError: item?.decryptionError
+      decryptionError: item?.decryptionError,
     });
 
     if (!item) {
@@ -204,15 +237,21 @@ const TrashScreen = ({ navigation }) => {
 
     if (!item.id) {
       console.error('TrashScreen: Item missing ID:', item);
-      Alert.alert('Error', 'Item missing valid ID. This may be due to data corruption.');
+      Alert.alert(
+        'Error',
+        'Item missing valid ID. This may be due to data corruption.'
+      );
       return;
     }
 
     if (item.decryptionError) {
-      Alert.alert('Error', 'Cannot restore item with decryption errors. The item may be corrupted.');
+      Alert.alert(
+        'Error',
+        'Cannot restore item with decryption errors. The item may be corrupted.'
+      );
       return;
     }
-    
+
     Alert.alert(
       'Restore Password',
       `Are you sure you want to restore "${item.title || 'this password'}"?`,
@@ -222,16 +261,25 @@ const TrashScreen = ({ navigation }) => {
           text: 'Restore',
           onPress: async () => {
             try {
-              console.log('TrashScreen: Attempting to restore password with ID:', item.id);
-              
+              console.log(
+                'TrashScreen: Attempting to restore password with ID:',
+                item.id
+              );
+
               // Restore password and get the new password ID
-              const restoredPasswordId = await vaultService.restorePasswordFromTrash(item.id);
-              console.log('TrashScreen: Password restoration successful, new ID:', restoredPasswordId);
-              
+              const restoredPasswordId =
+                await vaultService.restorePasswordFromTrash(item.id);
+              console.log(
+                'TrashScreen: Password restoration successful, new ID:',
+                restoredPasswordId
+              );
+
               // Add restored password to main context using the data we already have
               try {
-                console.log('TrashScreen: Creating restored password object from existing data');
-                
+                console.log(
+                  'TrashScreen: Creating restored password object from existing data'
+                );
+
                 // Create the restored password object using the data we already have from the trash item
                 // This avoids the race condition of trying to fetch immediately after restoration
                 const restoredPassword = {
@@ -248,52 +296,80 @@ const TrashScreen = ({ navigation }) => {
                   isFavorite: item.is_favorite === 1,
                   createdAt: item.original_created_at || item.created_at,
                   updatedAt: item.original_updated_at || item.updated_at,
-                  lastAccessed: item.original_last_accessed || item.last_accessed,
+                  lastAccessed:
+                    item.original_last_accessed || item.last_accessed,
                 };
-                
-                console.log('TrashScreen: Restored password object created:', restoredPassword.title);
-                
+
+                console.log(
+                  'TrashScreen: Restored password object created:',
+                  restoredPassword.title
+                );
+
                 // Add to main password context for immediate UI update
                 if (addPassword) {
                   addPassword(restoredPassword);
-                  console.log('TrashScreen: Added restored password to main context');
+                  console.log(
+                    'TrashScreen: Added restored password to main context'
+                  );
                 } else {
-                  console.warn('TrashScreen: addPassword function not available from context');
+                  console.warn(
+                    'TrashScreen: addPassword function not available from context'
+                  );
                 }
               } catch (contextError) {
-                console.warn('TrashScreen: Could not add restored password to context:', contextError);
-                
+                console.warn(
+                  'TrashScreen: Could not add restored password to context:',
+                  contextError
+                );
+
                 // Fallback: try to fetch after a short delay
                 setTimeout(async () => {
                   try {
-                    console.log('TrashScreen: Attempting delayed fetch as fallback');
-                    const restoredPassword = await vaultService.getPasswordEntry(restoredPasswordId);
+                    console.log(
+                      'TrashScreen: Attempting delayed fetch as fallback'
+                    );
+                    const restoredPassword =
+                      await vaultService.getPasswordEntry(restoredPasswordId);
                     if (addPassword) {
                       addPassword(restoredPassword);
-                      console.log('TrashScreen: Successfully added via delayed fallback');
+                      console.log(
+                        'TrashScreen: Successfully added via delayed fallback'
+                      );
                     }
                   } catch (delayedError) {
-                    console.error('TrashScreen: Delayed fallback also failed:', delayedError);
+                    console.error(
+                      'TrashScreen: Delayed fallback also failed:',
+                      delayedError
+                    );
                   }
                 }, 500); // 500ms delay to ensure database transaction is committed
               }
-              
+
               // Update trash list to remove the restored item
               await loadDeletedPasswords();
-              
+
               // Also set navigation parameter as backup to ensure MyVault refreshes
               // This is redundant with context update but provides extra safety
               try {
                 navigation.getParent()?.setParams({ shouldRefresh: true });
               } catch (navError) {
-                console.warn('TrashScreen: Could not set navigation refresh parameter:', navError);
+                console.warn(
+                  'TrashScreen: Could not set navigation refresh parameter:',
+                  navError
+                );
               }
-              
+
               Alert.alert('Success', 'Password restored successfully');
             } catch (err) {
               console.error('TrashScreen: Error restoring password:', err);
-              console.error('TrashScreen: Full error object:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
-              Alert.alert('Error', `Failed to restore password: ${err.message || 'Unknown error'}`);
+              console.error(
+                'TrashScreen: Full error object:',
+                JSON.stringify(err, Object.getOwnPropertyNames(err))
+              );
+              Alert.alert(
+                'Error',
+                `Failed to restore password: ${err.message || 'Unknown error'}`
+              );
             }
           },
         },
@@ -302,12 +378,12 @@ const TrashScreen = ({ navigation }) => {
   };
 
   // Permanently delete password
-  const handlePermanentDelete = (item) => {
+  const handlePermanentDelete = item => {
     if (!item || !item.id) {
       Alert.alert('Error', 'Invalid item selected');
       return;
     }
-    
+
     Alert.alert(
       'Permanently Delete',
       `Are you sure you want to permanently delete "${item.title || 'this password'}"? This action cannot be undone.`,
@@ -345,7 +421,10 @@ const TrashScreen = ({ navigation }) => {
             try {
               const deletedCount = await vaultService.emptyTrash(true);
               await loadDeletedPasswords();
-              Alert.alert('Success', `${deletedCount} items permanently deleted`);
+              Alert.alert(
+                'Success',
+                `${deletedCount} items permanently deleted`
+              );
             } catch (err) {
               console.error('Error emptying trash:', err);
               Alert.alert('Error', 'Failed to empty trash');
@@ -358,42 +437,80 @@ const TrashScreen = ({ navigation }) => {
 
   // Render deleted password item
   const renderDeletedPasswordItem = ({ item }) => (
-    <View style={[styles.passwordItem, { backgroundColor: theme.colors.surface }]}>
+    <View
+      style={[styles.passwordItem, { backgroundColor: theme.colors.surface }]}
+    >
       <View style={styles.passwordHeader}>
         <View style={styles.passwordInfo}>
-          <Text style={[styles.passwordTitle, { 
-            color: item.decryptionError ? theme.colors.error : theme.colors.text 
-          }]}>
+          <Text
+            style={[
+              styles.passwordTitle,
+              {
+                color: item.decryptionError
+                  ? theme.colors.error
+                  : theme.colors.text,
+              },
+            ]}
+          >
             {item.title || 'Untitled'}
             {item.decryptionError && ' ⚠️'}
           </Text>
-          <Text style={[styles.passwordDetails, { color: theme.colors.textSecondary }]}>
+          <Text
+            style={[
+              styles.passwordDetails,
+              { color: theme.colors.textSecondary },
+            ]}
+          >
             {item.username && `${item.username} • `}
             {item.category_name || 'No Category'}
             {item.decryptionError && ' • Decryption Error'}
           </Text>
-          <Text style={[styles.deletionInfo, { color: theme.colors.textSecondary }]}>
-            Deleted {item.deleted_at ? new Date(item.deleted_at).toLocaleDateString() : 'Unknown date'}
+          <Text
+            style={[styles.deletionInfo, { color: theme.colors.textSecondary }]}
+          >
+            Deleted{' '}
+            {item.deleted_at
+              ? new Date(item.deleted_at).toLocaleDateString()
+              : 'Unknown date'}
             {item.isExpired ? (
               <Text style={{ color: theme.colors.error }}> • Expired</Text>
             ) : (
-              <Text style={{ color: theme.colors.textSecondary }}> • {item.daysRemaining || 0} days left</Text>
+              <Text style={{ color: theme.colors.textSecondary }}>
+                {' '}
+                • {item.daysRemaining || 0} days left
+              </Text>
             )}
           </Text>
         </View>
         <View style={styles.actionButtons}>
           <TouchableOpacity
-            style={[styles.actionButton, { 
-              backgroundColor: item.decryptionError ? theme.colors.disabled : theme.colors.primary,
-              opacity: item.decryptionError ? 0.5 : 1
-            }]}
+            style={[
+              styles.actionButton,
+              {
+                backgroundColor: item.decryptionError
+                  ? theme.colors.disabled
+                  : theme.colors.primary,
+                opacity: item.decryptionError ? 0.5 : 1,
+              },
+            ]}
             onPress={() => handleRestore(item)}
             disabled={item.decryptionError}
           >
-            <Icon name="undo" size={16} color={item.decryptionError ? theme.colors.textSecondary : theme.colors.onPrimary} />
+            <Icon
+              name="undo"
+              size={16}
+              color={
+                item.decryptionError
+                  ? theme.colors.textSecondary
+                  : theme.colors.onPrimary
+              }
+            />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: theme.colors.error }]}
+            style={[
+              styles.actionButton,
+              { backgroundColor: theme.colors.error },
+            ]}
             onPress={() => handlePermanentDelete(item)}
           >
             <Icon name="trash" size={16} color={theme.colors.onError} />
@@ -415,15 +532,20 @@ const TrashScreen = ({ navigation }) => {
       <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
         Trash is Empty
       </Text>
-      <Text style={[styles.emptyDescription, { color: theme.colors.textSecondary }]}>
-        Deleted passwords will appear here and can be restored within the retention period.
+      <Text
+        style={[styles.emptyDescription, { color: theme.colors.textSecondary }]}
+      >
+        Deleted passwords will appear here and can be restored within the
+        retention period.
       </Text>
     </View>
   );
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+      >
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={[styles.loadingText, { color: theme.colors.text }]}>
@@ -436,11 +558,23 @@ const TrashScreen = ({ navigation }) => {
 
   if (error) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+      >
         <View style={styles.errorContainer}>
-          <Icon name="exclamation-triangle" size={64} color={theme.colors.error} />
-          <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
-          <Button mode="contained" onPress={loadDeletedPasswords} style={styles.retryButton}>
+          <Icon
+            name="exclamation-triangle"
+            size={64}
+            color={theme.colors.error}
+          />
+          <Text style={[styles.errorText, { color: theme.colors.error }]}>
+            {error}
+          </Text>
+          <Button
+            mode="contained"
+            onPress={loadDeletedPasswords}
+            style={styles.retryButton}
+          >
             Retry
           </Button>
         </View>
@@ -449,7 +583,9 @@ const TrashScreen = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -462,10 +598,18 @@ const TrashScreen = ({ navigation }) => {
         </Text>
         {filteredPasswords.length > 0 && (
           <TouchableOpacity
-            style={[styles.emptyTrashButton, { backgroundColor: theme.colors.errorContainer }]}
+            style={[
+              styles.emptyTrashButton,
+              { backgroundColor: theme.colors.errorContainer },
+            ]}
             onPress={handleEmptyTrash}
           >
-            <Text style={[styles.emptyTrashText, { color: theme.colors.onErrorContainer }]}>
+            <Text
+              style={[
+                styles.emptyTrashText,
+                { color: theme.colors.onErrorContainer },
+              ]}
+            >
               Empty
             </Text>
           </TouchableOpacity>
@@ -489,7 +633,9 @@ const TrashScreen = ({ navigation }) => {
         renderItem={renderDeletedPasswordItem}
         keyExtractor={(item, index) => {
           // Ensure we always have a valid key for FlatList
-          return item && item.id ? item.id.toString() : `deleted_fallback_${index}`;
+          return item && item.id
+            ? item.id.toString()
+            : `deleted_fallback_${index}`;
         }}
         ListEmptyComponent={renderEmptyState}
         refreshControl={
@@ -501,7 +647,9 @@ const TrashScreen = ({ navigation }) => {
           />
         }
         contentContainerStyle={
-          filteredPasswords.length === 0 ? styles.emptyContainer : styles.listContainer
+          filteredPasswords.length === 0
+            ? styles.emptyContainer
+            : styles.listContainer
         }
       />
     </SafeAreaView>

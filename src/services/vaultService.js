@@ -563,7 +563,9 @@ class VaultService {
         }
       }
 
-      console.log(`VaultService: Fetching and decrypting entry for ID ${id} (attempt ${retryCount + 1})`);
+      console.log(
+        `VaultService: Fetching and decrypting entry for ID ${id} (attempt ${retryCount + 1})`
+      );
       const encryptedEntry = await this.dbService.getPasswordById(id);
 
       if (!encryptedEntry) {
@@ -580,13 +582,18 @@ class VaultService {
 
       return decrypted;
     } catch (error) {
-      console.error(`VaultService: Error getting password entry (attempt ${retryCount + 1}):`, error);
-      
+      console.error(
+        `VaultService: Error getting password entry (attempt ${retryCount + 1}):`,
+        error
+      );
+
       // Retry logic for "Password entry not found" errors (likely race condition)
       if (error.message === 'Password entry not found' && retryCount < 2) {
         const delay = (retryCount + 1) * 250; // 250ms, 500ms delays
-        console.log(`VaultService: Retrying in ${delay}ms due to potential race condition`);
-        
+        console.log(
+          `VaultService: Retrying in ${delay}ms due to potential race condition`
+        );
+
         return new Promise((resolve, reject) => {
           setTimeout(async () => {
             try {
@@ -598,7 +605,7 @@ class VaultService {
           }, delay);
         });
       }
-      
+
       throw error;
     }
   }
@@ -767,8 +774,8 @@ class VaultService {
    */
   async getUserRetentionDays() {
     try {
-      const AsyncStorage = require('@react-native-async-storage/async-storage')
-        .default;
+      const AsyncStorage =
+        require('@react-native-async-storage/async-storage').default;
       const settings = await AsyncStorage.getItem('userSettings');
       if (settings) {
         const parsedSettings = JSON.parse(settings);
@@ -793,9 +800,12 @@ class VaultService {
     try {
       // Run cleanup of corrupted entries in the background (non-blocking)
       this.dbService.cleanupCorruptedDeletedPasswords().catch(error => {
-        console.warn('Background cleanup of corrupted deleted passwords failed:', error);
+        console.warn(
+          'Background cleanup of corrupted deleted passwords failed:',
+          error
+        );
       });
-      
+
       return await this.dbService.getAllDeletedPasswords();
     } catch (error) {
       console.error('Error getting deleted passwords:', error);
@@ -1231,6 +1241,133 @@ class VaultService {
       console.log('VaultService: Biometric access cleared');
     } catch (error) {
       console.error('VaultService: Error clearing biometric access:', error);
+    }
+  }
+
+  /**
+   * Get all passwords for export purposes
+   * @returns {Promise<Array>} Array of decrypted password entries
+   */
+  async getAllPasswords() {
+    if (!this.isUserAuthenticated()) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      const entries = await this.dbService.getAllPasswords();
+      const decryptedEntries = [];
+
+      for (const entry of entries) {
+        try {
+          const decrypted = await this.decryptPasswordEntry(entry);
+          decryptedEntries.push({
+            website: decrypted.title,
+            username: decrypted.username,
+            password: decrypted.password,
+            category: decrypted.category || 'General',
+            notes: decrypted.notes || '',
+            favorite: decrypted.isFavorite || false,
+            url: decrypted.url || '',
+          });
+        } catch (decryptError) {
+          console.warn('Failed to decrypt entry for export:', decryptError);
+          // Skip entries that can't be decrypted
+        }
+      }
+
+      return decryptedEntries;
+    } catch (error) {
+      console.error('Error getting all passwords for export:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Find duplicate password by website and username
+   * @param {string} website - Website/title to check
+   * @param {string} username - Username to check
+   * @returns {Promise<boolean>} Whether duplicate exists
+   */
+  async findDuplicatePassword(website, username) {
+    if (!this.isUserAuthenticated()) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      const entries = await this.dbService.getAllPasswords();
+
+      for (const entry of entries) {
+        try {
+          const decrypted = await this.decryptPasswordEntry(entry);
+          if (
+            decrypted.title.toLowerCase() === website.toLowerCase() &&
+            decrypted.username.toLowerCase() === username.toLowerCase()
+          ) {
+            return true;
+          }
+        } catch (decryptError) {
+          // Skip entries that can't be decrypted
+          continue;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error finding duplicate password:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Clear all passwords from vault (for import replace mode)
+   * @returns {Promise<number>} Number of deleted entries
+   */
+  async clearAllPasswords() {
+    if (!this.isUserAuthenticated()) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      const deletedCount = await this.dbService.deleteAllPasswords();
+
+      // Clear caches
+      this.entryCache.clear();
+      this.cacheTimestamps.clear();
+
+      console.log(`VaultService: Cleared ${deletedCount} passwords from vault`);
+      return deletedCount;
+    } catch (error) {
+      console.error('Error clearing all passwords:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Add password entry (alias for import compatibility)
+   * @param {Object} passwordData - Password data
+   * @returns {Promise<number>} Inserted entry ID
+   */
+  async addPassword(passwordData) {
+    if (!this.isUserAuthenticated()) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      // Convert import format to internal format
+      const passwordEntry = {
+        title: passwordData.website || passwordData.title,
+        username: passwordData.username || '',
+        password: passwordData.password,
+        url: passwordData.url || '',
+        notes: passwordData.notes || '',
+        categoryId: passwordData.categoryId || 1, // Default to General category
+        isFavorite: passwordData.favorite || false,
+      };
+
+      return await this.addPasswordEntry(passwordEntry);
+    } catch (error) {
+      console.error('Error adding password:', error);
+      throw error;
     }
   }
 }

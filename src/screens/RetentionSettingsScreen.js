@@ -20,9 +20,21 @@ const RetentionSettingsScreen = ({ navigation }) => {
 
   const retentionOptions = [
     { value: '7', label: '7 Days', description: 'Items deleted after 1 week' },
-    { value: '30', label: '30 Days', description: 'Items deleted after 1 month (Default)' },
-    { value: '60', label: '60 Days', description: 'Items deleted after 2 months' },
-    { value: '90', label: '90 Days', description: 'Items deleted after 3 months' },
+    {
+      value: '30',
+      label: '30 Days',
+      description: 'Items deleted after 1 month (Default)',
+    },
+    {
+      value: '60',
+      label: '60 Days',
+      description: 'Items deleted after 2 months',
+    },
+    {
+      value: '90',
+      label: '90 Days',
+      description: 'Items deleted after 3 months',
+    },
   ];
 
   useEffect(() => {
@@ -54,14 +66,14 @@ const RetentionSettingsScreen = ({ navigation }) => {
     try {
       const settings = await AsyncStorage.getItem('userSettings');
       const parsedSettings = settings ? JSON.parse(settings) : {};
-      
+
       const newSettings = {
         ...parsedSettings,
         trashRetentionDays: parseInt(selectedPeriod),
       };
-      
+
       await AsyncStorage.setItem('userSettings', JSON.stringify(newSettings));
-      
+
       Alert.alert(
         'Success',
         `Retention period updated to ${selectedPeriod} days`,
@@ -88,14 +100,17 @@ const RetentionSettingsScreen = ({ navigation }) => {
     }
   };
 
-  const renderOption = (option) => (
+  const renderOption = option => (
     <TouchableOpacity
       key={option.value}
       style={[
         styles.optionContainer,
-        { 
+        {
           backgroundColor: theme.colors.surface,
-          borderColor: selectedPeriod === option.value ? theme.colors.primary : theme.colors.border,
+          borderColor:
+            selectedPeriod === option.value
+              ? theme.colors.primary
+              : theme.colors.border,
         },
       ]}
       onPress={() => setSelectedPeriod(option.value)}
@@ -106,7 +121,12 @@ const RetentionSettingsScreen = ({ navigation }) => {
           <Text style={[styles.optionTitle, { color: theme.colors.text }]}>
             {option.label}
           </Text>
-          <Text style={[styles.optionDescription, { color: theme.colors.textSecondary }]}>
+          <Text
+            style={[
+              styles.optionDescription,
+              { color: theme.colors.textSecondary },
+            ]}
+          >
             {option.description}
           </Text>
         </View>
@@ -123,7 +143,9 @@ const RetentionSettingsScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+      >
         <View style={styles.loadingContainer}>
           <Text style={[styles.loadingText, { color: theme.colors.text }]}>
             Loading settings...
@@ -134,7 +156,9 @@ const RetentionSettingsScreen = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity style={styles.backButton} onPress={handleCancel}>
@@ -143,21 +167,27 @@ const RetentionSettingsScreen = ({ navigation }) => {
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
           Retention Period
         </Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
             styles.saveButton,
-            { 
-              backgroundColor: selectedPeriod !== originalPeriod ? theme.colors.primary : 'transparent',
+            {
+              backgroundColor:
+                selectedPeriod !== originalPeriod
+                  ? theme.colors.primary
+                  : 'transparent',
             },
           ]}
           onPress={handleSave}
           disabled={selectedPeriod === originalPeriod}
         >
-          <Text 
+          <Text
             style={[
               styles.saveButtonText,
-              { 
-                color: selectedPeriod !== originalPeriod ? theme.colors.onPrimary : theme.colors.textSecondary,
+              {
+                color:
+                  selectedPeriod !== originalPeriod
+                    ? theme.colors.onPrimary
+                    : theme.colors.textSecondary,
               },
             ]}
           >
@@ -168,18 +198,31 @@ const RetentionSettingsScreen = ({ navigation }) => {
 
       {/* Content */}
       <View style={styles.content}>
-        <Text style={[styles.description, { color: theme.colors.textSecondary }]}>
-          Choose how long deleted passwords should be kept in trash before being permanently deleted.
+        <Text
+          style={[styles.description, { color: theme.colors.textSecondary }]}
+        >
+          Choose how long deleted passwords should be kept in trash before being
+          permanently deleted.
         </Text>
 
         <View style={styles.optionsContainer}>
           {retentionOptions.map(renderOption)}
         </View>
 
-        <View style={[styles.warningContainer, { backgroundColor: theme.colors.warning + '20' }]}>
-          <Icon name="exclamation-triangle" size={16} color={theme.colors.warning} />
+        <View
+          style={[
+            styles.warningContainer,
+            { backgroundColor: theme.colors.warning + '20' },
+          ]}
+        >
+          <Icon
+            name="exclamation-triangle"
+            size={16}
+            color={theme.colors.warning}
+          />
           <Text style={[styles.warningText, { color: theme.colors.warning }]}>
-            Changing this setting only affects newly deleted passwords. Existing items in trash will keep their original expiration dates.
+            Changing this setting only affects newly deleted passwords. Existing
+            items in trash will keep their original expiration dates.
           </Text>
         </View>
       </View>
