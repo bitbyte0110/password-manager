@@ -30,11 +30,15 @@ export const useSessionManager = () => {
         const userTimeout = parsedSettings.autoLockTimeout !== undefined 
           ? parsedSettings.autoLockTimeout 
           : 120; // Default 120 seconds
-        return userTimeout === 0 ? 0 : userTimeout * 1000; // Return 0 for "Never", convert others to milliseconds
+        
+        const result = userTimeout === 0 ? 0 : userTimeout * 1000;
+        console.log(`SessionManager: Auto-lock setting - raw: ${userTimeout}s, processed: ${result === 0 ? 'NEVER' : result + 'ms'}`);
+        return result;
       }
     } catch (error) {
       console.error('Error loading auto-lock settings:', error);
     }
+    console.log(`SessionManager: Using default timeout: ${DEFAULT_ACTIVITY_TIMEOUT}ms`);
     return DEFAULT_ACTIVITY_TIMEOUT;
   };
 
@@ -50,6 +54,7 @@ export const useSessionManager = () => {
       
       // If auto-lock is disabled (timeout = 0), never expire the session
       if (activityTimeout === 0) {
+        console.log('SessionManager: Auto-lock disabled (Never), session will not expire');
         return false;
       }
 

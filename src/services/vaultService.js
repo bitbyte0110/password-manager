@@ -769,6 +769,11 @@ class VaultService {
     }
 
     try {
+      // Run cleanup of corrupted entries in the background (non-blocking)
+      this.dbService.cleanupCorruptedDeletedPasswords().catch(error => {
+        console.warn('Background cleanup of corrupted deleted passwords failed:', error);
+      });
+      
       return await this.dbService.getAllDeletedPasswords();
     } catch (error) {
       console.error('Error getting deleted passwords:', error);
