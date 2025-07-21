@@ -445,6 +445,10 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
                         onSurfaceVariant: theme.colors.inputPlaceholder,
                       },
                     }}
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                    keyboardType="default"
+                    textContentType="newPassword"
                     right={
                       <TextInput.Icon
                         icon={showNewPassword ? 'eye-off' : 'eye'}
@@ -514,6 +518,10 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
                         onSurfaceVariant: theme.colors.inputPlaceholder,
                       },
                     }}
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                    keyboardType="default"
+                    textContentType="newPassword"
                     right={
                       <TextInput.Icon
                         icon={showConfirmPassword ? 'eye-off' : 'eye'}

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
-import { TextInput, Button } from 'react-native-paper';
+import { Button } from 'react-native-paper';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
 import bcrypt from 'bcryptjs';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useTheme } from '../contexts/ThemeContext';
+import SecureTextInput from './SecureTextInput';
 
 const AuthenticationModal = ({
   visible,
@@ -230,42 +231,20 @@ const AuthenticationModal = ({
           {(authMethod === 'password' ||
             (authMethod === 'mfa' && mfaStep === 2)) && (
             <View style={styles.passwordSection}>
-              <TextInput
+              <SecureTextInput
                 label="Master Password"
-                mode="outlined"
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                style={[styles.passwordInput, { backgroundColor: theme.colors.inputBackground }]}
-                theme={{
-                  colors: {
-                    primary: theme.colors.inputBorderFocused,
-                    accent: theme.colors.inputBorderFocused,
-                    text: theme.colors.inputText,
-                    background: theme.colors.inputBackground,
-                    outline: theme.colors.inputBorder,
-                    placeholder: theme.colors.inputPlaceholder,
-                    onSurfaceVariant: theme.colors.inputPlaceholder,
-                  },
-                }}
-                textColor={theme.colors.inputText}
-                placeholderTextColor={theme.colors.inputPlaceholder}
+                showPassword={showPassword}
+                onTogglePassword={() => setShowPassword(!showPassword)}
+                placeholder="Enter your master password"
                 autoFocus
                 returnKeyType="done"
                 onSubmitEditing={handlePasswordAuth}
-                right={
-                  <TextInput.Icon
-                    icon={showPassword ? 'eye-off' : 'eye'}
-                    onPress={() => setShowPassword(!showPassword)}
-                  />
-                }
+                error={!!error}
+                errorText={error}
+                testID="master-password-input"
               />
-
-              {error && (
-                <Text style={[styles.errorText, { color: theme.colors.error }]}>
-                  {error}
-                </Text>
-              )}
 
               {authMethod === 'password' && biometricAvailable && (
                 <TouchableOpacity
