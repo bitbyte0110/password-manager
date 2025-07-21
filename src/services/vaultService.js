@@ -17,6 +17,9 @@ class VaultService {
     this.isAuthenticated = false;
     this.sessionStartTime = null;
     this.sessionToken = null; // For secure session restoration
+    this.entryCache = new Map(); // Cache for decrypted entries to avoid re-decryption
+    this.cacheTimestamps = new Map(); // Track cache freshness
+    this.CACHE_TTL = 30000; // 30 seconds cache TTL
   }
 
   /**
@@ -484,6 +487,10 @@ class VaultService {
     this.sessionStartTime = null;
     this.sessionToken = null;
 
+    // Clear entry cache for security
+    this.entryCache.clear();
+    this.cacheTimestamps.clear();
+
     // Clear session token from storage
     try {
       await SecureStore.deleteItemAsync('vault_sessionToken');
@@ -531,7 +538,7 @@ class VaultService {
   }
 
   /**
-   * Get a single password entry by ID with decryption
+   * Get a single password entry by ID with decryption and caching
    * @param {number} id - Entry ID
    * @returns {Promise<Object>} Decrypted password entry
    */
@@ -541,14 +548,30 @@ class VaultService {
     }
 
     try {
+      // Check cache first
+      const cacheKey = `entry_${id}`;
+      const cached = this.entryCache.get(cacheKey);
+      const cacheTime = this.cacheTimestamps.get(cacheKey);
+
+      if (cached && cacheTime && Date.now() - cacheTime < this.CACHE_TTL) {
+        console.log(`VaultService: Using cached entry for ID ${id}`);
+        return cached;
+      }
+
+      console.log(`VaultService: Fetching and decrypting entry for ID ${id}`);
       const encryptedEntry = await this.dbService.getPasswordById(id);
 
       if (!encryptedEntry) {
         throw new Error('Password entry not found');
       }
 
-      // Decrypt and return the entry
+      // Decrypt and cache the entry
       const decrypted = await this.decryptPasswordEntry(encryptedEntry);
+
+      // Cache the decrypted entry
+      this.entryCache.set(cacheKey, decrypted);
+      this.cacheTimestamps.set(cacheKey, Date.now());
+
       return decrypted;
     } catch (error) {
       console.error('Error getting password entry:', error);
@@ -671,11 +694,19 @@ class VaultService {
     }
 
     try {
-      return await this.dbService.updatePasswordEntry(
+      const result = await this.dbService.updatePasswordEntry(
         id,
         passwordEntry,
         this.masterPassword
       );
+
+      // Invalidate cache for this entry
+      const cacheKey = `entry_${id}`;
+      this.entryCache.delete(cacheKey);
+      this.cacheTimestamps.delete(cacheKey);
+      console.log(`VaultService: Cache invalidated for entry ${id}`);
+
+      return result;
     } catch (error) {
       console.error('Error updating password entry:', error);
       throw error;

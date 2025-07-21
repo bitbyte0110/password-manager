@@ -34,26 +34,46 @@ const PasswordDetailsScreen = () => {
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
   const [favorite, setFavorite] = useState(false);
   const [decryptionError, setDecryptionError] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
+  // Only fetch on initial load - avoid redundant focus-based refetching
   useEffect(() => {
-    fetchEntry();
-  }, [id]);
+    if (!hasInitialized) {
+      fetchEntry();
+      setHasInitialized(true);
+    }
+  }, [id, hasInitialized]);
 
-  // Refresh data when screen gains focus (e.g., returning from EditPasswordScreen)
+  // Only refresh data when returning from EditPasswordScreen (check route params)
   useFocusEffect(
     useCallback(() => {
-      fetchEntry();
-    }, [id])
+      // Only refetch if we're returning from edit screen or explicitly requested
+      if (route.params?.shouldRefresh && hasInitialized) {
+        fetchEntry();
+        // Clear the refresh flag
+        navigation.setParams({ shouldRefresh: undefined });
+      }
+    }, [route.params?.shouldRefresh, hasInitialized])
   );
 
   const fetchEntry = async () => {
     setLoading(true);
     try {
+      console.log('PasswordDetailsScreen: Fetching entry for ID:', id);
+      const startTime = Date.now();
+
       const data = await vaultService.getPasswordEntry(id);
+
+      const endTime = Date.now();
+      console.log(
+        `PasswordDetailsScreen: Entry fetched in ${endTime - startTime}ms`
+      );
+
       setEntry(data);
       setFavorite(!!data.isFavorite);
       setDecryptionError(false);
     } catch (e) {
+      console.error('PasswordDetailsScreen: Error fetching entry:', e);
       setDecryptionError(true);
       setEntry(null);
     } finally {
@@ -91,7 +111,11 @@ const PasswordDetailsScreen = () => {
   };
 
   const handleEdit = () => {
-    navigation.navigate('EditPasswordScreen', { id });
+    navigation.navigate('EditPasswordScreen', {
+      id,
+      // Pass current entry data to avoid re-fetching in edit screen
+      entryData: entry,
+    });
   };
 
   const handleDelete = () => {

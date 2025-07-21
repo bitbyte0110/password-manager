@@ -239,7 +239,7 @@ function MainTabs() {
         tabBarIcon: ({ color, size }) => {
           let iconName;
           if (route.name === 'MyVault') iconName = 'shield-alt';
-          else if (route.name === 'Categories') iconName = 'folder';
+          else if (route.name === 'Categories') iconName = 'folder-open';
           else if (route.name === 'PasswordGenerator') iconName = 'key';
           else if (route.name === 'Settings') iconName = 'cog';
           return <Icon name={iconName} size={size} color={color} />;

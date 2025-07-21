@@ -431,22 +431,19 @@ const LoginScreen = ({ navigation: navProp }) => {
         return;
       }
 
-      const isValid = await bcrypt.compare(masterPassword, storedHash);
+      // Optimize: Let vaultService handle password verification to avoid double bcrypt
+      console.log(
+        'Delegating password verification to vault service for optimal performance'
+      );
+      await resetFailedAttempts();
+      await resetBiometricFailedAttempts(); // Reset biometric attempts on successful password
 
-      if (isValid) {
-        console.log('Password authentication successful');
-        console.log('Navigation object:', navigation);
-        await resetFailedAttempts();
-        await resetBiometricFailedAttempts(); // Reset biometric attempts on successful password
+      try {
+        // Clear session and authenticate with single bcrypt operation
+        await vaultService.clearSession();
+        const authSuccess = await vaultService.authenticate(masterPassword);
 
-        // Optimize authentication flow - run operations in parallel where possible
-        try {
-          // Clear session and authenticate in parallel (both are independent)
-          const [_, authResult] = await Promise.all([
-            vaultService.clearSession(),
-            vaultService.authenticate(masterPassword),
-          ]);
-
+        if (authSuccess) {
           console.log(
             'Vault service authenticated successfully - navigating immediately'
           );
@@ -459,23 +456,30 @@ const LoginScreen = ({ navigation: navProp }) => {
 
           // Navigate immediately for instant login
           navigation.replace('MainTabs');
-        } catch (vaultError) {
-          console.error('Error authenticating vault service:', vaultError);
-          showSnackbar('Authentication error. Please try again.');
-          return;
-        }
-      } else {
-        await incrementFailedAttempts();
-        if (mfaMode) {
-          setPasswordError(
-            'Invalid master password. MFA Step 2 failed - both biometric and password required.'
-          );
         } else {
-          setPasswordError(
-            `Invalid password. ${MAX_FAILED_ATTEMPTS - (failedAttempts + 1)} attempts remaining.`
-          );
+          await incrementFailedAttempts();
+          if (mfaMode) {
+            setPasswordError(
+              'Invalid master password. MFA Step 2 failed - both biometric and password required.'
+            );
+          } else {
+            setPasswordError(
+              `Invalid password. ${MAX_FAILED_ATTEMPTS - (failedAttempts + 1)} attempts remaining.`
+            );
+          }
+          setMasterPassword('');
         }
-        setMasterPassword('');
+      } catch (vaultError) {
+        console.error('Error authenticating vault service:', vaultError);
+        // Handle specific authentication errors
+        if (vaultError.message?.includes('Invalid')) {
+          await incrementFailedAttempts();
+          setPasswordError('Invalid master password');
+          setMasterPassword('');
+        } else {
+          showSnackbar('Authentication error. Please try again.');
+        }
+        return;
       }
     } catch (error) {
       console.error('Password authentication error:', error);
