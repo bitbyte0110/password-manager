@@ -651,6 +651,7 @@ const CategoriesScreen = ({ navigation, route }) => {
           style={[styles.searchBar, { backgroundColor: theme.colors.surface }]}
           inputStyle={{ color: theme.colors.text }}
           iconColor={theme.colors.textSecondary}
+          placeholderTextColor={theme.colors.textSecondary}
         />
       </View>
 

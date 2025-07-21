@@ -687,6 +687,7 @@ const MyVaultScreen = ({ navigation, route }) => {
           style={[styles.searchBar, { backgroundColor: theme.colors.surface }]}
           inputStyle={{ color: theme.colors.text }}
           iconColor={theme.colors.textSecondary}
+          placeholderTextColor={theme.colors.textSecondary}
         />
 
         {/* Recent searches */}
