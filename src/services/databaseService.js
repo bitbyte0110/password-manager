@@ -2110,6 +2110,85 @@ class DatabaseService {
       return data;
     }, 'Export data');
   }
+
+  /**
+   * Clean up corrupted deleted password entries
+   * Removes entries without valid IDs or corrupted data
+   * @returns {Promise<number>} Number of corrupted entries cleaned up
+   */
+  async cleanupCorruptedDeletedPasswords() {
+    return await this.executeTransaction(async () => {
+      if (!this.db) throw new Error('Database not initialized');
+
+      console.log('DatabaseService: Starting cleanup of corrupted deleted passwords...');
+
+      // Get all deleted passwords to check for issues
+      const allDeleted = await this.db.getAllAsync(
+        'SELECT id, encrypted_payload, original_password_id FROM deleted_passwords'
+      );
+
+      let cleanupCount = 0;
+      const corruptedIds = [];
+
+      for (const item of allDeleted) {
+        let isCorrupted = false;
+
+        // Check for missing ID
+        if (!item.id) {
+          console.warn('DatabaseService: Found deleted password without ID');
+          isCorrupted = true;
+        }
+
+        // Check for missing encrypted payload
+        if (!item.encrypted_payload) {
+          console.warn(`DatabaseService: Found deleted password ${item.id} without encrypted payload`);
+          isCorrupted = true;
+        }
+
+        // Check for missing original password ID
+        if (!item.original_password_id) {
+          console.warn(`DatabaseService: Found deleted password ${item.id} without original password ID`);
+          isCorrupted = true;
+        }
+
+        // Try to parse encrypted payload
+        if (item.encrypted_payload) {
+          try {
+            JSON.parse(item.encrypted_payload);
+          } catch (parseError) {
+            console.warn(`DatabaseService: Found deleted password ${item.id} with invalid encrypted payload`);
+            isCorrupted = true;
+          }
+        }
+
+        if (isCorrupted) {
+          corruptedIds.push(item.id);
+        }
+      }
+
+      // Remove corrupted entries
+      if (corruptedIds.length > 0) {
+        console.log(`DatabaseService: Removing ${corruptedIds.length} corrupted deleted password entries`);
+        
+        for (const corruptedId of corruptedIds) {
+          await this.db.runAsync('DELETE FROM deleted_passwords WHERE id = ?', [corruptedId]);
+          cleanupCount++;
+        }
+
+        // Log the cleanup action
+        await this.logAuditAction(
+          'CLEANUP_CORRUPTED_DELETED_PASSWORDS',
+          'deleted_passwords',
+          null,
+          null,
+          { cleanedUpCount: cleanupCount, corruptedIds }
+        );
+      }
+
+      console.log(`DatabaseService: Cleaned up ${cleanupCount} corrupted deleted password entries`);
+      return cleanupCount;
+    });
+  }
 }
 
 // Export singleton instance

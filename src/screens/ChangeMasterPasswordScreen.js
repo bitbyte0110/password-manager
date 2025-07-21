@@ -450,12 +450,13 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   passwordInput: {
-    paddingRight: 50,
+    paddingRight: 56, // Increased padding to prevent text overlap with eye icon
   },
   eyeButton: {
     position: 'absolute',
     right: 12,
-    top: 18,
+    top: '50%',
+    marginTop: -20, // Half of height to center vertically
     width: 40,
     height: 40,
     justifyContent: 'center',

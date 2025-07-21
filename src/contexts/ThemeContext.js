@@ -52,6 +52,7 @@ export const ThemeProvider = ({ children }) => {
       success: '#2ecc71',
       warning: '#f39c12',
       info: '#3498db',
+      disabled: isDarkMode ? '#5a5a6b' : '#cccccc',
       // Additional colors for specific UI elements
       tabBar: isDarkMode ? '#23243a' : '#ffffff',
       tabBarActive: isDarkMode ? '#9747ff' : '#8e44ad',
@@ -154,6 +155,7 @@ export const ThemeProvider = ({ children }) => {
         success: '#2ecc71',
         warning: '#f39c12',
         info: '#3498db',
+        disabled: '#cccccc',
         tabBar: '#ffffff',
         tabBarActive: '#8e44ad',
         tabBarInactive: '#999999',
