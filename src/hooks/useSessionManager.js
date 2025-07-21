@@ -27,8 +27,10 @@ export const useSessionManager = () => {
       const settings = await AsyncStorage.getItem('userSettings');
       if (settings) {
         const parsedSettings = JSON.parse(settings);
-        const userTimeout = parsedSettings.autoLockTimeout || 120; // Default 120 seconds
-        return userTimeout * 1000; // Convert to milliseconds
+        const userTimeout = parsedSettings.autoLockTimeout !== undefined 
+          ? parsedSettings.autoLockTimeout 
+          : 120; // Default 120 seconds
+        return userTimeout === 0 ? 0 : userTimeout * 1000; // Return 0 for "Never", convert others to milliseconds
       }
     } catch (error) {
       console.error('Error loading auto-lock settings:', error);
@@ -45,6 +47,12 @@ export const useSessionManager = () => {
       }
 
       const activityTimeout = await getActivityTimeout();
+      
+      // If auto-lock is disabled (timeout = 0), never expire the session
+      if (activityTimeout === 0) {
+        return false;
+      }
+
       const lastActive = parseInt(lastActiveTime, 10);
       const now = Date.now();
       const timeDifference = now - lastActive;
