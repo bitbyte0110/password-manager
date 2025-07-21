@@ -1,5 +1,11 @@
 import React from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -47,7 +53,7 @@ const SecureTextInput = ({
           {label}
         </Text>
       )}
-      
+
       <View style={styles.inputContainer}>
         <TextInput
           value={value}
@@ -66,12 +72,14 @@ const SecureTextInput = ({
           testID={testID}
           {...otherProps}
         />
-        
+
         {onTogglePassword && (
           <TouchableOpacity
             style={styles.eyeButton}
             onPress={onTogglePassword}
-            accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+            accessibilityLabel={
+              showPassword ? 'Hide password' : 'Show password'
+            }
           >
             <Icon
               name={showPassword ? 'eye-slash' : 'eye'}
@@ -81,7 +89,7 @@ const SecureTextInput = ({
           </TouchableOpacity>
         )}
       </View>
-      
+
       {error && errorText && (
         <Text style={[styles.errorText, { color: theme.colors.error }]}>
           {errorText}

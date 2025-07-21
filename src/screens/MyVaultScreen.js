@@ -778,7 +778,9 @@ const MyVaultScreen = ({ navigation, route }) => {
       <FlatList
         data={filteredPasswords}
         renderItem={renderPasswordCard}
-        keyExtractor={(item, index) => item && item.id ? item.id.toString() : `password_${index}`}
+        keyExtractor={(item, index) =>
+          item && item.id ? item.id.toString() : `password_${index}`
+        }
         style={styles.passwordList}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmptyState}

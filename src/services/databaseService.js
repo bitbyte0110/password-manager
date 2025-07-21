@@ -1165,7 +1165,7 @@ class DatabaseService {
       // Restore category if it was deleted and we have the data
       if (deletedEntry.original_category_data && !categoryId) {
         const categoryData = JSON.parse(deletedEntry.original_category_data);
-        
+
         // Check if category still exists
         const existingCategory = await this.db.getFirstAsync(
           'SELECT id FROM categories WHERE id = ?',
@@ -2120,7 +2120,9 @@ class DatabaseService {
     return await this.executeTransaction(async () => {
       if (!this.db) throw new Error('Database not initialized');
 
-      console.log('DatabaseService: Starting cleanup of corrupted deleted passwords...');
+      console.log(
+        'DatabaseService: Starting cleanup of corrupted deleted passwords...'
+      );
 
       // Get all deleted passwords to check for issues
       const allDeleted = await this.db.getAllAsync(
@@ -2141,13 +2143,17 @@ class DatabaseService {
 
         // Check for missing encrypted payload
         if (!item.encrypted_payload) {
-          console.warn(`DatabaseService: Found deleted password ${item.id} without encrypted payload`);
+          console.warn(
+            `DatabaseService: Found deleted password ${item.id} without encrypted payload`
+          );
           isCorrupted = true;
         }
 
         // Check for missing original password ID
         if (!item.original_password_id) {
-          console.warn(`DatabaseService: Found deleted password ${item.id} without original password ID`);
+          console.warn(
+            `DatabaseService: Found deleted password ${item.id} without original password ID`
+          );
           isCorrupted = true;
         }
 
@@ -2156,7 +2162,9 @@ class DatabaseService {
           try {
             JSON.parse(item.encrypted_payload);
           } catch (parseError) {
-            console.warn(`DatabaseService: Found deleted password ${item.id} with invalid encrypted payload`);
+            console.warn(
+              `DatabaseService: Found deleted password ${item.id} with invalid encrypted payload`
+            );
             isCorrupted = true;
           }
         }
@@ -2168,10 +2176,14 @@ class DatabaseService {
 
       // Remove corrupted entries
       if (corruptedIds.length > 0) {
-        console.log(`DatabaseService: Removing ${corruptedIds.length} corrupted deleted password entries`);
-        
+        console.log(
+          `DatabaseService: Removing ${corruptedIds.length} corrupted deleted password entries`
+        );
+
         for (const corruptedId of corruptedIds) {
-          await this.db.runAsync('DELETE FROM deleted_passwords WHERE id = ?', [corruptedId]);
+          await this.db.runAsync('DELETE FROM deleted_passwords WHERE id = ?', [
+            corruptedId,
+          ]);
           cleanupCount++;
         }
 
@@ -2185,8 +2197,75 @@ class DatabaseService {
         );
       }
 
-      console.log(`DatabaseService: Cleaned up ${cleanupCount} corrupted deleted password entries`);
+      console.log(
+        `DatabaseService: Cleaned up ${cleanupCount} corrupted deleted password entries`
+      );
       return cleanupCount;
+    });
+  }
+
+  /**
+   * Delete all passwords from the vault (for import replace functionality)
+   * @returns {Promise<number>} Number of deleted entries
+   */
+  async deleteAllPasswords() {
+    return this.withTransaction(async () => {
+      try {
+        // Count existing passwords
+        const countResult = await this.db.getFirstAsync(
+          'SELECT COUNT(*) as count FROM passwords'
+        );
+        const passwordCount = countResult?.count || 0;
+
+        if (passwordCount === 0) {
+          console.log('DatabaseService: No passwords to delete');
+          return 0;
+        }
+
+        // Move all passwords to trash first
+        const currentTimestamp = new Date().toISOString();
+
+        // Get all password entries
+        const passwords = await this.db.getAllAsync('SELECT * FROM passwords');
+
+        // Move each password to deleted_passwords table
+        for (const password of passwords) {
+          await this.db.runAsync(
+            `INSERT INTO deleted_passwords (
+              original_password_id, encrypted_payload, created_at, updated_at, last_accessed, deleted_at, category_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [
+              password.id,
+              password.encrypted_payload,
+              password.created_at,
+              password.updated_at,
+              password.last_accessed,
+              currentTimestamp,
+              password.category_id,
+            ]
+          );
+        }
+
+        // Delete all from passwords table
+        await this.db.runAsync('DELETE FROM passwords');
+
+        // Log audit action
+        await this.logAuditAction(
+          'DELETE_ALL_PASSWORDS',
+          'passwords',
+          null,
+          null,
+          { deletedCount: passwordCount, reason: 'import_replace' }
+        );
+
+        console.log(
+          `DatabaseService: Deleted all ${passwordCount} passwords for import replace`
+        );
+        return passwordCount;
+      } catch (error) {
+        console.error('DatabaseService: Error deleting all passwords:', error);
+        throw error;
+      }
     });
   }
 }

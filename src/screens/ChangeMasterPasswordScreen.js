@@ -161,9 +161,7 @@ const ChangeMasterPasswordScreen = () => {
             <SecureTextInput
               label="Current Password"
               value={formData.oldPassword}
-              onChangeText={value =>
-                handlePasswordChange('oldPassword', value)
-              }
+              onChangeText={value => handlePasswordChange('oldPassword', value)}
               showPassword={showPasswords.old}
               onTogglePassword={() =>
                 setShowPasswords(prev => ({ ...prev, old: !prev.old }))
@@ -180,9 +178,7 @@ const ChangeMasterPasswordScreen = () => {
             <SecureTextInput
               label="New Password"
               value={formData.newPassword}
-              onChangeText={value =>
-                handlePasswordChange('newPassword', value)
-              }
+              onChangeText={value => handlePasswordChange('newPassword', value)}
               showPassword={showPasswords.new}
               onTogglePassword={() =>
                 setShowPasswords(prev => ({ ...prev, new: !prev.new }))
