@@ -542,25 +542,28 @@ class VaultService {
   /**
    * Get a single password entry by ID with decryption and caching
    * @param {number} id - Entry ID
+   * @param {number} retryCount - Internal retry counter (default: 0)
    * @returns {Promise<Object>} Decrypted password entry
    */
-  async getPasswordEntry(id) {
+  async getPasswordEntry(id, retryCount = 0) {
     if (!this.isUserAuthenticated()) {
       throw new Error('User not authenticated');
     }
 
     try {
-      // Check cache first
-      const cacheKey = `entry_${id}`;
-      const cached = this.entryCache.get(cacheKey);
-      const cacheTime = this.cacheTimestamps.get(cacheKey);
+      // Check cache first (skip cache on retries to get fresh data)
+      if (retryCount === 0) {
+        const cacheKey = `entry_${id}`;
+        const cached = this.entryCache.get(cacheKey);
+        const cacheTime = this.cacheTimestamps.get(cacheKey);
 
-      if (cached && cacheTime && Date.now() - cacheTime < this.CACHE_TTL) {
-        console.log(`VaultService: Using cached entry for ID ${id}`);
-        return cached;
+        if (cached && cacheTime && Date.now() - cacheTime < this.CACHE_TTL) {
+          console.log(`VaultService: Using cached entry for ID ${id}`);
+          return cached;
+        }
       }
 
-      console.log(`VaultService: Fetching and decrypting entry for ID ${id}`);
+      console.log(`VaultService: Fetching and decrypting entry for ID ${id} (attempt ${retryCount + 1})`);
       const encryptedEntry = await this.dbService.getPasswordById(id);
 
       if (!encryptedEntry) {
@@ -571,12 +574,31 @@ class VaultService {
       const decrypted = await this.decryptPasswordEntry(encryptedEntry);
 
       // Cache the decrypted entry
+      const cacheKey = `entry_${id}`;
       this.entryCache.set(cacheKey, decrypted);
       this.cacheTimestamps.set(cacheKey, Date.now());
 
       return decrypted;
     } catch (error) {
-      console.error('Error getting password entry:', error);
+      console.error(`VaultService: Error getting password entry (attempt ${retryCount + 1}):`, error);
+      
+      // Retry logic for "Password entry not found" errors (likely race condition)
+      if (error.message === 'Password entry not found' && retryCount < 2) {
+        const delay = (retryCount + 1) * 250; // 250ms, 500ms delays
+        console.log(`VaultService: Retrying in ${delay}ms due to potential race condition`);
+        
+        return new Promise((resolve, reject) => {
+          setTimeout(async () => {
+            try {
+              const result = await this.getPasswordEntry(id, retryCount + 1);
+              resolve(result);
+            } catch (retryError) {
+              reject(retryError);
+            }
+          }, delay);
+        });
+      }
+      
       throw error;
     }
   }
