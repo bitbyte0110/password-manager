@@ -236,13 +236,20 @@ const AuthenticationModal = ({
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
-                style={styles.passwordInput}
+                style={[styles.passwordInput, { backgroundColor: theme.colors.inputBackground }]}
                 theme={{
                   colors: {
-                    primary: theme.colors.primary,
-                    accent: theme.colors.primary,
+                    primary: theme.colors.inputBorderFocused,
+                    accent: theme.colors.inputBorderFocused,
+                    text: theme.colors.inputText,
+                    background: theme.colors.inputBackground,
+                    outline: theme.colors.inputBorder,
+                    placeholder: theme.colors.inputPlaceholder,
+                    onSurfaceVariant: theme.colors.inputPlaceholder,
                   },
                 }}
+                textColor={theme.colors.inputText}
+                placeholderTextColor={theme.colors.inputPlaceholder}
                 autoFocus
                 returnKeyType="done"
                 onSubmitEditing={handlePasswordAuth}
