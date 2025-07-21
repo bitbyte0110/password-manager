@@ -521,15 +521,17 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
                 styles.textInput,
                 {
                   backgroundColor: theme.colors.inputBackground,
-                  color: theme.colors.inputText,
                 },
               ]}
+              textColor={theme.colors.inputText}
+              placeholderTextColor={theme.colors.inputPlaceholder}
               error={!!formErrors.title}
               theme={{
                 colors: {
                   primary: theme.colors.primary,
                   error: theme.colors.error,
                   text: theme.colors.inputText,
+                  onSurface: theme.colors.inputText,
                   placeholder: theme.colors.inputPlaceholder,
                   background: theme.colors.inputBackground,
                   outline: theme.colors.inputBorder,
@@ -558,15 +560,17 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
                 styles.textInput,
                 {
                   backgroundColor: theme.colors.inputBackground,
-                  color: theme.colors.inputText,
                 },
               ]}
+              textColor={theme.colors.inputText}
+              placeholderTextColor={theme.colors.inputPlaceholder}
               keyboardType="email-address"
               autoCapitalize="none"
               theme={{
                 colors: {
                   primary: theme.colors.primary,
                   text: theme.colors.inputText,
+                  onSurface: theme.colors.inputText,
                   placeholder: theme.colors.inputPlaceholder,
                   background: theme.colors.inputBackground,
                   outline: theme.colors.inputBorder,
@@ -591,15 +595,16 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
                 styles.textInput,
                 {
                   backgroundColor: theme.colors.inputBackground,
-                  color: theme.colors.inputText,
                 },
               ]}
+              textColor={theme.colors.inputText}
+              placeholderTextColor={theme.colors.inputPlaceholder}
               error={!!formErrors.password}
               right={
                 <TextInput.Icon
                   icon={showPassword ? 'eye-off' : 'eye'}
                   onPress={() => setShowPassword(!showPassword)}
-                  iconColor={theme.colors.inputPlaceholder}
+                  iconColor={theme.colors.textSecondary}
                 />
               }
               theme={{
@@ -607,6 +612,7 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
                   primary: theme.colors.primary,
                   error: theme.colors.error,
                   text: theme.colors.inputText,
+                  onSurface: theme.colors.inputText,
                   placeholder: theme.colors.inputPlaceholder,
                   background: theme.colors.inputBackground,
                   outline: theme.colors.inputBorder,
@@ -647,9 +653,10 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
                 styles.textInput,
                 {
                   backgroundColor: theme.colors.inputBackground,
-                  color: theme.colors.inputText,
                 },
               ]}
+              textColor={theme.colors.inputText}
+              placeholderTextColor={theme.colors.inputPlaceholder}
               error={!!formErrors.url}
               keyboardType="url"
               autoCapitalize="none"
@@ -658,6 +665,7 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
                   primary: theme.colors.primary,
                   error: theme.colors.error,
                   text: theme.colors.inputText,
+                  onSurface: theme.colors.inputText,
                   placeholder: theme.colors.inputPlaceholder,
                   background: theme.colors.inputBackground,
                   outline: theme.colors.inputBorder,
@@ -687,15 +695,17 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
                 styles.notesInput,
                 {
                   backgroundColor: theme.colors.inputBackground,
-                  color: theme.colors.inputText,
                 },
               ]}
+              textColor={theme.colors.inputText}
+              placeholderTextColor={theme.colors.inputPlaceholder}
               multiline
               numberOfLines={4}
               theme={{
                 colors: {
                   primary: theme.colors.primary,
                   text: theme.colors.inputText,
+                  onSurface: theme.colors.inputText,
                   placeholder: theme.colors.inputPlaceholder,
                   background: theme.colors.inputBackground,
                   outline: theme.colors.inputBorder,

@@ -188,19 +188,19 @@ const TrashScreen = ({ navigation }) => {
     <View style={[styles.passwordItem, { backgroundColor: theme.colors.surface }]}>
       <View style={styles.passwordHeader}>
         <View style={styles.passwordInfo}>
-          <Text style={[styles.passwordTitle, { color: theme.colors.onSurface }]}>
+          <Text style={[styles.passwordTitle, { color: theme.colors.text }]}>
             {item.title || 'Untitled'}
           </Text>
-          <Text style={[styles.passwordDetails, { color: theme.colors.onSurfaceVariant }]}>
+          <Text style={[styles.passwordDetails, { color: theme.colors.textSecondary }]}>
             {item.username && `${item.username} • `}
             {item.category_name || 'No Category'}
           </Text>
-          <Text style={[styles.deletionInfo, { color: theme.colors.onSurfaceVariant }]}>
+          <Text style={[styles.deletionInfo, { color: theme.colors.textSecondary }]}>
             Deleted {item.deleted_at ? new Date(item.deleted_at).toLocaleDateString() : 'Unknown date'}
             {item.isExpired ? (
               <Text style={{ color: theme.colors.error }}> • Expired</Text>
             ) : (
-              <Text> • {item.daysRemaining || 0} days left</Text>
+              <Text style={{ color: theme.colors.textSecondary }}> • {item.daysRemaining || 0} days left</Text>
             )}
           </Text>
         </View>
@@ -228,13 +228,13 @@ const TrashScreen = ({ navigation }) => {
       <Icon
         name="trash"
         size={64}
-        color={theme.colors.onSurfaceVariant}
+        color={theme.colors.textSecondary}
         style={styles.emptyIcon}
       />
-      <Text style={[styles.emptyTitle, { color: theme.colors.onSurface }]}>
+      <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
         Trash is Empty
       </Text>
-      <Text style={[styles.emptyDescription, { color: theme.colors.onSurfaceVariant }]}>
+      <Text style={[styles.emptyDescription, { color: theme.colors.textSecondary }]}>
         Deleted passwords will appear here and can be restored within the retention period.
       </Text>
     </View>
@@ -274,9 +274,9 @@ const TrashScreen = ({ navigation }) => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-left" size={24} color={theme.colors.onSurface} />
+          <Icon name="arrow-left" size={24} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.onSurface }]}>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
           Trash ({filteredPasswords.length})
         </Text>
         {filteredPasswords.length > 0 && (
@@ -297,9 +297,9 @@ const TrashScreen = ({ navigation }) => {
           onChangeText={setSearchQuery}
           value={searchQuery}
           style={[styles.searchBar, { backgroundColor: theme.colors.surface }]}
-          inputStyle={{ color: theme.colors.onSurface }}
-          iconColor={theme.colors.onSurfaceVariant}
-          placeholderTextColor={theme.colors.onSurfaceVariant}
+          inputStyle={{ color: theme.colors.text }}
+          iconColor={theme.colors.textSecondary}
+          placeholderTextColor={theme.colors.textSecondary}
         />
       )}
 
