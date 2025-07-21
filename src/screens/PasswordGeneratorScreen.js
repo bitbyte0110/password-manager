@@ -304,12 +304,13 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
               ]}
             >
               <TextInput
-                style={styles.passwordInput}
+                style={[styles.passwordInput, { color: theme.colors.text }]}
                 value={generatedPassword}
                 placeholder="Click Generate"
                 placeholderTextColor={theme.colors.textSecondary}
                 editable={false}
                 multiline
+                textColor={theme.colors.text}
                 right={
                   generatedPassword ? (
                     <TextInput.Icon

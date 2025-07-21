@@ -101,8 +101,8 @@ const TrashScreen = ({ navigation }) => {
 
   // Restore password
   const handleRestore = (item) => {
-    if (!item || !item.id) {
-      Alert.alert('Error', 'Invalid item selected');
+    if (!item || !item.id || item.decryptionError) {
+      Alert.alert('Error', 'Invalid item selected or item has decryption errors');
       return;
     }
     

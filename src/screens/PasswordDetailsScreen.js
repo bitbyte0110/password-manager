@@ -312,7 +312,7 @@ const PasswordDetailsScreen = () => {
                   style={[
                     styles.fieldValue,
                     {
-                      color: theme.colors.secondary,
+                      color: theme.colors.text,
                       textDecorationLine: 'underline',
                     },
                   ]}
@@ -334,7 +334,7 @@ const PasswordDetailsScreen = () => {
               >
                 Notes
               </Text>
-              <Text style={[styles.fieldValue, { minHeight: 40 }]}>
+              <Text style={[styles.fieldValue, { color: theme.colors.text, minHeight: 40 }]}>
                 {entry.notes}
               </Text>
             </View>
