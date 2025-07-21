@@ -66,33 +66,47 @@ const MyVaultScreen = ({ navigation, route }) => {
 
   const initializeVault = async () => {
     try {
-      // Initialize vault service (now includes authentication restoration)
-      await vaultService.initialize();
-
-      // Check if user is authenticated after initialization and potential restoration
+      // Skip redundant initialization if already authenticated (coming from login)
       if (!vaultService.isUserAuthenticated()) {
         console.log(
-          'User not authenticated after initialization, redirecting to login'
+          'User not authenticated, attempting vault service initialization'
         );
-        // Redirect to login if not authenticated
-        navigation.replace('Login');
-        return;
+        await vaultService.initialize();
+
+        if (!vaultService.isUserAuthenticated()) {
+          console.log(
+            'Authentication failed after initialization, redirecting to login'
+          );
+          navigation.replace('Login');
+          return;
+        }
+      } else {
+        console.log(
+          'User already authenticated, skipping vault initialization'
+        );
       }
 
-      console.log('Vault service authenticated successfully, loading data...');
+      console.log(
+        'Vault service authenticated successfully, loading data in background...'
+      );
 
-      // Load data
-      await Promise.all([
-        loadPasswords(() =>
-          vaultService.getPasswordEntries({
-            sortBy: 'last_accessed',
-            sortOrder: 'DESC',
-          })
-        ),
-        loadCategories(),
-        loadRecentSearches(),
-        updateActivity(),
-      ]);
+      // Load data in background (non-blocking for instant navigation)
+      setImmediate(() => {
+        Promise.all([
+          loadPasswords(() =>
+            vaultService.getPasswordEntries({
+              sortBy: 'last_accessed',
+              sortOrder: 'DESC',
+            })
+          ),
+          loadCategories(),
+          loadRecentSearches(),
+          updateActivity(),
+        ]).catch(error => {
+          console.error('Background data loading error:', error);
+          // Handle errors in background loading gracefully
+        });
+      });
     } catch (error) {
       console.error('Error initializing vault:', error);
 

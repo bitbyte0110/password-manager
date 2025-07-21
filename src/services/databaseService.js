@@ -727,13 +727,8 @@ class DatabaseService {
         [id]
       );
 
-      // Update last accessed timestamp
-      if (result) {
-        await this.db.runAsync(
-          'UPDATE passwords SET last_accessed = CURRENT_TIMESTAMP WHERE id = ?',
-          [id]
-        );
-      }
+      // Skip last_accessed update for performance - update only when actually needed
+      // This avoids unnecessary database writes on every view
 
       return result;
     } catch (error) {
