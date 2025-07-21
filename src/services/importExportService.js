@@ -193,7 +193,9 @@ class ImportExportService {
       'iv',
       'data',
     ];
-    return requiredFields.every(field => Object.prototype.hasOwnProperty.call(parsed, field));
+    return requiredFields.every(field =>
+      Object.prototype.hasOwnProperty.call(parsed, field)
+    );
   }
 
   /**

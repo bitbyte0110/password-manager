@@ -19,7 +19,19 @@ import VaultService from '../services/vaultService';
 import ImportExportService from '../services/importExportService';
 
 const ExportScreen = ({ navigation }) => {
-  const { theme, colors } = useTheme();
+  const { theme } = useTheme();
+  const colors = {
+    background: theme?.colors?.background || '#ffffff',
+    surface: theme?.colors?.surface || '#f8f9fa',
+    card: theme?.colors?.card || '#ffffff',
+    primary: theme?.colors?.primary || '#8e44ad',
+    text: theme?.colors?.text || '#333333',
+    textSecondary: theme?.colors?.textSecondary || '#666666',
+    border: theme?.colors?.border || '#e0e0e0',
+    error: theme?.colors?.error || '#e74c3c',
+    warning: theme?.colors?.warning || '#f39c12',
+    ...theme?.colors,
+  };
   const [exportPassword, setExportPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -136,15 +148,15 @@ const ExportScreen = ({ navigation }) => {
       lineHeight: 22,
     },
     warningBox: {
-      backgroundColor: colors.warning + '20',
-      borderColor: colors.warning,
+      backgroundColor: `${colors.warning || '#f39c12'}20`,
+      borderColor: colors.warning || '#f39c12',
       borderWidth: 1,
       borderRadius: 8,
       padding: 16,
       marginBottom: 24,
     },
     warningText: {
-      color: colors.warning,
+      color: colors.warning || '#f39c12',
       fontSize: 14,
       lineHeight: 20,
     },
