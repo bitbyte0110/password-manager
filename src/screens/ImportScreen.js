@@ -19,7 +19,19 @@ import VaultService from '../services/vaultService';
 import ImportExportService from '../services/importExportService';
 
 const ImportScreen = ({ navigation }) => {
-  const { theme, colors } = useTheme();
+  const { theme } = useTheme();
+  const colors = {
+    background: theme?.colors?.background || '#ffffff',
+    surface: theme?.colors?.surface || '#f8f9fa',
+    card: theme?.colors?.card || '#ffffff',
+    primary: theme?.colors?.primary || '#8e44ad',
+    text: theme?.colors?.text || '#333333',
+    textSecondary: theme?.colors?.textSecondary || '#666666',
+    border: theme?.colors?.border || '#e0e0e0',
+    error: theme?.colors?.error || '#e74c3c',
+    warning: theme?.colors?.warning || '#f39c12',
+    ...theme?.colors,
+  };
   const [importPassword, setImportPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -232,8 +244,8 @@ const ImportScreen = ({ navigation }) => {
       marginBottom: 8,
     },
     modeOptionSelected: {
-      backgroundColor: colors.primary + '20',
-      borderColor: colors.primary,
+      backgroundColor: `${colors.primary || '#8e44ad'}20`,
+      borderColor: colors.primary || '#8e44ad',
     },
     modeOptionUnselected: {
       backgroundColor: colors.surface,
@@ -249,7 +261,7 @@ const ImportScreen = ({ navigation }) => {
       justifyContent: 'center',
     },
     radioCircleSelected: {
-      borderColor: colors.primary,
+      borderColor: colors.primary || '#8e44ad',
     },
     radioCircleUnselected: {
       borderColor: colors.border,
@@ -258,7 +270,7 @@ const ImportScreen = ({ navigation }) => {
       height: 8,
       width: 8,
       borderRadius: 4,
-      backgroundColor: colors.primary,
+      backgroundColor: colors.primary || '#8e44ad',
     },
     modeOptionText: {
       flex: 1,
