@@ -7,19 +7,12 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import {
-  Card,
-  TextInput,
-  Checkbox,
-  Snackbar,
-  ProgressBar,
-} from 'react-native-paper';
+import { Card, TextInput, Checkbox, Snackbar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import clipboardService from '../services/clipboardService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
 import Icon from 'react-native-vector-icons/FontAwesome5';
-import zxcvbn from 'zxcvbn';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -61,12 +54,35 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
   // Update password strength when password changes
   useEffect(() => {
     if (generatedPassword) {
-      const result = zxcvbn(generatedPassword);
-      setPasswordStrength(result);
+      setPasswordStrength(validatePassword(generatedPassword));
     } else {
       setPasswordStrength(null);
     }
   }, [generatedPassword]);
+
+  const validatePassword = password => {
+    const strength = {
+      score: 0,
+      feedback: [],
+    };
+
+    if (password.length >= 8) strength.score += 1;
+    else strength.feedback.push('At least 8 characters');
+
+    if (/[A-Z]/.test(password)) strength.score += 1;
+    else strength.feedback.push('One uppercase letter');
+
+    if (/[a-z]/.test(password)) strength.score += 1;
+    else strength.feedback.push('One lowercase letter');
+
+    if (/\d/.test(password)) strength.score += 1;
+    else strength.feedback.push('One number');
+
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength.score += 1;
+    else strength.feedback.push('One special character');
+
+    return strength;
+  };
 
   const updateActivity = async () => {
     try {
@@ -261,14 +277,18 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
     setSnackbar({ visible: true, message });
   };
 
-  const getStrengthColor = score => {
-    const colors = ['#e74c3c', '#e67e22', '#f39c12', '#2ecc71', '#27ae60'];
-    return colors[score] || '#e74c3c';
+  const getStrengthColor = () => {
+    if (!passwordStrength) return theme.colors.textSecondary;
+    if (passwordStrength.score < 2) return theme.colors.error;
+    if (passwordStrength.score < 4) return theme.colors.warning;
+    return theme.colors.success;
   };
 
-  const getStrengthText = score => {
-    const labels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];
-    return labels[score] || 'Very Weak';
+  const getStrengthText = () => {
+    if (!passwordStrength) return '';
+    if (passwordStrength.score < 2) return 'Weak';
+    if (passwordStrength.score < 4) return 'Medium';
+    return 'Strong';
   };
 
   return (
@@ -442,31 +462,34 @@ const PasswordGeneratorScreen = ({ navigation: navProp, route }) => {
                 32
               </Text>
             </View>
-          </View>
 
-          {/* Password Strength */}
-          {passwordStrength && (
-            <View style={styles.strengthSection}>
-              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-                Password Strength
-              </Text>
-              <View style={styles.strengthIndicator}>
-                <ProgressBar
-                  progress={passwordStrength.score / 4}
-                  color={getStrengthColor(passwordStrength.score)}
-                  style={styles.strengthBar}
-                />
+            {/* Password Strength Indicator */}
+            {generatedPassword && passwordStrength && (
+              <View style={styles.strengthContainer}>
+                <View style={styles.strengthBar}>
+                  {[...Array(5)].map((_, i) => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.strengthSegment,
+                        {
+                          backgroundColor:
+                            i < passwordStrength.score
+                              ? getStrengthColor()
+                              : theme.colors.border,
+                        },
+                      ]}
+                    />
+                  ))}
+                </View>
                 <Text
-                  style={[
-                    styles.strengthText,
-                    { color: getStrengthColor(passwordStrength.score) },
-                  ]}
+                  style={[styles.strengthText, { color: getStrengthColor() }]}
                 >
-                  {getStrengthText(passwordStrength.score)}
+                  {getStrengthText()}
                 </Text>
               </View>
-            </View>
-          )}
+            )}
+          </View>
 
           {/* Generate Button */}
           <TouchableOpacity
@@ -630,21 +653,22 @@ const styles = StyleSheet.create({
   sliderLabel: {
     fontSize: 12,
   },
-  strengthSection: {
-    marginBottom: 24,
-  },
-  strengthIndicator: {
-    alignItems: 'center',
+  strengthContainer: {
+    marginTop: 8,
   },
   strengthBar: {
-    width: '100%',
-    height: 8,
-    borderRadius: 4,
-    marginBottom: 8,
+    flexDirection: 'row',
+    gap: 4,
+    marginBottom: 4,
+  },
+  strengthSegment: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
   },
   strengthText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '500',
   },
   generateButton: {
     borderRadius: 25,
