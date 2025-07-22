@@ -448,22 +448,38 @@ const AppNavigator = () => {
       <Stack.Screen
         name="Trash"
         component={TrashScreen}
-        options={{ title: 'Trash' }}
+        options={{
+          title: 'Trash',
+          headerShown: true,
+          headerTitleAlign: 'center',
+        }}
       />
       <Stack.Screen
         name="RetentionSettings"
         component={RetentionSettingsScreen}
-        options={{ title: 'Retention Period' }}
+        options={{
+          title: 'Retention Period',
+          headerShown: true,
+          headerTitleAlign: 'center',
+        }}
       />
       <Stack.Screen
         name="Export"
         component={ExportScreen}
-        options={{ title: 'Export Vault' }}
+        options={{
+          title: 'Export Vault',
+          headerShown: true,
+          headerTitleAlign: 'center',
+        }}
       />
       <Stack.Screen
         name="Import"
         component={ImportScreen}
-        options={{ title: 'Import Vault' }}
+        options={{
+          title: 'Import Vault',
+          headerShown: true,
+          headerTitleAlign: 'center',
+        }}
       />
     </Stack.Navigator>
   );
