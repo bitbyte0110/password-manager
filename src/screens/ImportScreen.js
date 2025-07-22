@@ -87,7 +87,10 @@ const ImportScreen = ({ navigation }) => {
 
       // Check authentication first
       if (!VaultService.isUserAuthenticated()) {
-        Alert.alert('Authentication Error', 'Please log in to import passwords.');
+        Alert.alert(
+          'Authentication Error',
+          'Please log in to import passwords.'
+        );
         return;
       }
 
@@ -101,14 +104,16 @@ const ImportScreen = ({ navigation }) => {
       }
 
       // Process each imported password
-      console.log(`Processing ${importedData.length} password entries for import...`);
-      
+      console.log(
+        `Processing ${importedData.length} password entries for import...`
+      );
+
       for (const passwordEntry of importedData) {
         try {
           console.log('Processing password entry:', {
             website: passwordEntry.website || passwordEntry.title,
             username: passwordEntry.username,
-            hasPassword: !!passwordEntry.password
+            hasPassword: !!passwordEntry.password,
           });
           // Check if password already exists (for merge mode)
           if (importMode === 'merge') {
@@ -154,7 +159,12 @@ const ImportScreen = ({ navigation }) => {
               // Navigate to MainTabs and then to MyVault
               navigation.reset({
                 index: 0,
-                routes: [{ name: 'MainTabs', state: { routes: [{ name: 'MyVault' }] } }],
+                routes: [
+                  {
+                    name: 'MainTabs',
+                    state: { routes: [{ name: 'MyVault' }] },
+                  },
+                ],
               });
             },
           },
@@ -376,7 +386,9 @@ const ImportScreen = ({ navigation }) => {
   });
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity

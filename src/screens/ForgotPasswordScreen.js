@@ -228,7 +228,9 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
       try {
         await SecureStore.deleteItemAsync('vault_sessionToken');
         await SecureStore.deleteItemAsync('vault_biometricPassword');
-        console.log('Cleared session token and biometric password after recovery');
+        console.log(
+          'Cleared session token and biometric password after recovery'
+        );
       } catch (clearError) {
         console.warn('Warning: Could not clear session data:', clearError);
       }

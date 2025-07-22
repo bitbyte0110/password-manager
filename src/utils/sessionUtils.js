@@ -23,12 +23,18 @@ export const createPersistentSessionToken = async () => {
       // Optional: Add expiration for additional security
       // expiresAt: Date.now() + (30 * 24 * 60 * 60 * 1000), // 30 days
     };
-    
-    await SecureStore.setItemAsync(SESSION_TOKEN_KEY, JSON.stringify(tokenData));
+
+    await SecureStore.setItemAsync(
+      SESSION_TOKEN_KEY,
+      JSON.stringify(tokenData)
+    );
     console.log('SessionUtils: Persistent session token created');
     return true;
   } catch (error) {
-    console.error('SessionUtils: Error creating persistent session token:', error);
+    console.error(
+      'SessionUtils: Error creating persistent session token:',
+      error
+    );
     return false;
   }
 };
@@ -43,7 +49,10 @@ export const removePersistentSessionToken = async () => {
     console.log('SessionUtils: Persistent session token removed');
     return true;
   } catch (error) {
-    console.error('SessionUtils: Error removing persistent session token:', error);
+    console.error(
+      'SessionUtils: Error removing persistent session token:',
+      error
+    );
     return false;
   }
 };
@@ -61,7 +70,7 @@ export const validatePersistentSessionToken = async () => {
     }
 
     const tokenData = JSON.parse(sessionToken);
-    
+
     // Basic validation
     if (!tokenData.createdAt || !tokenData.sessionId) {
       console.log('SessionUtils: Invalid token structure');
@@ -117,10 +126,13 @@ export const getAutoLockSettings = async () => {
  * @param {Object} settings - Settings object with timeout and enabled properties
  * @returns {Promise<boolean>} Success status
  */
-export const saveAutoLockSettings = async (settings) => {
+export const saveAutoLockSettings = async settings => {
   try {
-    await AsyncStorage.setItem(AUTO_LOCK_SETTINGS_KEY, JSON.stringify(settings));
-    
+    await AsyncStorage.setItem(
+      AUTO_LOCK_SETTINGS_KEY,
+      JSON.stringify(settings)
+    );
+
     // If user selects "Never" (timeout: 0), create persistent session token
     if (settings.timeout === 0) {
       await createPersistentSessionToken();
@@ -129,7 +141,7 @@ export const saveAutoLockSettings = async (settings) => {
     else {
       await removePersistentSessionToken();
     }
-    
+
     console.log('SessionUtils: Auto-lock settings saved:', settings);
     return true;
   } catch (error) {
@@ -166,10 +178,12 @@ export const shouldExpireSession = async () => {
     }
 
     const autoLockSettings = await getAutoLockSettings();
-    
+
     // Skip logout check if auto-lock is set to "Never"
     if (autoLockSettings.timeout === 0) {
-      console.log('SessionUtils: Auto-lock set to Never, session should not expire');
+      console.log(
+        'SessionUtils: Auto-lock set to Never, session should not expire'
+      );
       return false;
     }
 
@@ -179,7 +193,7 @@ export const shouldExpireSession = async () => {
     const timeoutMs = autoLockSettings.timeout * 1000;
 
     const shouldExpire = timeDifference > timeoutMs;
-    
+
     if (shouldExpire) {
       console.log(
         `SessionUtils: Session should expire (${Math.round(
@@ -210,7 +224,7 @@ export const shouldSkipLogin = async () => {
 
     // Get auto-lock settings
     const autoLockSettings = await getAutoLockSettings();
-    
+
     // Only check for persistent session if auto-lock is set to "Never" (0)
     if (autoLockSettings.timeout !== 0) {
       console.log('SessionUtils: Auto-lock not set to Never');
@@ -219,7 +233,7 @@ export const shouldSkipLogin = async () => {
 
     // Check for valid session token when auto-lock is "Never"
     const isValidToken = await validatePersistentSessionToken();
-    
+
     console.log(`SessionUtils: Should skip login: ${isValidToken}`);
     return isValidToken;
   } catch (error) {
@@ -239,7 +253,7 @@ export const clearAllSessionData = async () => {
       AsyncStorage.removeItem(LAST_ACTIVE_TIME_KEY),
       SecureStore.deleteItemAsync('vault_sessionToken'), // Remove any other session tokens
     ]);
-    
+
     console.log('SessionUtils: All session data cleared');
     return true;
   } catch (error) {

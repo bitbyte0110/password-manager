@@ -120,7 +120,24 @@ const CategoriesScreen = ({ navigation, route }) => {
       setCategories(categoriesData);
     } catch (error) {
       console.error('Error loading categories:', error);
-      Alert.alert('Error', 'Failed to load categories');
+
+      // Handle database initialization errors more gracefully
+      if (error.message && error.message.includes('Database not initialized')) {
+        console.log(
+          'CategoriesScreen: Database not ready, will retry in 1 second...'
+        );
+        // Retry after a short delay
+        setTimeout(() => {
+          loadCategories().catch(retryError => {
+            console.error('Categories retry failed:', retryError);
+            if (!retryError.message?.includes('Database not initialized')) {
+              Alert.alert('Error', 'Failed to load categories');
+            }
+          });
+        }, 1000);
+      } else {
+        Alert.alert('Error', 'Failed to load categories');
+      }
     } finally {
       setIsRefreshing(false);
     }
