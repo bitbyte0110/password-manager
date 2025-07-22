@@ -777,15 +777,6 @@ const LoginScreen = ({ navigation: navProp }) => {
                   Forgot Password?
                 </Text>
               </Button>
-
-              <Button
-                mode="text"
-                onPress={handleResetVault}
-                style={styles.modalLinkButton}
-                textColor={theme.colors.error}
-              >
-                <Text style={{ color: theme.colors.error }}>Reset Vault</Text>
-              </Button>
             </View>
 
             <View style={styles.modalActionButtons}>
