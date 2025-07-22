@@ -4,10 +4,11 @@ import {
   Text,
   StyleSheet,
   SafeAreaView,
+  ScrollView,
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { RadioButton } from 'react-native-paper';
+import { RadioButton, Button } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../contexts/ThemeContext';
@@ -17,6 +18,7 @@ const RetentionSettingsScreen = ({ navigation }) => {
   const [selectedPeriod, setSelectedPeriod] = useState('30');
   const [originalPeriod, setOriginalPeriod] = useState('30');
   const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   const retentionOptions = [
     { value: '7', label: '7 Days', description: 'Items deleted after 1 week' },
@@ -63,6 +65,7 @@ const RetentionSettingsScreen = ({ navigation }) => {
       return;
     }
 
+    setIsLoading(true);
     try {
       const settings = await AsyncStorage.getItem('userSettings');
       const parsedSettings = settings ? JSON.parse(settings) : {};
@@ -75,13 +78,15 @@ const RetentionSettingsScreen = ({ navigation }) => {
       await AsyncStorage.setItem('userSettings', JSON.stringify(newSettings));
 
       Alert.alert(
-        'Success',
+        'Settings Saved',
         `Retention period updated to ${selectedPeriod} days`,
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error) {
       console.error('Error updating retention period:', error);
       Alert.alert('Error', 'Failed to update retention period');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -159,72 +164,66 @@ const RetentionSettingsScreen = ({ navigation }) => {
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
-        <TouchableOpacity style={styles.backButton} onPress={handleCancel}>
-          <Icon name="arrow-left" size={20} color={theme.colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-          Retention Period
-        </Text>
-        <TouchableOpacity
-          style={[
-            styles.saveButton,
-            {
-              backgroundColor:
-                selectedPeriod !== originalPeriod
-                  ? theme.colors.primary
-                  : 'transparent',
-            },
-          ]}
-          onPress={handleSave}
-          disabled={selectedPeriod === originalPeriod}
-        >
+      <ScrollView
+        style={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.content}>
           <Text
+            style={[styles.description, { color: theme.colors.textSecondary }]}
+          >
+            Choose how long deleted passwords should be kept in trash before
+            being permanently deleted.
+          </Text>
+
+          <View style={styles.optionsContainer}>
+            {retentionOptions.map(renderOption)}
+          </View>
+
+          <View
             style={[
-              styles.saveButtonText,
-              {
-                color:
-                  selectedPeriod !== originalPeriod
-                    ? theme.colors.onPrimary
-                    : theme.colors.textSecondary,
-              },
+              styles.warningContainer,
+              { backgroundColor: theme.colors.warning + '20' },
             ]}
           >
-            Save
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Content */}
-      <View style={styles.content}>
-        <Text
-          style={[styles.description, { color: theme.colors.textSecondary }]}
-        >
-          Choose how long deleted passwords should be kept in trash before being
-          permanently deleted.
-        </Text>
-
-        <View style={styles.optionsContainer}>
-          {retentionOptions.map(renderOption)}
+            <Icon
+              name="exclamation-triangle"
+              size={16}
+              color={theme.colors.warning}
+            />
+            <Text style={[styles.warningText, { color: theme.colors.warning }]}>
+              Changing this setting only affects newly deleted passwords.
+              Existing items in trash will keep their original expiration dates.
+            </Text>
+          </View>
         </View>
+      </ScrollView>
 
-        <View
-          style={[
-            styles.warningContainer,
-            { backgroundColor: theme.colors.warning + '20' },
-          ]}
+      {/* Action Buttons */}
+      <View
+        style={[
+          styles.buttonContainer,
+          { backgroundColor: theme.colors.background },
+        ]}
+      >
+        <Button
+          mode="contained"
+          onPress={handleCancel}
+          style={[styles.button, { backgroundColor: '#3A3A3C' }]}
+          textColor="#FFFFFF"
+          disabled={isLoading}
         >
-          <Icon
-            name="exclamation-triangle"
-            size={16}
-            color={theme.colors.warning}
-          />
-          <Text style={[styles.warningText, { color: theme.colors.warning }]}>
-            Changing this setting only affects newly deleted passwords. Existing
-            items in trash will keep their original expiration dates.
-          </Text>
-        </View>
+          Cancel
+        </Button>
+        <Button
+          mode="contained"
+          onPress={handleSave}
+          style={[styles.button, { backgroundColor: theme.colors.primary }]}
+          loading={isLoading}
+          disabled={isLoading}
+        >
+          Save Settings
+        </Button>
       </View>
     </SafeAreaView>
   );
@@ -242,40 +241,10 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+  scrollContainer: {
     flex: 1,
-    textAlign: 'center',
-    marginHorizontal: 16,
-  },
-  saveButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    minWidth: 60,
-    alignItems: 'center',
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
   },
   content: {
-    flex: 1,
     padding: 20,
   },
   description: {
@@ -319,6 +288,14 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     lineHeight: 20,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    padding: 20,
+    gap: 12,
+  },
+  button: {
+    flex: 1,
   },
 });
 
