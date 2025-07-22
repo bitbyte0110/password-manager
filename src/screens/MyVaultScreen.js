@@ -11,6 +11,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Searchbar, Badge, Menu, ActivityIndicator } from 'react-native-paper';
+import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useFocusEffect } from '@react-navigation/native';
@@ -789,10 +790,16 @@ const MyVaultScreen = ({ navigation, route }) => {
       {/* Floating Action Button */}
       <View style={styles.fabContainer}>
         <TouchableOpacity
-          style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+          style={styles.fab}
           onPress={() => setShowAddModal(true)}
+          activeOpacity={0.8}
         >
-          <Icon name="plus" size={24} color="#fff" />
+          <LinearGradient
+            colors={[theme.colors.primary, theme.colors.secondary]}
+            style={styles.fabGradient}
+          >
+            <Icon name="plus" size={24} color="#fff" />
+          </LinearGradient>
         </TouchableOpacity>
       </View>
 
@@ -941,15 +948,19 @@ const styles = StyleSheet.create({
     right: 20,
   },
   fab: {
-    width: 56,
-    height: 56,
     borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
     elevation: 6,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
+  },
+  fabGradient: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // Modal Styles
