@@ -85,20 +85,35 @@ const ImportScreen = ({ navigation }) => {
     try {
       setIsImporting(true);
 
+      // Check authentication first
+      if (!VaultService.isUserAuthenticated()) {
+        Alert.alert('Authentication Error', 'Please log in to import passwords.');
+        return;
+      }
+
       let importedCount = 0;
 
       if (importMode === 'replace') {
         // Clear existing passwords first
-        await VaultService.clearAllPasswords();
+        console.log('Clearing all existing passwords...');
+        const deletedCount = await VaultService.clearAllPasswords();
+        console.log(`Cleared ${deletedCount} existing passwords`);
       }
 
       // Process each imported password
+      console.log(`Processing ${importedData.length} password entries for import...`);
+      
       for (const passwordEntry of importedData) {
         try {
+          console.log('Processing password entry:', {
+            website: passwordEntry.website || passwordEntry.title,
+            username: passwordEntry.username,
+            hasPassword: !!passwordEntry.password
+          });
           // Check if password already exists (for merge mode)
           if (importMode === 'merge') {
             const existing = await VaultService.findDuplicatePassword(
-              passwordEntry.website,
+              passwordEntry.website || passwordEntry.title,
               passwordEntry.username
             );
 
@@ -110,17 +125,20 @@ const ImportScreen = ({ navigation }) => {
 
           // Add the password entry
           await VaultService.addPassword({
-            website: passwordEntry.website,
+            website: passwordEntry.website || passwordEntry.title,
+            title: passwordEntry.website || passwordEntry.title,
             username: passwordEntry.username,
             password: passwordEntry.password,
+            url: passwordEntry.url || '',
             category: passwordEntry.category || 'General',
             notes: passwordEntry.notes || '',
             favorite: passwordEntry.favorite || false,
           });
 
           importedCount++;
+          console.log(`Successfully imported entry ${importedCount}`);
         } catch (entryError) {
-          console.warn('Failed to import entry:', passwordEntry, entryError);
+          console.error('Failed to import entry:', passwordEntry, entryError);
           // Continue with other entries
         }
       }
@@ -132,7 +150,13 @@ const ImportScreen = ({ navigation }) => {
         [
           {
             text: 'OK',
-            onPress: () => navigation.navigate('MyVault'),
+            onPress: () => {
+              // Navigate to MainTabs and then to MyVault
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'MainTabs', state: { routes: [{ name: 'MyVault' }] } }],
+              });
+            },
           },
         ]
       );
