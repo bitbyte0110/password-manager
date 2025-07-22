@@ -2209,7 +2209,7 @@ class DatabaseService {
    * @returns {Promise<number>} Number of deleted entries
    */
   async deleteAllPasswords() {
-    return this.withTransaction(async () => {
+    return this.executeTransaction(async () => {
       try {
         // Count existing passwords
         const countResult = await this.db.getFirstAsync(
