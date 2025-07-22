@@ -343,7 +343,21 @@ const AppNavigator = () => {
 
       // Skip session timeout check if user set timeout to 0 (Never)
       if (activityTimeout === 0) {
-        console.log('Auto-lock disabled (timeout: 0), accessing MainTabs');
+        console.log(
+          'Auto-lock disabled (timeout: 0), pre-initializing vault for MainTabs'
+        );
+        // Pre-initialize vault service to ensure database is ready
+        try {
+          console.log(
+            'App.js: Pre-initializing vault service for MainTabs access...'
+          );
+          await vaultService.initialize();
+          console.log('App.js: Vault service pre-initialized successfully');
+        } catch (initError) {
+          console.error('App.js: Vault pre-initialization failed:', initError);
+          // If initialization fails, fall back to login to retry
+          return 'Login';
+        }
         // Update activity timestamp
         await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, Date.now().toString());
         return 'MainTabs';
@@ -362,10 +376,24 @@ const AppNavigator = () => {
         }
         return 'Login';
       } else {
-        // Session still valid, go directly to MainTabs
+        // Session still valid, pre-initialize vault and go to MainTabs
         console.log(
-          `Session valid (${Math.round(timeDifference / 1000)}s ago, timeout: ${activityTimeout / 1000}s), accessing MainTabs`
+          `Session valid (${Math.round(timeDifference / 1000)}s ago, timeout: ${activityTimeout / 1000}s), pre-initializing vault for MainTabs`
         );
+
+        // Pre-initialize vault service to ensure database is ready
+        try {
+          console.log(
+            'App.js: Pre-initializing vault service for MainTabs access...'
+          );
+          await vaultService.initialize();
+          console.log('App.js: Vault service pre-initialized successfully');
+        } catch (initError) {
+          console.error('App.js: Vault pre-initialization failed:', initError);
+          // If initialization fails, fall back to login to retry
+          return 'Login';
+        }
+
         // Update activity timestamp
         await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, Date.now().toString());
         return 'MainTabs';

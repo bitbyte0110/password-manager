@@ -19,7 +19,7 @@ import { useAuth } from '../../App_Updated'; // Import useAuth hook
 const AutoLockSettingsScreen = ({ navigation }) => {
   const { theme } = useTheme();
   const { saveAutoLockSettings, getAutoLockSettings } = useAuth();
-  
+
   const [selectedTimeout, setSelectedTimeout] = useState(120); // Default 2 minutes
   const [isLoading, setIsLoading] = useState(true);
 
@@ -40,10 +40,18 @@ const AutoLockSettingsScreen = ({ navigation }) => {
     { value: 30, label: '30 seconds', description: 'Very secure but frequent' },
     { value: 60, label: '1 minute', description: 'Secure and convenient' },
     { value: 120, label: '2 minutes', description: 'Balanced security' },
-    { value: 300, label: '5 minutes', description: 'Less secure but convenient' },
+    {
+      value: 300,
+      label: '5 minutes',
+      description: 'Less secure but convenient',
+    },
     { value: 600, label: '10 minutes', description: 'Minimal security' },
     { value: 1800, label: '30 minutes', description: 'Low security' },
-    { value: 0, label: 'Never', description: 'Login persists across app restarts' },
+    {
+      value: 0,
+      label: 'Never',
+      description: 'Login persists across app restarts',
+    },
   ];
 
   useEffect(() => {
@@ -115,7 +123,7 @@ const AutoLockSettingsScreen = ({ navigation }) => {
 
       Alert.alert(
         'Settings Saved',
-        selectedTimeout === 0 
+        selectedTimeout === 0
           ? 'Auto-lock is now set to "Never". Your session will persist across app restarts.'
           : `Auto-lock is now set to ${getTimeoutLabel(selectedTimeout)}.`,
         [
@@ -131,21 +139,23 @@ const AutoLockSettingsScreen = ({ navigation }) => {
     }
   };
 
-  const getTimeoutLabel = (timeout) => {
+  const getTimeoutLabel = timeout => {
     const option = timeoutOptions.find(opt => opt.value === timeout);
     return option ? option.label : 'Unknown';
   };
 
-  const renderTimeoutOption = (option) => {
+  const renderTimeoutOption = option => {
     const isSelected = selectedTimeout === option.value;
-    
+
     return (
       <TouchableOpacity
         key={option.value}
         style={[
           styles.optionContainer,
           {
-            backgroundColor: isSelected ? `${colors.primary}15` : colors.surface,
+            backgroundColor: isSelected
+              ? `${colors.primary}15`
+              : colors.surface,
             borderColor: isSelected ? colors.primary : colors.border,
           },
         ]}
@@ -207,7 +217,9 @@ const AutoLockSettingsScreen = ({ navigation }) => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
         <View style={styles.loadingContainer}>
           <Text style={[styles.loadingText, { color: colors.text }]}>
             Loading settings...
@@ -218,7 +230,9 @@ const AutoLockSettingsScreen = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity
@@ -250,26 +264,38 @@ const AutoLockSettingsScreen = ({ navigation }) => {
 
         {/* Warning for "Never" option */}
         {selectedTimeout === 0 && (
-          <View style={[styles.warningContainer, { 
-            backgroundColor: `${colors.warning}15`,
-            borderColor: colors.warning 
-          }]}>
+          <View
+            style={[
+              styles.warningContainer,
+              {
+                backgroundColor: `${colors.warning}15`,
+                borderColor: colors.warning,
+              },
+            ]}
+          >
             <Icon name="shield-alt" size={20} color={colors.warning} />
             <Text style={[styles.warningText, { color: colors.warning }]}>
-              "Never" keeps you logged in across app restarts. This reduces security but increases convenience.
+              "Never" keeps you logged in across app restarts. This reduces
+              security but increases convenience.
             </Text>
           </View>
         )}
 
         {/* Security Tip */}
-        <View style={[styles.tipContainer, { 
-          backgroundColor: `${colors.success}15`,
-          borderColor: colors.success 
-        }]}>
+        <View
+          style={[
+            styles.tipContainer,
+            {
+              backgroundColor: `${colors.success}15`,
+              borderColor: colors.success,
+            },
+          ]}
+        >
           <Icon name="lightbulb" size={16} color={colors.success} />
           <Text style={[styles.tipText, { color: colors.success }]}>
             <Text style={{ fontWeight: '600' }}>Security Tip: </Text>
-            Shorter timeouts provide better security, especially on shared or public devices.
+            Shorter timeouts provide better security, especially on shared or
+            public devices.
           </Text>
         </View>
 

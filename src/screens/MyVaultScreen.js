@@ -105,7 +105,30 @@ const MyVaultScreen = ({ navigation, route }) => {
           updateActivity(),
         ]).catch(error => {
           console.error('Background data loading error:', error);
-          // Handle errors in background loading gracefully
+
+          // Handle specific database initialization errors
+          if (
+            error.message &&
+            error.message.includes('Database not initialized')
+          ) {
+            console.log(
+              'MyVaultScreen: Database not yet initialized, retrying in 1 second...'
+            );
+            setTimeout(() => {
+              // Retry loading categories and passwords after database initialization delay
+              Promise.all([
+                loadCategories().catch(e =>
+                  console.error('Retry loadCategories failed:', e)
+                ),
+                loadPasswords(() =>
+                  vaultService.getPasswordEntries({
+                    sortBy: 'last_accessed',
+                    sortOrder: 'DESC',
+                  })
+                ).catch(e => console.error('Retry loadPasswords failed:', e)),
+              ]);
+            }, 1000);
+          }
         });
       });
     } catch (error) {
@@ -140,6 +163,23 @@ const MyVaultScreen = ({ navigation, route }) => {
       setCategories(allCategories);
     } catch (error) {
       console.error('Error loading categories:', error);
+
+      // Handle database initialization errors specifically
+      if (error.message && error.message.includes('Database not initialized')) {
+        console.log(
+          'MyVaultScreen: Categories request failed - database not ready yet'
+        );
+        // Don't show error to user, just log it - the background retry will handle it
+        return;
+      }
+
+      // Only show user-facing errors for other types of failures
+      if (
+        error.message &&
+        !error.message.includes('Database not initialized')
+      ) {
+        setAuthError('Failed to load categories. Please try refreshing.');
+      }
     }
   };
 

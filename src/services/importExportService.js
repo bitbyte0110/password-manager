@@ -267,19 +267,20 @@ class ImportExportService {
         try {
           const cacheFileName = `import_${Date.now()}.json`;
           const cacheUri = FileSystem.cacheDirectory + cacheFileName;
-          
+
           // Copy the file to cache directory first
           await FileSystem.copyAsync({
             from: fileUri,
             to: cacheUri,
           });
-          
+
           fileUri = cacheUri;
         } catch (copyError) {
           console.error('Failed to copy content URI to cache:', copyError);
           return {
             success: false,
-            error: 'Failed to access file from cloud provider. Please try downloading the file locally first.',
+            error:
+              'Failed to access file from cloud provider. Please try downloading the file locally first.',
           };
         }
       }
@@ -296,11 +297,17 @@ class ImportExportService {
       );
 
       // Clean up temporary cache file if we created one
-      if (fileUri.startsWith(FileSystem.cacheDirectory) && fileUri.includes('import_')) {
+      if (
+        fileUri.startsWith(FileSystem.cacheDirectory) &&
+        fileUri.includes('import_')
+      ) {
         try {
           await FileSystem.deleteAsync(fileUri, { idempotent: true });
         } catch (cleanupError) {
-          console.warn('Failed to cleanup temporary import file:', cleanupError);
+          console.warn(
+            'Failed to cleanup temporary import file:',
+            cleanupError
+          );
           // Don't fail the import if cleanup fails
         }
       }
@@ -317,15 +324,16 @@ class ImportExportService {
       };
     } catch (error) {
       console.error('Import from file failed:', error);
-      
+
       // Provide more specific error messages
       if (error.message.includes('Unsupported scheme')) {
         return {
           success: false,
-          error: 'Unable to access file from cloud provider. Please save the file locally and try again.',
+          error:
+            'Unable to access file from cloud provider. Please save the file locally and try again.',
         };
       }
-      
+
       return {
         success: false,
         error: 'Failed to read import file',

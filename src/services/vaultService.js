@@ -381,28 +381,38 @@ class VaultService {
               );
             }
           }
-          
+
           // Preload categories for instant access
           try {
             const categories = await this.getCategories();
-            console.log(`VaultService: Background - Preloaded ${categories.length} categories`);
-            
+            console.log(
+              `VaultService: Background - Preloaded ${categories.length} categories`
+            );
+
             // Preload first few category password lists for instant category viewing
             const popularCategories = categories
               .filter(c => c.password_count > 0)
               .sort((a, b) => b.password_count - a.password_count)
               .slice(0, 3); // Preload top 3 most used categories
-              
+
             for (const category of popularCategories) {
               try {
                 await this.getPasswordsByCategory(category.id);
-                console.log(`VaultService: Background - Preloaded category ${category.name} (${category.password_count} passwords)`);
+                console.log(
+                  `VaultService: Background - Preloaded category ${category.name} (${category.password_count} passwords)`
+                );
               } catch (preloadError) {
-                console.warn(`VaultService: Background - Could not preload category ${category.name}:`, preloadError);
+                console.warn(
+                  `VaultService: Background - Could not preload category ${category.name}:`,
+                  preloadError
+                );
               }
             }
           } catch (error) {
-            console.warn('VaultService: Background - Could not preload categories:', error);
+            console.warn(
+              'VaultService: Background - Could not preload categories:',
+              error
+            );
           }
         });
 
@@ -508,6 +518,18 @@ class VaultService {
   }
 
   /**
+   * Check if vault service is fully initialized and ready for operations
+   * @returns {boolean} Initialization status
+   */
+  isVaultReady() {
+    return (
+      this.isUserAuthenticated() &&
+      this.dbService &&
+      this.dbService.isInitialized
+    );
+  }
+
+  /**
    * Clear authentication and sensitive data
    */
   async clearSession() {
@@ -521,7 +543,7 @@ class VaultService {
     this.cacheTimestamps.clear();
     this.categoryCache.clear();
     this.categoryCacheTimestamps.clear();
-    
+
     console.log('VaultService: All caches cleared for security');
 
     // Clear session token from storage
@@ -540,6 +562,11 @@ class VaultService {
   async getPasswordEntries(options = {}) {
     if (!this.isUserAuthenticated()) {
       throw new Error('User not authenticated');
+    }
+
+    // Ensure database is initialized before attempting operations
+    if (!this.dbService || !this.dbService.isInitialized) {
+      throw new Error('Database not initialized');
     }
 
     try {
@@ -579,6 +606,11 @@ class VaultService {
   async getPasswordEntry(id, retryCount = 0) {
     if (!this.isUserAuthenticated()) {
       throw new Error('User not authenticated');
+    }
+
+    // Ensure database is initialized before attempting operations
+    if (!this.dbService || !this.dbService.isInitialized) {
+      throw new Error('Database not initialized');
     }
 
     try {
@@ -688,30 +720,48 @@ class VaultService {
       throw new Error('User not authenticated');
     }
 
+    // Ensure database is initialized before attempting operations
+    if (!this.dbService || !this.dbService.isInitialized) {
+      throw new Error('Database not initialized');
+    }
+
     try {
       // Check category cache first for instant loading
       const cacheKey = `category_${categoryId}`;
       const cached = this.categoryCache.get(cacheKey);
       const cacheTime = this.categoryCacheTimestamps.get(cacheKey);
-      
-      if (cached && cacheTime && Date.now() - cacheTime < this.CATEGORY_CACHE_TTL) {
-        console.log(`VaultService: Using cached category ${categoryId} passwords (instant load)`);
+
+      if (
+        cached &&
+        cacheTime &&
+        Date.now() - cacheTime < this.CATEGORY_CACHE_TTL
+      ) {
+        console.log(
+          `VaultService: Using cached category ${categoryId} passwords (instant load)`
+        );
         return cached;
       }
 
-      console.log(`VaultService: Loading and caching category ${categoryId} passwords...`);
-      
+      console.log(
+        `VaultService: Loading and caching category ${categoryId} passwords...`
+      );
+
       // Load fresh data
       const passwords = await this.getPasswordEntries({ categoryId });
-      
+
       // Cache the results for future instant access
       this.categoryCache.set(cacheKey, passwords);
       this.categoryCacheTimestamps.set(cacheKey, Date.now());
-      
-      console.log(`VaultService: Cached ${passwords.length} passwords for category ${categoryId}`);
+
+      console.log(
+        `VaultService: Cached ${passwords.length} passwords for category ${categoryId}`
+      );
       return passwords;
     } catch (error) {
-      console.error(`VaultService: Error getting passwords for category ${categoryId}:`, error);
+      console.error(
+        `VaultService: Error getting passwords for category ${categoryId}:`,
+        error
+      );
       throw error;
     }
   }
@@ -729,6 +779,11 @@ class VaultService {
    * @returns {Promise<Array>} Array of categories
    */
   async getCategories() {
+    // Ensure database is initialized before attempting operations
+    if (!this.dbService || !this.dbService.isInitialized) {
+      throw new Error('Database not initialized');
+    }
+
     try {
       return await this.dbService.getCategories({
         includePasswordCount: true,
@@ -795,12 +850,14 @@ class VaultService {
       const entryCacheKey = `entry_${id}`;
       this.entryCache.delete(entryCacheKey);
       this.cacheTimestamps.delete(entryCacheKey);
-      
+
       // Clear category cache for any category (entry might have changed categories)
       this.categoryCache.clear();
       this.categoryCacheTimestamps.clear();
-      
-      console.log(`VaultService: Cache invalidated for entry ${id} and all categories`);
+
+      console.log(
+        `VaultService: Cache invalidated for entry ${id} and all categories`
+      );
 
       return result;
     } catch (error) {

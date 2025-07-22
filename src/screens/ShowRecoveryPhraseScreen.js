@@ -60,30 +60,66 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
               setShowBiometricModal(true);
             } else {
               // Original flow for backward compatibility
-              // Set initial activity timestamp for new user
-              try {
-                const timestamp = Date.now().toString();
-                await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, timestamp);
-
-                // Authenticate vault service if master password is available
-                if (masterPassword) {
-                  await vaultService.authenticate(masterPassword);
-                  console.log('Vault service authenticated during setup');
-                }
-              } catch (error) {
-                console.error('Error setting up authentication:', error);
-              }
-              setShowSuccessScreen(true);
-              setTimeout(() => {
-                if (navigation) {
-                  navigation.replace('MainTabs');
-                }
-              }, 2500);
+              await initializeVaultAndNavigate();
             }
           },
         },
       ]
     );
+  };
+
+  const initializeVaultAndNavigate = async () => {
+    try {
+      // Set initial activity timestamp for new user
+      const timestamp = Date.now().toString();
+      await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, timestamp);
+
+      // Initialize vault service first (including database)
+      console.log('ShowRecoveryPhraseScreen: Initializing vault service...');
+      await vaultService.initialize();
+
+      // Then authenticate if master password is available
+      if (masterPassword) {
+        console.log(
+          'ShowRecoveryPhraseScreen: Authenticating vault service...'
+        );
+        await vaultService.authenticate(masterPassword);
+        console.log(
+          'ShowRecoveryPhraseScreen: Vault service authenticated successfully'
+        );
+      }
+
+      // Ensure database is fully ready before navigation
+      console.log('ShowRecoveryPhraseScreen: Verifying database is ready...');
+      if (!vaultService.isUserAuthenticated()) {
+        throw new Error('Vault service authentication failed');
+      }
+
+      console.log(
+        'ShowRecoveryPhraseScreen: Setup complete, navigating to MainTabs'
+      );
+      setShowSuccessScreen(true);
+      setTimeout(() => {
+        if (navigation) {
+          navigation.replace('MainTabs');
+        }
+      }, 2500);
+    } catch (error) {
+      console.error(
+        'ShowRecoveryPhraseScreen: Error setting up authentication:',
+        error
+      );
+      Alert.alert(
+        'Setup Error',
+        'Failed to initialize your vault. Please try again.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation?.replace('SetMasterPassword'),
+          },
+        ]
+      );
+    }
   };
 
   const showSnackbar = message => {
@@ -103,30 +139,8 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
       `MFA setup completed with result: ${mfaEnabled ? 'enabled' : 'disabled'}`
     );
 
-    // Set activity timestamp to establish authenticated session
-    try {
-      const timestamp = Date.now().toString();
-      await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, timestamp);
-      console.log('Activity timestamp set during setup completion');
-
-      // Authenticate vault service with master password
-      if (masterPassword) {
-        await vaultService.authenticate(masterPassword);
-        console.log('Vault service authenticated during setup completion');
-      } else {
-        console.warn('No master password available for vault authentication');
-      }
-    } catch (error) {
-      console.error('Error setting up authentication:', error);
-    }
-
-    // Show success screen and then navigate to MainApp
-    setShowSuccessScreen(true);
-    setTimeout(() => {
-      if (navigation) {
-        navigation.replace('MainTabs');
-      }
-    }, 2500);
+    // Initialize vault and navigate
+    await initializeVaultAndNavigate();
   };
 
   if (!recoveryPhrase) {
