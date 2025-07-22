@@ -8,16 +8,19 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { Button } from 'react-native-paper';
+import { Button, Snackbar } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useNavigation } from '@react-navigation/native';
 import vaultService from '../services/vaultService';
 import { useTheme } from '../contexts/ThemeContext';
+import { usePasswords } from '../PasswordContext';
+import { clearAllSessionData } from '../utils/sessionUtils';
 import SecureTextInput from '../components/SecureTextInput';
 
 const ChangeMasterPasswordScreen = () => {
   const navigation = useNavigation();
   const { theme } = useTheme();
+  const { clearPasswords } = usePasswords();
   const [formData, setFormData] = useState({
     oldPassword: '',
     newPassword: '',
@@ -31,6 +34,7 @@ const ChangeMasterPasswordScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(null);
   const [errors, setErrors] = useState({});
+  const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
 
   const validatePassword = password => {
     const strength = {
@@ -109,9 +113,42 @@ const ChangeMasterPasswordScreen = () => {
         formData.oldPassword,
         formData.newPassword
       );
-      Alert.alert('Success', 'Master password changed successfully', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+
+      // Show success message
+      setSnackbar({
+        visible: true,
+        message: 'Password changed. Please login again.',
+      });
+
+      // Wait a moment for the user to see the message, then logout
+      setTimeout(async () => {
+        try {
+          // Clear password context
+          clearPasswords();
+
+          // Clear all session data
+          await clearAllSessionData();
+
+          // Clear vault service session
+          await vaultService.clearSession();
+
+          // Navigate to login screen
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+          });
+        } catch (logoutError) {
+          console.error(
+            'Error during logout after password change:',
+            logoutError
+          );
+          // Still navigate to login even if logout fails
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+          });
+        }
+      }, 1500); // Wait 1.5 seconds for user to read the message
     } catch (error) {
       Alert.alert('Error', error.message || 'Failed to change password');
     } finally {
@@ -291,6 +328,24 @@ const ChangeMasterPasswordScreen = () => {
           Save Changes
         </Button>
       </View>
+
+      <Snackbar
+        visible={snackbar.visible}
+        onDismiss={() => setSnackbar({ visible: false, message: '' })}
+        duration={1500}
+        style={{
+          backgroundColor: theme.isDark ? '#1e1e2e' : '#FFFFFF',
+        }}
+        theme={{
+          colors: {
+            onSurface: theme.isDark ? '#FFFFFF' : '#000000',
+          },
+        }}
+      >
+        <Text style={{ color: theme.isDark ? '#FFFFFF' : '#000000' }}>
+          {snackbar.message}
+        </Text>
+      </Snackbar>
     </SafeAreaView>
   );
 };
