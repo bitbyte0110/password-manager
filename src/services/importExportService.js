@@ -8,11 +8,11 @@
  * - Comprehensive error handling
  */
 
+import 'react-native-get-random-values';
 import CryptoJS from 'crypto-js';
 import * as FileSystem from 'expo-file-system';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
-import { getRandomValues } from 'react-native-get-random-values';
 
 class ImportExportService {
   // Export file format version for future compatibility
@@ -25,7 +25,7 @@ class ImportExportService {
    */
   static generateSalt() {
     const array = new Uint8Array(32); // 256 bits
-    getRandomValues(array);
+    crypto.getRandomValues(array);
     return Array.from(array, byte => ('0' + byte.toString(16)).slice(-2)).join(
       ''
     );
@@ -250,7 +250,7 @@ class ImportExportService {
       // Let user select file
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/json', 'text/plain', '*/*'],
-        copyToCacheDirectory: false,
+        copyToCacheDirectory: true, // Changed to true to handle cloud URIs
       });
 
       if (result.canceled) {
@@ -260,19 +260,50 @@ class ImportExportService {
         };
       }
 
-      // Read file content
-      const fileContent = await FileSystem.readAsStringAsync(
-        result.assets[0].uri,
-        {
-          encoding: FileSystem.EncodingType.UTF8,
+      let fileUri = result.assets[0].uri;
+
+      // Handle content:// URIs from cloud providers by copying to cache first
+      if (fileUri.startsWith('content://')) {
+        try {
+          const cacheFileName = `import_${Date.now()}.json`;
+          const cacheUri = FileSystem.cacheDirectory + cacheFileName;
+          
+          // Copy the file to cache directory first
+          await FileSystem.copyAsync({
+            from: fileUri,
+            to: cacheUri,
+          });
+          
+          fileUri = cacheUri;
+        } catch (copyError) {
+          console.error('Failed to copy content URI to cache:', copyError);
+          return {
+            success: false,
+            error: 'Failed to access file from cloud provider. Please try downloading the file locally first.',
+          };
         }
-      );
+      }
+
+      // Read file content
+      const fileContent = await FileSystem.readAsStringAsync(fileUri, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
 
       // Decrypt and validate
       const decryptResult = await this.decryptForImport(
         fileContent,
         importPassword
       );
+
+      // Clean up temporary cache file if we created one
+      if (fileUri.startsWith(FileSystem.cacheDirectory) && fileUri.includes('import_')) {
+        try {
+          await FileSystem.deleteAsync(fileUri, { idempotent: true });
+        } catch (cleanupError) {
+          console.warn('Failed to cleanup temporary import file:', cleanupError);
+          // Don't fail the import if cleanup fails
+        }
+      }
 
       if (!decryptResult.success) {
         return decryptResult;
@@ -286,6 +317,15 @@ class ImportExportService {
       };
     } catch (error) {
       console.error('Import from file failed:', error);
+      
+      // Provide more specific error messages
+      if (error.message.includes('Unsupported scheme')) {
+        return {
+          success: false,
+          error: 'Unable to access file from cloud provider. Please save the file locally and try again.',
+        };
+      }
+      
       return {
         success: false,
         error: 'Failed to read import file',
