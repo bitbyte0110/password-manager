@@ -259,16 +259,19 @@ const SettingsScreen = () => {
     >
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
+        <View
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+          }}
         >
-          <Icon name="arrow-left" size={20} color={theme.colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-          Settings
-        </Text>
-        <View style={styles.headerRight} />
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
+            Settings
+          </Text>
+        </View>
       </View>
 
       <ScrollView
@@ -428,24 +431,16 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 40,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-  },
-  headerRight: {
-    width: 44,
   },
   scrollContainer: {
     flex: 1,
