@@ -586,17 +586,8 @@ const TrashScreen = ({ navigation }) => {
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Icon name="arrow-left" size={24} color={theme.colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-          Trash ({filteredPasswords.length})
-        </Text>
-        {filteredPasswords.length > 0 && (
+      {filteredPasswords.length > 0 && (
+        <View style={styles.actionHeader}>
           <TouchableOpacity
             style={[
               styles.emptyTrashButton,
@@ -610,11 +601,11 @@ const TrashScreen = ({ navigation }) => {
                 { color: theme.colors.onErrorContainer },
               ]}
             >
-              Empty
+              Empty Trash
             </Text>
           </TouchableOpacity>
-        )}
-      </View>
+        </View>
+      )}
 
       {filteredPasswords.length > 0 && (
         <Searchbar
@@ -660,22 +651,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
+  actionHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    justifyContent: 'flex-end',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginLeft: 8,
   },
   emptyTrashButton: {
     paddingHorizontal: 16,
