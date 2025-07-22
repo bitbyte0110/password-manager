@@ -8,7 +8,7 @@ import {
   Alert,
   TouchableOpacity,
 } from 'react-native';
-import { Button, IconButton, Snackbar } from 'react-native-paper';
+import { IconButton, Snackbar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import clipboardService from '../services/clipboardService';
@@ -397,9 +397,18 @@ const PasswordDetailsScreen = () => {
         visible={snackbar.visible}
         onDismiss={() => setSnackbar({ visible: false, message: '' })}
         duration={2000}
-        style={{ backgroundColor: theme.colors.surface }}
+        style={{
+          backgroundColor: theme.isDark ? '#1e1e2e' : '#FFFFFF',
+        }}
+        theme={{
+          colors: {
+            onSurface: theme.isDark ? '#FFFFFF' : '#000000',
+          },
+        }}
       >
-        {snackbar.message}
+        <Text style={{ color: theme.isDark ? '#FFFFFF' : '#000000' }}>
+          {snackbar.message}
+        </Text>
       </Snackbar>
     </View>
   );
