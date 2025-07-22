@@ -224,6 +224,15 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
       // Update the master password hash in SecureStore
       await SecureStore.setItemAsync('vault_masterHash', newPasswordHash);
 
+      // Clear all session data to prevent authentication conflicts
+      try {
+        await SecureStore.deleteItemAsync('vault_sessionToken');
+        await SecureStore.deleteItemAsync('vault_biometricPassword');
+        console.log('Cleared session token and biometric password after recovery');
+      } catch (clearError) {
+        console.warn('Warning: Could not clear session data:', clearError);
+      }
+
       // Clear sensitive data
       clearSensitiveData();
 

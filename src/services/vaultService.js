@@ -18,7 +18,10 @@ class VaultService {
     this.sessionToken = null; // For secure session restoration
     this.entryCache = new Map(); // Cache for decrypted entries to avoid re-decryption
     this.cacheTimestamps = new Map(); // Track cache freshness
+    this.categoryCache = new Map(); // Cache for category passwords
+    this.categoryCacheTimestamps = new Map(); // Track category cache freshness
     this.CACHE_TTL = 30000; // 30 seconds cache TTL
+    this.CATEGORY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache TTL for categories
   }
 
   /**
@@ -361,8 +364,9 @@ class VaultService {
           'VaultService: Scheduling background operations for optimal performance'
         );
 
-        // Schedule background biometric setup (non-blocking)
+        // Schedule background operations for better UX
         setImmediate(async () => {
+          // Background biometric setup
           const mfaEnabled = await getMFAEnabled();
           if (!mfaEnabled) {
             try {
@@ -376,6 +380,29 @@ class VaultService {
                 error
               );
             }
+          }
+          
+          // Preload categories for instant access
+          try {
+            const categories = await this.getCategories();
+            console.log(`VaultService: Background - Preloaded ${categories.length} categories`);
+            
+            // Preload first few category password lists for instant category viewing
+            const popularCategories = categories
+              .filter(c => c.password_count > 0)
+              .sort((a, b) => b.password_count - a.password_count)
+              .slice(0, 3); // Preload top 3 most used categories
+              
+            for (const category of popularCategories) {
+              try {
+                await this.getPasswordsByCategory(category.id);
+                console.log(`VaultService: Background - Preloaded category ${category.name} (${category.password_count} passwords)`);
+              } catch (preloadError) {
+                console.warn(`VaultService: Background - Could not preload category ${category.name}:`, preloadError);
+              }
+            }
+          } catch (error) {
+            console.warn('VaultService: Background - Could not preload categories:', error);
           }
         });
 
@@ -489,9 +516,13 @@ class VaultService {
     this.sessionStartTime = null;
     this.sessionToken = null;
 
-    // Clear entry cache for security
+    // Clear all caches for security
     this.entryCache.clear();
     this.cacheTimestamps.clear();
+    this.categoryCache.clear();
+    this.categoryCacheTimestamps.clear();
+    
+    console.log('VaultService: All caches cleared for security');
 
     // Clear session token from storage
     try {
@@ -648,12 +679,41 @@ class VaultService {
   }
 
   /**
-   * Get password entries by category
+   * Get password entries by category with aggressive caching
    * @param {number} categoryId - Category ID
    * @returns {Promise<Array>} Array of decrypted password entries
    */
   async getPasswordsByCategory(categoryId) {
-    return await this.getPasswordEntries({ categoryId });
+    if (!this.isUserAuthenticated()) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      // Check category cache first for instant loading
+      const cacheKey = `category_${categoryId}`;
+      const cached = this.categoryCache.get(cacheKey);
+      const cacheTime = this.categoryCacheTimestamps.get(cacheKey);
+      
+      if (cached && cacheTime && Date.now() - cacheTime < this.CATEGORY_CACHE_TTL) {
+        console.log(`VaultService: Using cached category ${categoryId} passwords (instant load)`);
+        return cached;
+      }
+
+      console.log(`VaultService: Loading and caching category ${categoryId} passwords...`);
+      
+      // Load fresh data
+      const passwords = await this.getPasswordEntries({ categoryId });
+      
+      // Cache the results for future instant access
+      this.categoryCache.set(cacheKey, passwords);
+      this.categoryCacheTimestamps.set(cacheKey, Date.now());
+      
+      console.log(`VaultService: Cached ${passwords.length} passwords for category ${categoryId}`);
+      return passwords;
+    } catch (error) {
+      console.error(`VaultService: Error getting passwords for category ${categoryId}:`, error);
+      throw error;
+    }
   }
 
   /**
@@ -731,11 +791,16 @@ class VaultService {
         this.masterPassword
       );
 
-      // Invalidate cache for this entry
-      const cacheKey = `entry_${id}`;
-      this.entryCache.delete(cacheKey);
-      this.cacheTimestamps.delete(cacheKey);
-      console.log(`VaultService: Cache invalidated for entry ${id}`);
+      // Invalidate entry cache and affected category caches
+      const entryCacheKey = `entry_${id}`;
+      this.entryCache.delete(entryCacheKey);
+      this.cacheTimestamps.delete(entryCacheKey);
+      
+      // Clear category cache for any category (entry might have changed categories)
+      this.categoryCache.clear();
+      this.categoryCacheTimestamps.clear();
+      
+      console.log(`VaultService: Cache invalidated for entry ${id} and all categories`);
 
       return result;
     } catch (error) {
@@ -1330,9 +1395,11 @@ class VaultService {
     try {
       const deletedCount = await this.dbService.deleteAllPasswords();
 
-      // Clear caches
+      // Clear all caches
       this.entryCache.clear();
       this.cacheTimestamps.clear();
+      this.categoryCache.clear();
+      this.categoryCacheTimestamps.clear();
 
       console.log(`VaultService: Cleared ${deletedCount} passwords from vault`);
       return deletedCount;
