@@ -6,7 +6,10 @@
       "Bash(npx expo start:*)",
       "Bash(npx expo export:*)",
       "mcp__ide__getDiagnostics",
-      "Bash(npm start)"
+      "Bash(npm start)",
+      "Bash(npm run build:*)",
+      "Bash(npm run:*)",
+      "Bash(npx eslint:*)"
     ],
     "deny": []
   }
