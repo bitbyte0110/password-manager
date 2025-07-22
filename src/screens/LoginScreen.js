@@ -513,7 +513,7 @@ const LoginScreen = ({ navigation: navProp }) => {
     setShowPasswordModal(false);
     setMfaMode(false);
     setBiometricSucceeded(false);
-    navigation.navigate('ForgotPasswordScreen');
+    navigation.navigate('ForgotPassword');
   };
 
   const handleResetVault = () => {
