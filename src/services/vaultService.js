@@ -359,12 +359,28 @@ class VaultService {
         // Create and store session token for restoration
         await this.createSessionToken(password);
 
-        // Move non-critical operations to background for instant login
+        // Critical optimization: Preload password data immediately for instant vault display
         console.log(
-          'VaultService: Scheduling background operations for optimal performance'
+          'VaultService: Starting immediate password preloading for instant vault access'
         );
 
-        // Schedule background operations for better UX
+        // Preload main password list immediately (parallel with background operations)
+        const preloadPromise = this.getPasswordEntries({
+          sortBy: 'last_accessed',
+          sortOrder: 'DESC',
+        })
+          .then(passwords => {
+            console.log(
+              `VaultService: Successfully preloaded ${passwords.length} passwords during authentication`
+            );
+            return passwords;
+          })
+          .catch(error => {
+            console.warn('VaultService: Password preloading failed:', error);
+            return [];
+          });
+
+        // Schedule other background operations for better UX
         setImmediate(async () => {
           // Background biometric setup
           const mfaEnabled = await getMFAEnabled();
@@ -382,7 +398,7 @@ class VaultService {
             }
           }
 
-          // Preload categories for instant access
+          // Preload categories in parallel with passwords
           try {
             const categories = await this.getCategories();
             console.log(
@@ -393,21 +409,23 @@ class VaultService {
             const popularCategories = categories
               .filter(c => c.password_count > 0)
               .sort((a, b) => b.password_count - a.password_count)
-              .slice(0, 3); // Preload top 3 most used categories
+              .slice(0, 2); // Reduced from 3 to 2 for better performance
 
-            for (const category of popularCategories) {
-              try {
-                await this.getPasswordsByCategory(category.id);
-                console.log(
-                  `VaultService: Background - Preloaded category ${category.name} (${category.password_count} passwords)`
-                );
-              } catch (preloadError) {
-                console.warn(
-                  `VaultService: Background - Could not preload category ${category.name}:`,
-                  preloadError
-                );
-              }
-            }
+            await Promise.all(
+              popularCategories.map(async category => {
+                try {
+                  await this.getPasswordsByCategory(category.id);
+                  console.log(
+                    `VaultService: Background - Preloaded category ${category.name}`
+                  );
+                } catch (preloadError) {
+                  console.warn(
+                    `VaultService: Background - Could not preload category ${category.name}:`,
+                    preloadError
+                  );
+                }
+              })
+            );
           } catch (error) {
             console.warn(
               'VaultService: Background - Could not preload categories:',
@@ -415,6 +433,9 @@ class VaultService {
             );
           }
         });
+
+        // Store preload promise for instant access by UI components
+        this._passwordPreloadPromise = preloadPromise;
 
         // Schedule background migration (non-blocking)
         setImmediate(async () => {
@@ -569,6 +590,40 @@ class VaultService {
   }
 
   /**
+   * Get preloaded password entries if available, otherwise load fresh data
+   * @param {Object} options - Query options
+   * @returns {Promise<Array>} Array of decrypted password entries
+   */
+  async getPasswordEntriesOptimized(options = {}) {
+    // If we have preloaded data and it matches the requested options, use it
+    if (
+      this._passwordPreloadPromise &&
+      JSON.stringify(options) ===
+        JSON.stringify({
+          sortBy: 'last_accessed',
+          sortOrder: 'DESC',
+        })
+    ) {
+      console.log(
+        'VaultService: Using preloaded password data for instant display'
+      );
+      try {
+        const preloadedData = await this._passwordPreloadPromise;
+        this._passwordPreloadPromise = null; // Clear after use
+        return preloadedData;
+      } catch (error) {
+        console.warn(
+          'VaultService: Preloaded data failed, falling back to regular loading'
+        );
+        this._passwordPreloadPromise = null;
+      }
+    }
+
+    // Fall back to regular loading
+    return this.getPasswordEntries(options);
+  }
+
+  /**
    * Get all password entries with decryption and optimized caching
    * @param {Object} options - Query options
    * @returns {Promise<Array>} Array of decrypted password entries
@@ -695,6 +750,19 @@ class VaultService {
       const encryptedEntry = await this.dbService.getPasswordById(id);
 
       if (!encryptedEntry) {
+        // Enhanced error handling: Check if entry exists in trash
+        try {
+          const deletedEntry = await this.checkIfEntryDeleted(id);
+          if (deletedEntry) {
+            const error = new Error('Password entry was deleted');
+            error.deletedEntry = deletedEntry;
+            error.isDeleted = true;
+            throw error;
+          }
+        } catch (deletedCheckError) {
+          console.warn('Could not check deleted entries:', deletedCheckError);
+        }
+
         throw new Error('Password entry not found');
       }
 
@@ -712,6 +780,11 @@ class VaultService {
         `VaultService: Error getting password entry (attempt ${retryCount + 1}):`,
         error
       );
+
+      // Don't retry for deleted entries
+      if (error.isDeleted) {
+        throw error;
+      }
 
       // Retry logic for "Password entry not found" errors (likely race condition)
       if (error.message === 'Password entry not found' && retryCount < 2) {
@@ -733,6 +806,31 @@ class VaultService {
       }
 
       throw error;
+    }
+  }
+
+  /**
+   * Check if a password entry exists in the deleted_passwords table
+   * @param {number} id - Original entry ID
+   * @returns {Promise<Object|null>} Deleted entry info or null
+   */
+  async checkIfEntryDeleted(id) {
+    try {
+      if (!this.dbService || !this.dbService.db) {
+        return null;
+      }
+
+      const deletedEntry = await this.dbService.db.getFirstAsync(
+        `SELECT id, original_password_id, deleted_at, expires_at, encrypted_data 
+         FROM deleted_passwords 
+         WHERE original_password_id = ? AND expires_at > datetime('now')`,
+        [id]
+      );
+
+      return deletedEntry || null;
+    } catch (error) {
+      console.error('Error checking deleted entries:', error);
+      return null;
     }
   }
 
@@ -954,7 +1052,33 @@ class VaultService {
         retentionDays = await this.getUserRetentionDays();
       }
 
-      return await this.dbService.deletePasswordEntry(id, retentionDays);
+      const result = await this.dbService.deletePasswordEntry(
+        id,
+        retentionDays
+      );
+
+      // Critical: Invalidate all caches after deletion to prevent stale state
+      const entryCacheKey = `entry_${id}`;
+      this.entryCache.delete(entryCacheKey);
+      this.cacheTimestamps.delete(entryCacheKey);
+
+      // Clear all entries cache (affects filtering and main list)
+      for (const [key] of this.entryCache) {
+        if (key.startsWith('all_entries_')) {
+          this.entryCache.delete(key);
+          this.cacheTimestamps.delete(key);
+        }
+      }
+
+      // Clear category cache for updated counts
+      this.categoryCache.clear();
+      this.categoryCacheTimestamps.clear();
+
+      console.log(
+        `VaultService: Cache invalidated after deleting entry ${id} - prevents "Password entry not found" errors`
+      );
+
+      return result;
     } catch (error) {
       console.error('Error deleting password entry:', error);
       throw error;
