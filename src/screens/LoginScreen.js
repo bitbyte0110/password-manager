@@ -367,15 +367,41 @@ const LoginScreen = ({ navigation: navProp }) => {
               navigation.replace('MainTabs');
               return;
             } else {
-              console.log(
-                '🔐 MFA DISABLED: Biometric auth failed, need password for first-time setup'
+              // Check if this is first-time setup by looking for biometric password storage
+              const hasBiometricPassword = await SecureStore.getItemAsync(
+                'vault_biometricPassword'
               );
-              // First time or biometric setup needed - prompt for password
-              setMfaMode(false);
-              setShowPasswordModal(true);
-              showSnackbar(
-                'First-time setup: Enter your master password to enable biometric-only login.'
+              const hasSessionToken = await SecureStore.getItemAsync(
+                'vault_sessionToken'
               );
+
+              console.log('🔍 Biometric auth failed - checking storage:', {
+                hasBiometricPassword: !!hasBiometricPassword,
+                hasSessionToken: !!hasSessionToken,
+                mfaEnabled: mfaEnabled,
+              });
+
+              if (!hasBiometricPassword && !hasSessionToken) {
+                console.log(
+                  '🔐 MFA DISABLED: First-time biometric setup - need password to enable biometric storage'
+                );
+                // First time setup - prompt for password to enable biometric storage
+                setMfaMode(false);
+                setShowPasswordModal(true);
+                showSnackbar(
+                  'First-time setup: Enter your master password to enable biometric-only login for future access.'
+                );
+              } else {
+                console.log(
+                  '🔐 MFA DISABLED: Biometric storage exists but authentication failed - trying password fallback'
+                );
+                // Biometric storage exists but failed - could be session expired or other issues
+                setMfaMode(false);
+                setShowPasswordModal(true);
+                showSnackbar(
+                  'Biometric authentication failed. Please enter your master password.'
+                );
+              }
             }
           } catch (error) {
             console.error('Error during biometric authentication:', error);
