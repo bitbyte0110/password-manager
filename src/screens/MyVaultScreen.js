@@ -77,7 +77,32 @@ const MyVaultScreen = ({ navigation, route }) => {
 
   const initializeVault = async () => {
     try {
-      // Skip redundant initialization if already authenticated (coming from login)
+      // Optimized: Check if vault service is already ready to avoid redundant initialization
+      if (vaultService.isVaultReady()) {
+        console.log(
+          'MyVaultScreen: Vault already ready, loading data immediately...'
+        );
+
+        // Load passwords immediately using preloaded data for instant display
+        loadPasswords(() =>
+          vaultService.getPasswordEntriesOptimized({
+            sortBy: 'last_accessed',
+            sortOrder: 'DESC',
+          })
+        );
+
+        // Load background data
+        setImmediate(() => {
+          Promise.all([
+            loadCategories(),
+            loadRecentSearches(),
+            updateActivity(),
+          ]);
+        });
+        return;
+      }
+
+      // Initialize if not already ready
       if (!vaultService.isUserAuthenticated()) {
         console.log(
           'User not authenticated, attempting vault service initialization'
@@ -91,14 +116,14 @@ const MyVaultScreen = ({ navigation, route }) => {
           navigation.replace('Login');
           return;
         }
-      } else {
-        console.log('User already authenticated, loading data immediately...');
       }
 
-      // Load passwords immediately for instant display
-      console.log('MyVaultScreen: Loading passwords with optimized caching...');
+      // Load passwords immediately using preloaded data for instant display
+      console.log(
+        'MyVaultScreen: Loading passwords with preloaded data optimization...'
+      );
       loadPasswords(() =>
-        vaultService.getPasswordEntries({
+        vaultService.getPasswordEntriesOptimized({
           sortBy: 'last_accessed',
           sortOrder: 'DESC',
         })
@@ -113,19 +138,9 @@ const MyVaultScreen = ({ navigation, route }) => {
         ]).catch(error => {
           console.error('Background data loading error:', error);
 
-          // Handle specific database initialization errors with single retry
-          if (
-            error.message &&
-            error.message.includes('Database not initialized')
-          ) {
-            console.log(
-              'MyVaultScreen: Database not yet initialized, retrying once...'
-            );
-            setTimeout(() => {
-              loadCategories().catch(e =>
-                console.error('Retry loadCategories failed:', e)
-              );
-            }, 1000);
+          // Simplified error handling - just log errors for background operations
+          if (error.message?.includes('Database not initialized')) {
+            setTimeout(() => loadCategories(), 1000); // Single retry
           }
         });
       });
@@ -138,9 +153,6 @@ const MyVaultScreen = ({ navigation, route }) => {
         error.message.includes('master password') ||
         error.message.includes('session')
       ) {
-        console.log(
-          'Authentication error during initialization, redirecting to login'
-        );
         Alert.alert(
           'Session Expired',
           'Your session has expired. Please log in again.',
