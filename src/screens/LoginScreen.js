@@ -371,9 +371,8 @@ const LoginScreen = ({ navigation: navProp }) => {
               const hasBiometricPassword = await SecureStore.getItemAsync(
                 'vault_biometricPassword'
               );
-              const hasSessionToken = await SecureStore.getItemAsync(
-                'vault_sessionToken'
-              );
+              const hasSessionToken =
+                await SecureStore.getItemAsync('vault_sessionToken');
 
               console.log('🔍 Biometric auth failed - checking storage:', {
                 hasBiometricPassword: !!hasBiometricPassword,
