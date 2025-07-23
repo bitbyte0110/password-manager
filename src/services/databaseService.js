@@ -821,6 +821,31 @@ class DatabaseService {
   }
 
   /**
+   * Update the last accessed timestamp for a password entry
+   * @param {number} id - Password entry ID
+   * @returns {Promise<boolean>} Update success status
+   */
+  async updateLastAccessed(id) {
+    try {
+      if (!this.db) throw new Error('Database not initialized');
+
+      // Validate ID
+      if (!id || isNaN(id)) {
+        throw new Error('Valid password ID is required');
+      }
+
+      const result = await this.db.runAsync(
+        'UPDATE passwords SET last_accessed = CURRENT_TIMESTAMP WHERE id = ?',
+        [id]
+      );
+
+      return result.changes > 0;
+    } catch (error) {
+      throw new Error(`Failed to update last accessed: ${error.message}`);
+    }
+  }
+
+  /**
    * Search passwords by title (requires decryption)
    * @param {string} searchTerm - Search term
    * @param {string} masterPassword - Master password for decryption

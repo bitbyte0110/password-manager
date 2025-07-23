@@ -769,6 +769,11 @@ class VaultService {
       // Decrypt and cache the entry
       const decrypted = await this.decryptPasswordEntry(encryptedEntry);
 
+      // Update last accessed timestamp (don't wait for completion to avoid slowing down the UI)
+      this.updateLastAccessed(id).catch(error => {
+        console.warn(`Failed to update last accessed for entry ${id}:`, error);
+      });
+
       // Cache the decrypted entry
       const cacheKey = `entry_${id}`;
       this.entryCache.set(cacheKey, decrypted);
@@ -1352,13 +1357,20 @@ class VaultService {
   /**
    * Update last accessed timestamp for a password entry
    * @param {number} id - Entry ID
-   * @returns {Promise<void>}
+   * @returns {Promise<boolean>} Update success status
    */
   async updateLastAccessed(id) {
     try {
-      await this.dbService.getPasswordById(id); // This automatically updates last_accessed
+      const success = await this.dbService.updateLastAccessed(id);
+
+      // Clear cache for this entry if it exists to ensure fresh data
+      this.entryCache.delete(id);
+      this.cacheTimestamps.delete(id);
+
+      return success;
     } catch (error) {
       console.error('Error updating last accessed:', error);
+      return false;
     }
   }
 

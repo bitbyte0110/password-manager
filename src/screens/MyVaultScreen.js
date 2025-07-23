@@ -262,14 +262,22 @@ const MyVaultScreen = ({ navigation, route }) => {
     switch (sortOption) {
       case 'recently_used':
         return sorted.sort((a, b) => {
-          const aTime = new Date(a.last_accessed || a.updated_at);
-          const bTime = new Date(b.last_accessed || b.updated_at);
+          // Use last_accessed if available, otherwise fall back to updated_at, then created_at
+          const aTime = new Date(
+            a.last_accessed || a.updated_at || a.created_at || 0
+          );
+          const bTime = new Date(
+            b.last_accessed || b.updated_at || b.created_at || 0
+          );
           return bTime - aTime;
         });
       case 'recently_added':
-        return sorted.sort(
-          (a, b) => new Date(b.created_at) - new Date(a.created_at)
-        );
+        return sorted.sort((a, b) => {
+          // Sort by creation date in descending order (newest first)
+          const aTime = new Date(a.created_at || 0);
+          const bTime = new Date(b.created_at || 0);
+          return bTime - aTime;
+        });
       case 'alphabetical':
         return sorted.sort((a, b) => {
           const aTitle = (a.title || '').toLowerCase();

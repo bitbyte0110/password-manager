@@ -102,6 +102,13 @@ const PasswordDetailsScreen = () => {
       const success = await clipboardService.copyToClipboard(value, isPassword);
       if (success) {
         setSnackbar({ visible: true, message: 'Copied to clipboard' });
+
+        // Track password access when copying (especially for password field)
+        if (isPassword && entry?.id) {
+          vaultService.updateLastAccessed(entry.id).catch(error => {
+            console.warn('Failed to update last accessed for copy:', error);
+          });
+        }
       } else {
         setSnackbar({ visible: true, message: 'Copy failed' });
       }
