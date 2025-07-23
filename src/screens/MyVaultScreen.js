@@ -272,13 +272,15 @@ const MyVaultScreen = ({ navigation, route }) => {
         );
       case 'alphabetical':
         return sorted.sort((a, b) => {
-          // Would need decryption to sort by title
-          return a.id - b.id; // Placeholder
+          const aTitle = (a.title || '').toLowerCase();
+          const bTitle = (b.title || '').toLowerCase();
+          return aTitle.localeCompare(bTitle);
         });
       case 'reverse_alphabetical':
         return sorted.sort((a, b) => {
-          // Would need decryption to sort by title
-          return b.id - a.id; // Placeholder
+          const aTitle = (a.title || '').toLowerCase();
+          const bTitle = (b.title || '').toLowerCase();
+          return bTitle.localeCompare(aTitle);
         });
       case 'by_category':
         return sorted.sort((a, b) => {
@@ -805,7 +807,11 @@ const MyVaultScreen = ({ navigation, route }) => {
           />
           <Menu.Item onPress={() => handleSort('alphabetical')} title="A-Z" />
           <Menu.Item
-            onPress={() => handleSort('category')}
+            onPress={() => handleSort('reverse_alphabetical')}
+            title="Z-A"
+          />
+          <Menu.Item
+            onPress={() => handleSort('by_category')}
             title="By Category"
           />
         </Menu>
