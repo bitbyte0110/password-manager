@@ -12,7 +12,8 @@
       "Bash(npx eslint:*)",
       "Bash(ls:*)",
       "Bash(rm:*)",
-      "Bash(npx kill-port:*)"
+      "Bash(npx kill-port:*)",
+      "Bash(taskkill:*)"
     ],
     "deny": []
   }
