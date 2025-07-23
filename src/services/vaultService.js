@@ -538,7 +538,7 @@ class VaultService {
     this.sessionStartTime = null;
     this.sessionToken = null;
 
-    // Clear all caches for security
+    // Clear all caches for security - only when explicitly logging out
     this.entryCache.clear();
     this.cacheTimestamps.clear();
     this.categoryCache.clear();
@@ -555,7 +555,21 @@ class VaultService {
   }
 
   /**
-   * Get all password entries with decryption
+   * Soft session clear - keeps caches for performance during session restoration
+   */
+  softClearSession() {
+    this.masterPassword = null;
+    this.isAuthenticated = false;
+    this.sessionStartTime = null;
+    this.sessionToken = null;
+    // Keep caches intact for faster restoration
+    console.log(
+      'VaultService: Soft session clear - caches preserved for performance'
+    );
+  }
+
+  /**
+   * Get all password entries with decryption and optimized caching
    * @param {Object} options - Query options
    * @returns {Promise<Array>} Array of decrypted password entries
    */
@@ -570,27 +584,76 @@ class VaultService {
     }
 
     try {
-      const encryptedEntries = await this.dbService.getPasswordEntries(options);
+      // Check if we have a cached version of all entries
+      const cacheKey = `all_entries_${JSON.stringify(options)}`;
+      const cachedEntries = this.entryCache.get(cacheKey);
+      const cacheTime = this.cacheTimestamps.get(cacheKey);
 
-      // Decrypt entries for display
-      const decryptedEntries = [];
-      for (const entry of encryptedEntries) {
-        try {
-          const decrypted = await this.decryptPasswordEntry(entry);
-          decryptedEntries.push(decrypted);
-        } catch (decryptError) {
-          console.warn(`Failed to decrypt entry ${entry.id}:`, decryptError);
-          // Add entry with encryption error indicator
-          decryptedEntries.push({
-            ...entry,
-            title: 'Decryption Error',
-            username: '',
-            decryptionError: true,
-          });
-        }
+      if (
+        cachedEntries &&
+        cacheTime &&
+        Date.now() - cacheTime < this.CACHE_TTL
+      ) {
+        console.log(
+          'VaultService: Using cached password entries for instant load'
+        );
+        return cachedEntries;
       }
 
-      return decryptedEntries;
+      const encryptedEntries = await this.dbService.getPasswordEntries(options);
+      console.log(
+        `VaultService: Batch decrypting ${encryptedEntries.length} entries...`
+      );
+
+      // Batch decrypt entries with improved error handling
+      const decryptedEntries = await Promise.allSettled(
+        encryptedEntries.map(async entry => {
+          try {
+            // Check individual entry cache first
+            const entryCacheKey = `entry_${entry.id}`;
+            const cached = this.entryCache.get(entryCacheKey);
+            const entryTime = this.cacheTimestamps.get(entryCacheKey);
+
+            if (
+              cached &&
+              entryTime &&
+              Date.now() - entryTime < this.CACHE_TTL
+            ) {
+              return cached;
+            }
+
+            const decrypted = await this.decryptPasswordEntry(entry);
+
+            // Cache individual entry
+            this.entryCache.set(entryCacheKey, decrypted);
+            this.cacheTimestamps.set(entryCacheKey, Date.now());
+
+            return decrypted;
+          } catch (decryptError) {
+            console.warn(`Failed to decrypt entry ${entry.id}:`, decryptError);
+            return {
+              ...entry,
+              title: 'Decryption Error',
+              username: '',
+              decryptionError: true,
+            };
+          }
+        })
+      );
+
+      // Process results from Promise.allSettled
+      const finalEntries = decryptedEntries.map(result =>
+        result.status === 'fulfilled' ? result.value : result.reason
+      );
+
+      // Cache the complete result set
+      this.entryCache.set(cacheKey, finalEntries);
+      this.cacheTimestamps.set(cacheKey, Date.now());
+
+      console.log(
+        `VaultService: Successfully loaded and cached ${finalEntries.length} entries`
+      );
+      return finalEntries;
     } catch (error) {
       console.error('Error getting password entries:', error);
       throw error;
@@ -846,17 +909,25 @@ class VaultService {
         this.masterPassword
       );
 
-      // Invalidate entry cache and affected category caches
+      // Intelligently invalidate caches
       const entryCacheKey = `entry_${id}`;
       this.entryCache.delete(entryCacheKey);
       this.cacheTimestamps.delete(entryCacheKey);
+
+      // Clear all entries cache (affects filtering)
+      for (const [key] of this.entryCache) {
+        if (key.startsWith('all_entries_')) {
+          this.entryCache.delete(key);
+          this.cacheTimestamps.delete(key);
+        }
+      }
 
       // Clear category cache for any category (entry might have changed categories)
       this.categoryCache.clear();
       this.categoryCacheTimestamps.clear();
 
       console.log(
-        `VaultService: Cache invalidated for entry ${id} and all categories`
+        `VaultService: Smart cache invalidation for entry ${id} completed`
       );
 
       return result;

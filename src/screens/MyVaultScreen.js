@@ -45,20 +45,30 @@ const MyVaultScreen = ({ navigation, route }) => {
     initializeVault();
   }, []);
 
+  // Memoized filter and sort to prevent unnecessary recalculations
   useEffect(() => {
-    applyFiltersAndSort();
+    const timeoutId = setTimeout(() => {
+      applyFiltersAndSort();
+    }, 100); // Debounce filtering to prevent excessive re-renders
+
+    return () => clearTimeout(timeoutId);
   }, [passwords, searchQuery, selectedCategory, sortBy]);
 
   // Refresh data when screen gains focus (e.g., returning from AddPasswordScreen)
   useFocusEffect(
     useCallback(() => {
-      // Always refresh categories when screen gains focus to ensure counts are up-to-date
+      // Only refresh categories when screen gains focus to ensure counts are up-to-date
       loadCategories();
 
       // Check if we should also refresh passwords (from navigation params)
       if (route?.params?.shouldRefresh) {
         console.log('MyVaultScreen: Refreshing data due to navigation params');
-        loadPasswords();
+        loadPasswords(() =>
+          vaultService.getPasswordEntries({
+            sortBy: 'last_accessed',
+            sortOrder: 'DESC',
+          })
+        );
         // Clear the parameter
         navigation.setParams({ shouldRefresh: undefined });
       }
@@ -82,51 +92,39 @@ const MyVaultScreen = ({ navigation, route }) => {
           return;
         }
       } else {
-        console.log(
-          'User already authenticated, skipping vault initialization'
-        );
+        console.log('User already authenticated, loading data immediately...');
       }
 
-      console.log(
-        'Vault service authenticated successfully, loading data in background...'
+      // Load passwords immediately for instant display
+      console.log('MyVaultScreen: Loading passwords with optimized caching...');
+      loadPasswords(() =>
+        vaultService.getPasswordEntries({
+          sortBy: 'last_accessed',
+          sortOrder: 'DESC',
+        })
       );
 
-      // Load data in background (non-blocking for instant navigation)
+      // Load other data in background (non-blocking)
       setImmediate(() => {
         Promise.all([
-          loadPasswords(() =>
-            vaultService.getPasswordEntries({
-              sortBy: 'last_accessed',
-              sortOrder: 'DESC',
-            })
-          ),
           loadCategories(),
           loadRecentSearches(),
           updateActivity(),
         ]).catch(error => {
           console.error('Background data loading error:', error);
 
-          // Handle specific database initialization errors
+          // Handle specific database initialization errors with single retry
           if (
             error.message &&
             error.message.includes('Database not initialized')
           ) {
             console.log(
-              'MyVaultScreen: Database not yet initialized, retrying in 1 second...'
+              'MyVaultScreen: Database not yet initialized, retrying once...'
             );
             setTimeout(() => {
-              // Retry loading categories and passwords after database initialization delay
-              Promise.all([
-                loadCategories().catch(e =>
-                  console.error('Retry loadCategories failed:', e)
-                ),
-                loadPasswords(() =>
-                  vaultService.getPasswordEntries({
-                    sortBy: 'last_accessed',
-                    sortOrder: 'DESC',
-                  })
-                ).catch(e => console.error('Retry loadPasswords failed:', e)),
-              ]);
+              loadCategories().catch(e =>
+                console.error('Retry loadCategories failed:', e)
+              );
             }, 1000);
           }
         });
@@ -152,8 +150,6 @@ const MyVaultScreen = ({ navigation, route }) => {
         Alert.alert('Error', 'Failed to load vault data. Please try again.');
         navigation.replace('Login');
       }
-    } finally {
-      // setIsLoading(false); // This line is removed as loading is now managed by context
     }
   };
 
@@ -205,14 +201,19 @@ const MyVaultScreen = ({ navigation, route }) => {
 
   const applyFiltersAndSort = useCallback(async () => {
     try {
-      let filtered = [...passwords];
+      if (passwords.length === 0) {
+        setFilteredPasswords([]);
+        return;
+      }
+
+      let filtered = passwords; // Avoid unnecessary spread operator for large arrays
 
       // Apply search filter first if there's a search query
       if (searchQuery.trim()) {
         await saveRecentSearch(searchQuery.trim());
         const query = searchQuery.toLowerCase().trim();
-        // Client-side search filtering by title and username (case-insensitive)
-        filtered = filtered.filter(
+        // Optimized search filtering by title and username (case-insensitive)
+        filtered = passwords.filter(
           entry =>
             (entry.title && entry.title.toLowerCase().includes(query)) ||
             (entry.username && entry.username.toLowerCase().includes(query))
@@ -221,38 +222,21 @@ const MyVaultScreen = ({ navigation, route }) => {
         // Apply category filter when no search query
         if (selectedCategory !== 'all') {
           if (selectedCategory === 'favorites') {
-            filtered = filtered.filter(entry => entry.isFavorite === true);
+            filtered = passwords.filter(entry => entry.isFavorite === true);
           } else {
-            // Category ID filter - ensure proper type matching
+            // Category ID filter - optimized without debug logging
             const categoryId = parseInt(selectedCategory);
-            console.log(`=== CATEGORY FILTER DEBUG ===`);
-            console.log('Selected category ID:', categoryId, typeof categoryId);
-            console.log('Total passwords:', passwords.length);
-            console.log(
-              'Password categoryIds:',
-              passwords.map(p => ({
-                id: p.id,
-                categoryId: p.categoryId,
-                type: typeof p.categoryId,
-              }))
+            filtered = passwords.filter(
+              entry => entry.categoryId === categoryId
             );
-
-            filtered = filtered.filter(entry => {
-              const entryCategory = entry.categoryId;
-              const matches = entryCategory === categoryId;
-              console.log(
-                `Entry ${entry.id}: categoryId=${entryCategory} (${typeof entryCategory}) matches ${categoryId} (${typeof categoryId}) = ${matches}`
-              );
-              return matches;
-            });
-            console.log('Filtered results count:', filtered.length);
-            console.log(`=== END CATEGORY FILTER DEBUG ===`);
           }
         }
       }
 
-      // Apply sorting
-      filtered = applySorting(filtered, sortBy);
+      // Apply sorting only if needed
+      if (filtered !== passwords || sortBy !== 'recently_used') {
+        filtered = applySorting(filtered, sortBy);
+      }
 
       setFilteredPasswords(filtered);
     } catch (error) {
