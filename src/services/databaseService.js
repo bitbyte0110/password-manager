@@ -227,6 +227,9 @@ class DatabaseService {
 
         // Create indexes
         await this.createIndexes();
+        
+        // Initialize null last_accessed values with created_at
+        await this.initializeLastAccessedValues();
 
         console.log(
           'Database initialization completed - no default data inserted'
@@ -797,9 +800,10 @@ class DatabaseService {
   /**
    * Get password entry by ID
    * @param {number} id - Password entry ID
+   * @param {boolean} updateLastAccessed - Whether to update last_accessed timestamp
    * @returns {Promise<Object|null>} Password entry or null
    */
-  async getPasswordById(id) {
+  async getPasswordById(id, updateLastAccessed = false) {
     try {
       if (!this.db) throw new Error('Database not initialized');
 
@@ -811,8 +815,12 @@ class DatabaseService {
         [id]
       );
 
-      // Skip last_accessed update for performance - update only when actually needed
-      // This avoids unnecessary database writes on every view
+      // Optionally update last_accessed timestamp
+      if (updateLastAccessed && result) {
+        this.updateLastAccessed(id).catch(error => {
+          console.warn(`Failed to update last accessed for ID ${id}:`, error);
+        });
+      }
 
       return result;
     } catch (error) {
@@ -842,6 +850,26 @@ class DatabaseService {
       return result.changes > 0;
     } catch (error) {
       throw new Error(`Failed to update last accessed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Initialize null last_accessed values with created_at timestamp
+   * @returns {Promise<void>}
+   */
+  async initializeLastAccessedValues() {
+    try {
+      if (!this.db) throw new Error('Database not initialized');
+
+      const result = await this.db.runAsync(
+        'UPDATE passwords SET last_accessed = created_at WHERE last_accessed IS NULL'
+      );
+
+      if (result.changes > 0) {
+        console.log(`Initialized last_accessed for ${result.changes} password entries`);
+      }
+    } catch (error) {
+      console.warn('Failed to initialize last_accessed values:', error.message);
     }
   }
 

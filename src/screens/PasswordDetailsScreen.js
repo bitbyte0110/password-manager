@@ -72,6 +72,11 @@ const PasswordDetailsScreen = () => {
       setEntry(data);
       setFavorite(!!data.isFavorite);
       setDecryptionError(false);
+
+      // Update last accessed when viewing password details
+      vaultService.updateLastAccessed(id).catch(error => {
+        console.warn('Failed to update last accessed for view:', error);
+      });
     } catch (e) {
       console.error('PasswordDetailsScreen: Error fetching entry:', e);
       setDecryptionError(true);
@@ -291,7 +296,15 @@ const PasswordDetailsScreen = () => {
                 icon={showPassword ? 'eye-off' : 'eye'}
                 size={20}
                 color={theme.colors.textSecondary}
-                onPress={() => setShowPassword(!showPassword)}
+                onPress={() => {
+                  setShowPassword(!showPassword);
+                  // Track password access when revealing password
+                  if (!showPassword && entry?.id) {
+                    vaultService.updateLastAccessed(entry.id).catch(error => {
+                      console.warn('Failed to update last accessed for reveal:', error);
+                    });
+                  }
+                }}
                 style={{ marginLeft: 0 }}
               />
               <IconButton
