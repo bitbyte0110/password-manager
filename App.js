@@ -495,18 +495,14 @@ const AppNavigator = () => {
         name="Export"
         component={ExportScreen}
         options={{
-          title: 'Export Vault',
-          headerShown: true,
-          headerTitleAlign: 'center',
+          headerShown: false,
         }}
       />
       <Stack.Screen
         name="Import"
         component={ImportScreen}
         options={{
-          title: 'Import Vault',
-          headerShown: true,
-          headerTitleAlign: 'center',
+          headerShown: false,
         }}
       />
     </Stack.Navigator>
