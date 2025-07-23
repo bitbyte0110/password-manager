@@ -126,10 +126,15 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
     setSnackbar({ visible: true, message });
   };
 
-  const handleBiometricSetupComplete = () => {
+  const handleBiometricSetupComplete = biometricEnabled => {
     setShowBiometricModal(false);
-    // Show MFA modal next
-    setShowMFAModal(true);
+    // Only show MFA modal if biometric authentication was enabled
+    if (biometricEnabled) {
+      setShowMFAModal(true);
+    } else {
+      // Skip directly to vault initialization if biometric was skipped
+      initializeVaultAndNavigate();
+    }
   };
 
   const handleMFASetupComplete = async mfaEnabled => {

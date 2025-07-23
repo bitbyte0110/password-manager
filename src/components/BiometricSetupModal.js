@@ -7,11 +7,12 @@ import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { useTheme } from '../contexts/ThemeContext';
 
 const BiometricSetupModal = ({ visible, onComplete }) => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isEnabling, setIsEnabling] = useState(false);
+  const [isSkipping, setIsSkipping] = useState(false);
   const { theme } = useTheme();
 
   const handleEnable = async () => {
-    setIsLoading(true);
+    setIsEnabling(true);
     try {
       // Save to both AsyncStorage and SecureStore for consistency
       const settings = await AsyncStorage.getItem('userSettings');
@@ -35,12 +36,12 @@ const BiometricSetupModal = ({ visible, onComplete }) => {
       // Still proceed even if storage fails
       onComplete(true);
     } finally {
-      setIsLoading(false);
+      setIsEnabling(false);
     }
   };
 
   const handleSkip = async () => {
-    setIsLoading(true);
+    setIsSkipping(true);
     try {
       // Save to both AsyncStorage and SecureStore for consistency
       const settings = await AsyncStorage.getItem('userSettings');
@@ -64,7 +65,7 @@ const BiometricSetupModal = ({ visible, onComplete }) => {
       // Still proceed even if storage fails
       onComplete(false);
     } finally {
-      setIsLoading(false);
+      setIsSkipping(false);
     }
   };
 
@@ -108,14 +109,14 @@ const BiometricSetupModal = ({ visible, onComplete }) => {
             <TouchableOpacity
               style={styles.primaryButton}
               onPress={handleEnable}
-              disabled={isLoading}
+              disabled={isEnabling || isSkipping}
             >
               <LinearGradient
                 colors={[theme.colors.primary, theme.colors.secondary]}
                 style={styles.primaryButtonGradient}
               >
                 <Text style={styles.primaryButtonText}>
-                  {isLoading ? 'Enabling...' : 'Enable'}
+                  {isEnabling ? 'Enabling...' : 'Enable'}
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -127,10 +128,10 @@ const BiometricSetupModal = ({ visible, onComplete }) => {
                 { backgroundColor: '#3A3A3C', borderColor: '#3A3A3C' },
               ]}
               onPress={handleSkip}
-              disabled={isLoading}
+              disabled={isEnabling || isSkipping}
             >
               <Text style={[styles.secondaryButtonText, { color: '#FFFFFF' }]}>
-                {isLoading ? 'Skipping...' : 'Skip'}
+                {isSkipping ? 'Skipping...' : 'Skip'}
               </Text>
             </TouchableOpacity>
           </View>
