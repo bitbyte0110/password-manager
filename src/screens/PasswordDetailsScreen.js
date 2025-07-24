@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { IconButton, Snackbar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
-import Icon from 'react-native-vector-icons/FontAwesome5';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import clipboardService from '../services/clipboardService';
 import vaultService from '../services/vaultService';
 import {
@@ -205,7 +205,7 @@ const PasswordDetailsScreen = () => {
           style={styles.headerBack}
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-left" size={22} color="#fff" />
+          <MaterialIcons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: '#fff' }]} numberOfLines={1}>
           {entry.title || 'Password Details'}
@@ -225,7 +225,7 @@ const PasswordDetailsScreen = () => {
                 },
               ]}
             >
-              <Icon
+              <MaterialIcons
                 name={entry.categoryIcon || 'folder'}
                 size={28}
                 color="#fff"
@@ -236,13 +236,12 @@ const PasswordDetailsScreen = () => {
               style={styles.favoriteIcon}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Icon
-                name={favorite ? 'star' : 'star-o'}
-                size={26}
+              <MaterialIcons
+                name={favorite ? 'star' : 'star-border'}
+                size={28}
                 color={
                   favorite ? theme.colors.primary : theme.colors.textSecondary
                 }
-                solid={favorite}
               />
             </TouchableOpacity>
           </View>
