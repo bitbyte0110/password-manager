@@ -278,12 +278,11 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
       // Get the fresh entry data with all fields including category metadata
       const updatedEntry = await vaultService.getPasswordEntry(id);
 
-      // Update the password context with complete entry data
-      updatePassword(id, updatedEntry);
-
+      // Use context method for optimistic update and global sync
+      await updatePassword(id, updatedEntry);
       showSnackbar('Password updated successfully!');
 
-      // Navigate back after successful update
+      // Navigate back - no need for refresh parameters since context handles sync
       setTimeout(() => {
         navigation.goBack();
       }, 1000);

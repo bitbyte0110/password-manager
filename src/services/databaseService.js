@@ -16,6 +16,8 @@ class DatabaseService {
     this.initializationPromise = null; // Store the initialization promise
     this.maxRetries = 3;
     this.retryDelay = 1000; // 1 second
+    this.isInTransaction = false; // Track transaction state
+    this.transactionQueue = []; // Queue for sequential transaction execution
   }
 
   /**
@@ -59,7 +61,7 @@ class DatabaseService {
   }
 
   /**
-   * Execute operations in a database transaction
+   * Execute operations in a database transaction with queue support
    * @param {Function} operations - Function containing database operations
    * @returns {Promise<any>} Transaction result
    */
@@ -68,11 +70,45 @@ class DatabaseService {
       throw new Error('Database not initialized');
     }
 
-    return await this.executeWithRetry(async () => {
-      return await this.db.withTransactionAsync(async () => {
-        return await operations();
+    // If already in transaction, execute operations directly without nesting
+    if (this.isInTransaction) {
+      return await operations();
+    }
+
+    // Queue transaction if another is in progress
+    return new Promise((resolve, reject) => {
+      this.transactionQueue.push(async () => {
+        try {
+          this.isInTransaction = true;
+          const result = await this.executeWithRetry(async () => {
+            return await this.db.withTransactionAsync(async () => {
+              return await operations();
+            });
+          }, 'Transaction');
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        } finally {
+          this.isInTransaction = false;
+          this.processTransactionQueue();
+        }
       });
-    }, 'Transaction');
+
+      // Process queue immediately if no transaction is running
+      if (!this.isInTransaction) {
+        this.processTransactionQueue();
+      }
+    });
+  }
+
+  /**
+   * Process the transaction queue sequentially
+   */
+  processTransactionQueue() {
+    if (this.transactionQueue.length > 0 && !this.isInTransaction) {
+      const nextTransaction = this.transactionQueue.shift();
+      nextTransaction();
+    }
   }
 
   /**
@@ -227,7 +263,7 @@ class DatabaseService {
 
         // Create indexes
         await this.createIndexes();
-        
+
         // Initialize null last_accessed values with created_at
         await this.initializeLastAccessedValues();
 
@@ -866,7 +902,9 @@ class DatabaseService {
       );
 
       if (result.changes > 0) {
-        console.log(`Initialized last_accessed for ${result.changes} password entries`);
+        console.log(
+          `Initialized last_accessed for ${result.changes} password entries`
+        );
       }
     } catch (error) {
       console.warn('Failed to initialize last_accessed values:', error.message);
@@ -1469,7 +1507,7 @@ class DatabaseService {
    * @returns {Promise<number>} Inserted row ID
    */
   async addCategory(category) {
-    try {
+    return await this.executeWithRetry(async () => {
       if (!this.db) throw new Error('Database not initialized');
 
       const result = await this.db.runAsync(
@@ -1479,9 +1517,7 @@ class DatabaseService {
       );
 
       return result.lastInsertRowId;
-    } catch (error) {
-      throw new Error(`Failed to add category: ${error.message}`);
-    }
+    }, 'Add category');
   }
 
   /**
@@ -1491,7 +1527,7 @@ class DatabaseService {
    * @returns {Promise<boolean>} Update success status
    */
   async updateCategory(id, category) {
-    try {
+    return await this.executeWithRetry(async () => {
       if (!this.db) throw new Error('Database not initialized');
 
       const result = await this.db.runAsync(
@@ -1502,9 +1538,7 @@ class DatabaseService {
       );
 
       return result.changes > 0;
-    } catch (error) {
-      throw new Error(`Failed to update category: ${error.message}`);
-    }
+    }, 'Update category');
   }
 
   /**
@@ -1513,7 +1547,7 @@ class DatabaseService {
    * @returns {Promise<boolean>} Delete success status
    */
   async deleteCategory(id) {
-    try {
+    return await this.executeWithRetry(async () => {
       if (!this.db) throw new Error('Database not initialized');
 
       // Check if category has passwords
@@ -1532,9 +1566,7 @@ class DatabaseService {
       );
 
       return result.changes > 0;
-    } catch (error) {
-      throw new Error(`Failed to delete category: ${error.message}`);
-    }
+    }, 'Delete category');
   }
 
   /**
@@ -1547,9 +1579,8 @@ class DatabaseService {
    * @returns {Promise<number>} Inserted row ID
    */
   async createCategory(category) {
-    return await this.executeTransaction(async () => {
-      return await this.addCategory(category);
-    });
+    // Use addCategory directly - let calling code handle transactions if needed
+    return await this.addCategory(category);
   }
 
   /**

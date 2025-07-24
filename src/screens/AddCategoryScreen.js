@@ -217,8 +217,10 @@ const AddCategoryScreen = ({ navigation, route }) => {
         color: formData.color,
       };
 
-      // Create category in database
-      await databaseService.createCategory(categoryData);
+      // Create category in database with transaction
+      await databaseService.executeTransaction(async () => {
+        return await databaseService.createCategory(categoryData);
+      });
 
       showSnackbar('Category created successfully');
 

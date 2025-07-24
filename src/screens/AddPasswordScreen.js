@@ -324,19 +324,33 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
 
       // Save to database using existing vaultService
       const newId = await vaultService.addPasswordEntry(passwordEntry);
-      // Get the full decrypted entry (assume vaultService returns it or fetch it)
-      const decryptedEntry = { ...passwordEntry, id: newId };
-      addPassword(decryptedEntry);
+
+      // Prepare complete entry with ID for context update
+      const decryptedEntry = {
+        ...passwordEntry,
+        id: newId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Use context method for optimistic update and global sync
+      await addPassword(decryptedEntry);
       showSnackbar('Password saved successfully!');
 
-      // Navigate back to HomeScreen with refresh
+      // Navigate back - no need for refresh parameters since context handles sync
       setTimeout(() => {
-        navigation.navigate('MainTabs', {
-          screen: 'MyVault',
-          params: {
-            shouldRefresh: true,
-          },
-        });
+        if (route?.params?.categoryId) {
+          // Go back to CategoryDetails - context will auto-update the display
+          navigation.navigate('CategoryDetails', {
+            categoryId: route.params.categoryId,
+            categoryName: route.params.categoryName,
+            categoryColor: route.params.categoryColor,
+            categoryIcon: route.params.categoryIcon,
+          });
+        } else {
+          // Go back to MyVault - context will auto-update the display
+          navigation.goBack();
+        }
       }, 1000);
     } catch (error) {
       console.error('Error saving password:', error);

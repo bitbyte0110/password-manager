@@ -26,11 +26,21 @@ const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
 const { height: screenHeight } = Dimensions.get('window');
 
 const MyVaultScreen = ({ navigation, route }) => {
-  // State management
-  const { passwords, loading, error, loadPasswords, deletePassword } =
-    usePasswords();
+  // State management from centralized context
+  const {
+    passwords,
+    categories,
+    loading,
+    error,
+    loadPasswords,
+    loadCategories,
+    refreshAll,
+    deletePassword,
+    subscribeToRefresh,
+  } = usePasswords();
   const { theme } = useTheme();
-  const [categories, setCategories] = useState([]);
+
+  // Local UI state only
   const [filteredPasswords, setFilteredPasswords] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -39,7 +49,15 @@ const MyVaultScreen = ({ navigation, route }) => {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [authError, setAuthError] = useState(null);
+
+  // Subscribe to global refresh events
+  useEffect(() => {
+    const unsubscribe = subscribeToRefresh(() => {
+      console.log('MyVaultScreen: Received global refresh notification');
+      // The passwords and categories are already updated in context, just update UI
+    });
+    return unsubscribe;
+  }, [subscribeToRefresh]);
 
   useEffect(() => {
     initializeVault();
@@ -57,91 +75,45 @@ const MyVaultScreen = ({ navigation, route }) => {
   // Refresh data when screen gains focus (e.g., returning from AddPasswordScreen)
   useFocusEffect(
     useCallback(() => {
-      // Only refresh categories when screen gains focus to ensure counts are up-to-date
-      loadCategories();
-
-      // Check if we should also refresh passwords (from navigation params)
+      // Check if we should refresh data (from navigation params)
       if (route?.params?.shouldRefresh) {
         console.log('MyVaultScreen: Refreshing data due to navigation params');
-        loadPasswords(() =>
-          vaultService.getPasswordEntries({
-            sortBy: 'last_accessed',
-            sortOrder: 'DESC',
-          })
+        refreshAll(
+          () =>
+            vaultService.getPasswordEntries({
+              sortBy: 'last_accessed',
+              sortOrder: 'DESC',
+            }),
+          () => vaultService.getCategories()
         );
         // Clear the parameter
         navigation.setParams({ shouldRefresh: undefined });
       }
-    }, [route?.params?.shouldRefresh])
+    }, [route?.params?.shouldRefresh, refreshAll])
   );
 
   const initializeVault = async () => {
     try {
-      // Optimized: Check if vault service is already ready to avoid redundant initialization
-      if (vaultService.isVaultReady()) {
-        console.log(
-          'MyVaultScreen: Vault already ready, loading data immediately...'
-        );
+      // Use centralized refreshAll method for both passwords and categories
+      console.log(
+        'MyVaultScreen: Loading data using centralized state management...'
+      );
 
-        // Load passwords immediately using preloaded data for instant display
-        loadPasswords(() =>
-          vaultService.getPasswordEntriesOptimized({
+      await refreshAll(
+        // Password loader
+        () =>
+          vaultService.getPasswordEntries({
             sortBy: 'last_accessed',
             sortOrder: 'DESC',
-          })
-        );
-
-        // Load background data
-        setImmediate(() => {
-          Promise.all([
-            loadCategories(),
-            loadRecentSearches(),
-            updateActivity(),
-          ]);
-        });
-        return;
-      }
-
-      // Initialize if not already ready
-      if (!vaultService.isUserAuthenticated()) {
-        console.log(
-          'User not authenticated, attempting vault service initialization'
-        );
-        await vaultService.initialize();
-
-        if (!vaultService.isUserAuthenticated()) {
-          console.log(
-            'Authentication failed after initialization, redirecting to login'
-          );
-          navigation.replace('Login');
-          return;
-        }
-      }
-
-      // Load passwords immediately using preloaded data for instant display
-      console.log(
-        'MyVaultScreen: Loading passwords with preloaded data optimization...'
-      );
-      loadPasswords(() =>
-        vaultService.getPasswordEntriesOptimized({
-          sortBy: 'last_accessed',
-          sortOrder: 'DESC',
-        })
+          }),
+        // Category loader
+        () => vaultService.getCategories()
       );
 
       // Load other data in background (non-blocking)
       setImmediate(() => {
-        Promise.all([
-          loadCategories(),
-          loadRecentSearches(),
-          updateActivity(),
-        ]).catch(error => {
+        Promise.all([loadRecentSearches(), updateActivity()]).catch(error => {
           console.error('Background data loading error:', error);
-
-          // Simplified error handling - just log errors for background operations
-          if (error.message?.includes('Database not initialized')) {
-            setTimeout(() => loadCategories(), 1000); // Single retry
-          }
         });
       });
     } catch (error) {
@@ -161,32 +133,6 @@ const MyVaultScreen = ({ navigation, route }) => {
       } else {
         Alert.alert('Error', 'Failed to load vault data. Please try again.');
         navigation.replace('Login');
-      }
-    }
-  };
-
-  const loadCategories = async () => {
-    try {
-      const allCategories = await vaultService.getCategories();
-      setCategories(allCategories);
-    } catch (error) {
-      console.error('Error loading categories:', error);
-
-      // Handle database initialization errors specifically
-      if (error.message && error.message.includes('Database not initialized')) {
-        console.log(
-          'MyVaultScreen: Categories request failed - database not ready yet'
-        );
-        // Don't show error to user, just log it - the background retry will handle it
-        return;
-      }
-
-      // Only show user-facing errors for other types of failures
-      if (
-        error.message &&
-        !error.message.includes('Database not initialized')
-      ) {
-        setAuthError('Failed to load categories. Please try refreshing.');
       }
     }
   };
@@ -338,10 +284,19 @@ const MyVaultScreen = ({ navigation, route }) => {
   const handleDeletePassword = async id => {
     try {
       await vaultService.deletePasswordEntry(id);
+      // Use context method for optimistic update and global sync
       deletePassword(id);
-      await loadCategories(); // Refresh categories with updated counts
     } catch (error) {
       console.error('Error deleting password:', error);
+      // On error, refresh data to restore correct state
+      refreshAll(
+        () =>
+          vaultService.getPasswordEntries({
+            sortBy: 'last_accessed',
+            sortOrder: 'DESC',
+          }),
+        () => vaultService.getCategories()
+      );
     }
   };
 
