@@ -366,7 +366,7 @@ class VaultService {
 
         // Preload main password list immediately (parallel with background operations)
         const preloadPromise = this.getPasswordEntries({
-          sortBy: 'last_accessed',
+          sortBy: 'updated_at',
           sortOrder: 'DESC',
         })
           .then(passwords => {
@@ -600,7 +600,7 @@ class VaultService {
       this._passwordPreloadPromise &&
       JSON.stringify(options) ===
         JSON.stringify({
-          sortBy: 'last_accessed',
+          sortBy: 'updated_at',
           sortOrder: 'DESC',
         })
     ) {
@@ -768,11 +768,6 @@ class VaultService {
 
       // Decrypt and cache the entry
       const decrypted = await this.decryptPasswordEntry(encryptedEntry);
-
-      // Update last accessed timestamp (don't wait for completion to avoid slowing down the UI)
-      this.updateLastAccessed(id).catch(error => {
-        console.warn(`Failed to update last accessed for entry ${id}:`, error);
-      });
 
       // Cache the decrypted entry
       const cacheKey = `entry_${id}`;
