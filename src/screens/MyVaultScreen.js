@@ -47,6 +47,7 @@ const MyVaultScreen = ({ navigation, route }) => {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   // Subscribe to global refresh events
   useEffect(() => {
@@ -91,6 +92,7 @@ const MyVaultScreen = ({ navigation, route }) => {
   );
 
   const initializeVault = async () => {
+    setIsInitializing(true);
     try {
       // Use centralized refreshAll method for both passwords and categories
       console.log(
@@ -132,6 +134,8 @@ const MyVaultScreen = ({ navigation, route }) => {
         Alert.alert('Error', 'Failed to load vault data. Please try again.');
         navigation.replace('Login');
       }
+    } finally {
+      setIsInitializing(false);
     }
   };
 
@@ -618,7 +622,7 @@ const MyVaultScreen = ({ navigation, route }) => {
     />
   );
 
-  if (loading) {
+  if (loading || isInitializing) {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: theme.colors.background }]}

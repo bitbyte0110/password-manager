@@ -316,7 +316,7 @@ const AppNavigator = () => {
 
       // Step 2: Master password exists, attempt to restore session first
       console.log('Master password exists, attempting session restoration');
-      
+
       // Try to restore authentication from vault service
       let sessionRestored = false;
       try {
@@ -336,7 +336,9 @@ const AppNavigator = () => {
       }
 
       // Step 3: No valid session, check activity-based session validity
-      console.log('No valid session token, checking activity-based session validity');
+      console.log(
+        'No valid session token, checking activity-based session validity'
+      );
       const lastActiveTime = await AsyncStorage.getItem(LAST_ACTIVE_TIME_KEY);
 
       if (!lastActiveTime) {
