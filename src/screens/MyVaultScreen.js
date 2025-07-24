@@ -34,7 +34,6 @@ const MyVaultScreen = ({ navigation, route }) => {
     loading,
     refreshAll,
     subscribeToRefresh,
-    updatePassword,
   } = usePasswords();
   const { theme } = useTheme();
 
@@ -42,7 +41,7 @@ const MyVaultScreen = ({ navigation, route }) => {
   const [filteredPasswords, setFilteredPasswords] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [sortBy, setSortBy] = useState('recently_used');
+  const [sortBy, setSortBy] = useState('last_updated');
   const [recentSearches, setRecentSearches] = useState([]);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -80,7 +79,7 @@ const MyVaultScreen = ({ navigation, route }) => {
         refreshAll(
           () =>
             vaultService.getPasswordEntries({
-              sortBy: 'last_accessed',
+              sortBy: 'updated_at',
               sortOrder: 'DESC',
             }),
           () => vaultService.getCategories()
@@ -103,7 +102,7 @@ const MyVaultScreen = ({ navigation, route }) => {
         // Password loader
         () =>
           vaultService.getPasswordEntries({
-            sortBy: 'last_accessed',
+            sortBy: 'updated_at',
             sortOrder: 'DESC',
           }),
         // Category loader
@@ -194,7 +193,7 @@ const MyVaultScreen = ({ navigation, route }) => {
       }
 
       // Apply sorting only if needed
-      if (filtered !== passwords || sortBy !== 'recently_used') {
+      if (filtered !== passwords || sortBy !== 'last_updated') {
         filtered = applySorting(filtered, sortBy);
       }
 
@@ -208,15 +207,11 @@ const MyVaultScreen = ({ navigation, route }) => {
     const sorted = [...passwordList];
 
     switch (sortOption) {
-      case 'recently_used':
+      case 'last_updated':
         return sorted.sort((a, b) => {
-          // Use lastAccessed if available, otherwise fall back to updatedAt, then createdAt
-          const aTime = new Date(
-            a.lastAccessed || a.updatedAt || a.createdAt || 0
-          );
-          const bTime = new Date(
-            b.lastAccessed || b.updatedAt || b.createdAt || 0
-          );
+          // Sort by updatedAt, fall back to createdAt if updatedAt is not available
+          const aTime = new Date(a.updatedAt || a.createdAt || 0);
+          const bTime = new Date(b.updatedAt || b.createdAt || 0);
           return bTime - aTime;
         });
       case 'recently_added':
@@ -279,28 +274,15 @@ const MyVaultScreen = ({ navigation, route }) => {
 
   const handlePasswordPress = async item => {
     updateActivity();
-    // Update lastAccessed in DB and context, then navigate
-    try {
-      await vaultService.updateLastAccessed(item.id);
-      // Fetch the updated entry and update context for instant UI refresh
-      const updatedEntry = await vaultService.getPasswordEntry(item.id);
-      await updatePassword(item.id, updatedEntry);
-    } catch (e) {
-      // fallback: still navigate
-    }
     navigation.navigate('PasswordDetails', { id: item.id });
   };
 
   // Add a handleCopy function for copying username/email from the card (if present)
   const handleCopy = async (item, value, isPassword = false) => {
     try {
-      await vaultService.updateLastAccessed(item.id);
-      // Fetch the updated entry and update context for instant UI refresh
-      const updatedEntry = await vaultService.getPasswordEntry(item.id);
-      await updatePassword(item.id, updatedEntry);
       await clipboardService.copyToClipboard(value, isPassword);
     } catch (e) {
-      await clipboardService.copyToClipboard(value, isPassword);
+      console.error('Failed to copy to clipboard:', e);
     }
   };
 
@@ -743,8 +725,8 @@ const MyVaultScreen = ({ navigation, route }) => {
           }
         >
           <Menu.Item
-            onPress={() => handleSort('recently_used')}
-            title="Recently Used"
+            onPress={() => handleSort('last_updated')}
+            title="Last Updated"
           />
           <Menu.Item
             onPress={() => handleSort('recently_added')}
