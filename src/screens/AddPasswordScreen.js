@@ -326,16 +326,11 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
       // Save to database using existing vaultService
       const newId = await vaultService.addPasswordEntry(passwordEntry);
 
-      // Prepare complete entry with ID for context update
-      const decryptedEntry = {
-        ...passwordEntry,
-        id: newId,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      // Fetch the complete entry from database (includes category info like icon/color)
+      const completeEntry = await vaultService.getPasswordEntry(newId);
 
       // Use context method for optimistic update and global sync
-      await addPassword(decryptedEntry);
+      await addPassword(completeEntry);
       showSnackbar('Password saved successfully!');
 
       // Navigate back - no need for refresh parameters since context handles sync
@@ -503,11 +498,7 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
                               { backgroundColor: item.color },
                             ]}
                           >
-                            <Icon
-                              name={item.icon}
-                              size={16}
-                              color="#fff"
-                            />
+                            <Icon name={item.icon} size={16} color="#fff" />
                           </View>
                           <Text
                             style={[

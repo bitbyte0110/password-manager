@@ -883,7 +883,7 @@ class DatabaseService {
       if (!this.db) throw new Error('Database not initialized');
 
       const result = await this.db.getFirstAsync(
-        `SELECT p.*, c.name as category_name, c.color as category_color
+        `SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon
          FROM passwords p
          LEFT JOIN categories c ON p.category_id = c.id
          WHERE p.id = ?`,
