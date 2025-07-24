@@ -218,19 +218,25 @@ const PasswordDetailsScreen = () => {
         {/* Content Card */}
         <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
           <View style={styles.cardHeaderRow}>
-            <View
-              style={[
-                styles.categoryIconCircle,
-                {
-                  backgroundColor: entry.categoryColor || theme.colors.primary,
-                },
-              ]}
-            >
-              <Icon
-                name={entry.categoryIcon || 'folder'}
-                size={28}
-                color="#fff"
-              />
+            <View style={styles.categorySection}>
+              <View
+                style={[
+                  styles.categoryIconCircle,
+                  {
+                    backgroundColor:
+                      entry.categoryColor || theme.colors.primary,
+                  },
+                ]}
+              >
+                <Icon
+                  name={entry.categoryIcon || 'folder'}
+                  size={28}
+                  color="#fff"
+                />
+              </View>
+              <Text style={[styles.categoryName, { color: theme.colors.text }]}>
+                {entry.categoryName || 'General'}
+              </Text>
             </View>
             <TouchableOpacity
               onPress={handleToggleFavorite}
@@ -267,11 +273,25 @@ const PasswordDetailsScreen = () => {
             >
               Username / Email
             </Text>
-            <Text style={[styles.fieldValue, { color: theme.colors.text }]}>
-              {entry.username || (
-                <Text style={styles.errorText}>Unable to decrypt</Text>
+            <View style={styles.usernameRow}>
+              <Text style={[styles.fieldValue, { color: theme.colors.text }]}>
+                {entry.username || (
+                  <Text style={styles.errorText}>Unable to decrypt</Text>
+                )}
+              </Text>
+              {entry.username && (
+                <IconButton
+                  icon="clipboard"
+                  size={20}
+                  color={theme.colors.textSecondary}
+                  onPress={() => {
+                    handleCopy(entry.username);
+                    setSnackbar({ visible: true, message: 'Username copied' });
+                  }}
+                  style={{ marginLeft: 8 }}
+                />
               )}
-            </Text>
+            </View>
           </View>
 
           <View style={styles.fieldBlock}>
@@ -313,7 +333,7 @@ const PasswordDetailsScreen = () => {
               <IconButton
                 icon="clipboard"
                 size={20}
-                color={theme.textSecondary}
+                color={theme.colors.textSecondary}
                 onPress={() => handleCopy(entry.password, true)}
                 style={{ marginLeft: -8 }}
               />
@@ -475,12 +495,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 16,
   },
+  categorySection: {
+    alignItems: 'center',
+  },
   categoryIconCircle: {
     width: 56,
     height: 56,
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 8,
+  },
+  categoryName: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   favoriteIcon: {
     padding: 8,
@@ -496,6 +525,11 @@ const styles = StyleSheet.create({
   fieldValue: {
     fontSize: 16,
     marginBottom: 2,
+  },
+  usernameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
   },
   passwordRow: {
     flexDirection: 'row',
