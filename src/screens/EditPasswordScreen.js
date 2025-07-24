@@ -18,7 +18,7 @@ import {
 } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Icon from 'react-native-vector-icons/FontAwesome5';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {
   useNavigation,
   useFocusEffect,
@@ -358,7 +358,11 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
           onPress={handleCancel}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Icon name="arrow-left" size={20} color={theme.colors.text} />
+          <MaterialIcons
+            name="arrow-back"
+            size={24}
+            color={theme.colors.text}
+          />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
           Edit Password
@@ -409,49 +413,56 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
                       ? 'Loading...'
                       : getSelectedCategoryName()}
                   </Text>
-                  <Icon
+                  <MaterialIcons
                     name="chevron-down"
-                    size={16}
+                    size={24}
                     color={theme.colors.textSecondary}
                   />
                 </TouchableOpacity>
               }
               contentStyle={{ backgroundColor: theme.colors.background }}
             >
-              {categoryMenuItems.map((item, index) => (
-                <View key={item.id}>
-                  <Menu.Item
-                    onPress={() => handleCategorySelect(item)}
-                    title={
-                      <View style={styles.categoryMenuItem}>
-                        <View
-                          style={[
-                            styles.categoryIcon,
-                            { backgroundColor: item.color },
-                          ]}
-                        >
-                          <Icon name={item.icon} size={12} color="#fff" />
+              {categoryMenuItems.map((item, index) => {
+                const fontWeight = item.isCreateNew ? '600' : '400';
+                return (
+                  <View key={item.id}>
+                    <Menu.Item
+                      onPress={() => handleCategorySelect(item)}
+                      title={
+                        <View style={styles.categoryMenuItem}>
+                          <View
+                            style={[
+                              styles.categoryIcon,
+                              { backgroundColor: item.color },
+                            ]}
+                          >
+                            <MaterialIcons
+                              name={item.icon}
+                              size={16}
+                              color="#fff"
+                            />
+                          </View>
+                          <Text
+                            style={[
+                              styles.categoryMenuText,
+                              {
+                                color: item.isCreateNew
+                                  ? theme.colors.primary
+                                  : theme.colors.text,
+                                fontWeight,
+                              },
+                            ]}
+                          >
+                            {item.name}
+                          </Text>
                         </View>
-                        <Text
-                          style={[
-                            styles.categoryMenuText,
-                            {
-                              color: item.isCreateNew
-                                ? theme.colors.primary
-                                : theme.colors.text,
-                              fontWeight: item.isCreateNew ? '600' : 'normal',
-                            },
-                          ]}
-                        >
-                          {item.name}
-                        </Text>
-                      </View>
-                    }
-                  />
-                  {index < categoryMenuItems.length - 1 &&
-                    index === categories.length - 1 && <Divider />}
-                </View>
-              ))}
+                      }
+                    />
+                    {index < categoryMenuItems.length - 1 &&
+                      index === categories.length - 1 && <Divider />}
+                  </View>
+                );
+              })}
             </Menu>
           </View>
 
@@ -656,15 +667,14 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
               style={styles.favoriteContainer}
               onPress={handleFavoriteToggle}
             >
-              <Icon
-                name={formData.isFavorite ? 'star' : 'star-o'}
-                size={20}
+              <MaterialIcons
+                name={formData.isFavorite ? 'star' : 'star-border'}
+                size={24}
                 color={
                   formData.isFavorite
                     ? theme.colors.primary
                     : theme.colors.textSecondary
                 }
-                solid={formData.isFavorite}
               />
               <Text
                 style={[styles.favoriteLabel, { color: theme.colors.text }]}
