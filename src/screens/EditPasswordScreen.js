@@ -437,11 +437,7 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
                               { backgroundColor: item.color },
                             ]}
                           >
-                            <Icon
-                              name={item.icon}
-                              size={16}
-                              color="#fff"
-                            />
+                            <Icon name={item.icon} size={16} color="#fff" />
                           </View>
                           <Text
                             style={[

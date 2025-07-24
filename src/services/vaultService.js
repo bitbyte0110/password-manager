@@ -984,10 +984,29 @@ class VaultService {
     }
 
     try {
-      return await this.dbService.addPassword(
+      const newId = await this.dbService.addPassword(
         passwordEntry,
         this.masterPassword
       );
+
+      // Invalidate caches to ensure fresh data when fetching the new entry
+      // Clear all entries cache (affects filtering and main list)
+      for (const [key] of this.entryCache) {
+        if (key.startsWith('all_entries_')) {
+          this.entryCache.delete(key);
+          this.cacheTimestamps.delete(key);
+        }
+      }
+
+      // Clear category cache for updated counts
+      this.categoryCache.clear();
+      this.categoryCacheTimestamps.clear();
+
+      console.log(
+        `VaultService: Cache invalidated after adding entry ${newId} - ensures fresh data for immediate UI update`
+      );
+
+      return newId;
     } catch (error) {
       console.error('Error adding password entry:', error);
       throw error;
