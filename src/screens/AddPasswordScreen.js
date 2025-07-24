@@ -480,7 +480,7 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
                       : getSelectedCategoryName()}
                   </Text>
                   <MaterialIcons
-                    name="chevron-down"
+                    name="keyboard-arrow-down"
                     size={24}
                     color={theme.colors.textSecondary}
                   />
