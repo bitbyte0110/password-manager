@@ -11,7 +11,7 @@ import {
   Dimensions,
   RefreshControl,
 } from 'react-native';
-import { Searchbar, Badge, Menu, ActivityIndicator } from 'react-native-paper';
+import { Searchbar, Badge, Menu, ActivityIndicator, Snackbar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/FontAwesome5';
@@ -49,6 +49,7 @@ const MyVaultScreen = ({ navigation, route }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
 
   // Subscribe to global refresh events
   useEffect(() => {
@@ -282,9 +283,15 @@ const MyVaultScreen = ({ navigation, route }) => {
   // Add a handleCopy function for copying username/email from the card (if present)
   const handleCopy = async (item, value, isPassword = false) => {
     try {
-      await clipboardService.copyToClipboard(value, isPassword);
+      const success = await clipboardService.copyToClipboard(value || '', isPassword);
+      if (success) {
+        setSnackbar({ visible: true, message: isPassword ? 'Password copied' : 'Username copied' });
+      } else {
+        setSnackbar({ visible: true, message: 'Copy failed' });
+      }
     } catch (e) {
       console.error('Failed to copy to clipboard:', e);
+      setSnackbar({ visible: true, message: 'Copy failed' });
     }
   };
 
@@ -805,6 +812,15 @@ const MyVaultScreen = ({ navigation, route }) => {
       {/* Modals */}
       {renderFilterModal()}
       {renderAddModal()}
+
+      {/* Snackbar */}
+      <Snackbar
+        visible={snackbar.visible}
+        onDismiss={() => setSnackbar({ visible: false, message: '' })}
+        duration={2000}
+      >
+        {snackbar.message}
+      </Snackbar>
     </SafeAreaView>
   );
 };
