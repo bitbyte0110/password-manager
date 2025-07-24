@@ -20,6 +20,7 @@ import vaultService from '../services/vaultService';
 import FABActionMenu from '../components/FABActionMenu';
 import { usePasswords } from '../PasswordContext';
 import { useTheme } from '../contexts/ThemeContext';
+import clipboardService from '../services/clipboardService';
 
 // Constants for activity tracking
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
@@ -31,12 +32,9 @@ const MyVaultScreen = ({ navigation, route }) => {
     passwords,
     categories,
     loading,
-    error,
-    loadPasswords,
-    loadCategories,
     refreshAll,
-    deletePassword,
     subscribeToRefresh,
+    updatePassword,
   } = usePasswords();
   const { theme } = useTheme();
 
@@ -275,44 +273,31 @@ const MyVaultScreen = ({ navigation, route }) => {
     updateActivity();
   };
 
-  const handlePasswordPress = item => {
+  const handlePasswordPress = async item => {
     updateActivity();
-    // Navigate to password details screen
+    // Update lastAccessed in DB and context, then navigate
+    try {
+      await vaultService.updateLastAccessed(item.id);
+      // Fetch the updated entry and update context for instant UI refresh
+      const updatedEntry = await vaultService.getPasswordEntry(item.id);
+      await updatePassword(item.id, updatedEntry);
+    } catch (e) {
+      // fallback: still navigate
+    }
     navigation.navigate('PasswordDetails', { id: item.id });
   };
 
-  const handleDeletePassword = async id => {
+  // Add a handleCopy function for copying username/email from the card (if present)
+  const handleCopy = async (item, value, isPassword = false) => {
     try {
-      await vaultService.deletePasswordEntry(id);
-      // Use context method for optimistic update and global sync
-      deletePassword(id);
-    } catch (error) {
-      console.error('Error deleting password:', error);
-      // On error, refresh data to restore correct state
-      refreshAll(
-        () =>
-          vaultService.getPasswordEntries({
-            sortBy: 'last_accessed',
-            sortOrder: 'DESC',
-          }),
-        () => vaultService.getCategories()
-      );
+      await vaultService.updateLastAccessed(item.id);
+      // Fetch the updated entry and update context for instant UI refresh
+      const updatedEntry = await vaultService.getPasswordEntry(item.id);
+      await updatePassword(item.id, updatedEntry);
+      await clipboardService.copyToClipboard(value, isPassword);
+    } catch (e) {
+      await clipboardService.copyToClipboard(value, isPassword);
     }
-  };
-
-  const handleAddPassword = () => {
-    setShowAddModal(false);
-    updateActivity();
-    navigation.navigate('AddPassword');
-  };
-
-  const handleAddCategory = () => {
-    setShowAddModal(false);
-    updateActivity();
-    navigation.navigate('MainTabs', {
-      screen: 'Categories',
-      params: { createNew: true },
-    });
   };
 
   const renderPasswordCard = ({ item }) => {
@@ -423,6 +408,13 @@ const MyVaultScreen = ({ navigation, route }) => {
             {item.isFavorite && (
               <Icon name="star" size={16} color="#FFD700" solid />
             )}
+            <TouchableOpacity onPress={() => handleCopy(item, item.username)}>
+              <Icon
+                name="clipboard"
+                size={16}
+                color={theme.colors.textSecondary}
+              />
+            </TouchableOpacity>
             <Icon
               name="chevron-right"
               size={16}
@@ -655,25 +647,11 @@ const MyVaultScreen = ({ navigation, route }) => {
           },
         ]}
       >
-        <View
-          style={{
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative',
-          }}
-        >
-          <Text
-            style={[
-              styles.headerTitle,
-              { color: theme.colors.text, fontSize: 20, fontWeight: '600' },
-            ]}
-          >
+        <View style={styles.headerContainer}>
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
             My Vault
           </Text>
-          {/* Keep the badge right-aligned, visually similar to AddPasswordScreen's headerRight */}
-          <View style={{ position: 'absolute', right: 0 }}>
+          <View style={styles.headerBadgeContainer}>
             <Badge
               style={[
                 styles.passwordCount,
@@ -837,9 +815,20 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     borderBottomWidth: 1,
   },
+  headerContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  headerBadgeContainer: {
+    position: 'absolute',
+    right: 0,
+  },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '600',
   },
   passwordCount: {
     fontSize: 12,
