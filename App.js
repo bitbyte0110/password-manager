@@ -40,6 +40,7 @@ import ExportScreen from './src/screens/ExportScreen';
 import ImportScreen from './src/screens/ImportScreen';
 import { PasswordProvider } from './src/PasswordContext';
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
+import { DatabaseProvider } from './src/contexts/DatabaseContext';
 
 // Create Stack Navigator
 const Stack = createStackNavigator();
@@ -531,14 +532,16 @@ const AppWithTheme = () => {
 
   return (
     <PaperProvider theme={paperTheme}>
-      <PasswordProvider>
-        <NavigationContainer ref={navigationRef}>
-          <SessionManager navigationRef={navigationRef}>
-            <AppNavigator />
-            <StatusBar style={appTheme.isDark ? 'light' : 'dark'} />
-          </SessionManager>
-        </NavigationContainer>
-      </PasswordProvider>
+      <DatabaseProvider>
+        <PasswordProvider>
+          <NavigationContainer ref={navigationRef}>
+            <SessionManager navigationRef={navigationRef}>
+              <AppNavigator />
+              <StatusBar style={appTheme.isDark ? 'light' : 'dark'} />
+            </SessionManager>
+          </NavigationContainer>
+        </PasswordProvider>
+      </DatabaseProvider>
     </PaperProvider>
   );
 };

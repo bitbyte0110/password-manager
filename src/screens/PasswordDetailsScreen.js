@@ -142,11 +142,11 @@ const PasswordDetailsScreen = () => {
           onPress: async () => {
             try {
               await vaultService.deletePasswordEntry(id);
-              deletePassword(id); // Update context state immediately
-              navigation.navigate('MainTabs', {
-                screen: 'MyVault',
-                params: { shouldRefresh: true },
-              });
+              // Use context method for optimistic update and global sync
+              await deletePassword(id);
+
+              // Navigate back - no need for refresh parameters since context handles sync
+              navigation.goBack();
             } catch (e) {
               setSnackbar({ visible: true, message: 'Delete failed' });
             }
@@ -301,7 +301,10 @@ const PasswordDetailsScreen = () => {
                   // Track password access when revealing password
                   if (!showPassword && entry?.id) {
                     vaultService.updateLastAccessed(entry.id).catch(error => {
-                      console.warn('Failed to update last accessed for reveal:', error);
+                      console.warn(
+                        'Failed to update last accessed for reveal:',
+                        error
+                      );
                     });
                   }
                 }}

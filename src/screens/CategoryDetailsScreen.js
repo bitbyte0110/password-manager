@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   FlatList,
@@ -6,40 +6,94 @@ import {
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
 import { Snackbar, IconButton } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
 import clipboardService from '../services/clipboardService';
 import vaultService from '../services/vaultService';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useDatabase } from '../contexts/DatabaseContext';
+import { usePasswords } from '../PasswordContext';
 
 const CategoryDetailsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { theme } = useTheme();
+  const { executeWithDatabase } = useDatabase();
+  const { subscribeToCategoryRefresh } = usePasswords();
   const { categoryId, categoryName, categoryColor, categoryIcon } =
     route.params;
 
   const [passwords, setPasswords] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
+
+  // Subscribe to category refresh notifications
+  useEffect(() => {
+    const unsubscribe = subscribeToCategoryRefresh(categoryId, () => {
+      console.log(
+        `CategoryDetailsScreen: Received refresh notification for category ${categoryId}`
+      );
+      fetchPasswords(false); // Don't show loading spinner for notification refresh
+    });
+
+    return unsubscribe;
+  }, [categoryId, subscribeToCategoryRefresh]);
+
+  // Refresh data whenever screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log(
+        `CategoryDetailsScreen: Screen focused, refreshing data for category ${categoryId}`
+      );
+      fetchPasswords(false); // Don't show loading spinner for focus refresh
+    }, [categoryId])
+  );
+
+  // Handle navigation params for refresh
+  useEffect(() => {
+    if (route?.params?.shouldRefresh) {
+      console.log(
+        'CategoryDetailsScreen: Refresh requested via navigation params'
+      );
+      fetchPasswords(false); // Don't show loading spinner for param refresh
+      // Clear the parameter to prevent re-fetching on subsequent renders
+      navigation.setParams({ shouldRefresh: undefined });
+    }
+  }, [route?.params?.shouldRefresh, navigation]);
 
   useEffect(() => {
     fetchPasswords();
   }, [categoryId]);
 
-  const fetchPasswords = async () => {
-    setLoading(true);
+  const fetchPasswords = async (showLoadingSpinner = true) => {
     try {
-      const data = await vaultService.getPasswordsByCategory(categoryId);
+      if (showLoadingSpinner) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
+      }
+
+      const data = await executeWithDatabase(
+        () => vaultService.getPasswordsByCategory(categoryId),
+        `Load passwords for category ${categoryId}`
+      );
+
       setPasswords(data);
+      console.log(
+        `CategoryDetailsScreen: Loaded ${data.length} passwords for category ${categoryId}`
+      );
     } catch (error) {
       console.error('Error fetching category passwords:', error);
       setSnackbar({ visible: true, message: 'Error loading passwords' });
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -64,7 +118,17 @@ const CategoryDetailsScreen = () => {
   };
 
   const handleAddPassword = () => {
-    navigation.navigate('AddPassword', { categoryId, categoryName });
+    navigation.navigate('AddPassword', {
+      categoryId,
+      categoryName,
+      // Request refresh when returning from AddPassword
+      onReturn: () => {
+        console.log(
+          'CategoryDetailsScreen: Returning from AddPassword, refreshing data'
+        );
+        fetchPasswords(false);
+      },
+    });
   };
 
   const renderPasswordCard = ({ item }) => {
@@ -258,6 +322,23 @@ const CategoryDetailsScreen = () => {
         }
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmptyState}
+        refreshing={refreshing}
+        onRefresh={() => fetchPasswords(false)}
+        ListHeaderComponent={
+          refreshing ? (
+            <View style={styles.refreshContainer}>
+              <ActivityIndicator size="small" color={theme.colors.primary} />
+              <Text
+                style={[
+                  styles.refreshText,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
+                Refreshing passwords...
+              </Text>
+            </View>
+          ) : null
+        }
       />
 
       {/* Floating Action Button */}
@@ -454,6 +535,17 @@ const styles = StyleSheet.create({
   },
   snackbar: {
     backgroundColor: '#333',
+  },
+  refreshContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 8,
+  },
+  refreshText: {
+    fontSize: 14,
+    fontStyle: 'italic',
   },
 });
 
