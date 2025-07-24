@@ -9,6 +9,7 @@ import {
   Alert,
   Modal,
   Dimensions,
+  RefreshControl,
 } from 'react-native';
 import { Searchbar, Badge, Menu, ActivityIndicator } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -47,6 +48,7 @@ const MyVaultScreen = ({ navigation, route }) => {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Subscribe to global refresh events
   useEffect(() => {
@@ -285,6 +287,26 @@ const MyVaultScreen = ({ navigation, route }) => {
       console.error('Failed to copy to clipboard:', e);
     }
   };
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refreshAll(
+        () =>
+          vaultService.getPasswordEntries({
+            sortBy: 'updated_at',
+            sortOrder: 'DESC',
+          }),
+        () => vaultService.getCategories()
+      );
+      updateActivity();
+    } catch (error) {
+      console.error('Error refreshing vault:', error);
+      Alert.alert('Error', 'Failed to refresh vault data. Please try again.');
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshAll]);
 
   const renderPasswordCard = ({ item }) => {
     // Handle invalid/malformed items
@@ -754,6 +776,14 @@ const MyVaultScreen = ({ navigation, route }) => {
         style={styles.passwordList}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmptyState}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
+          />
+        }
       />
 
       {/* Floating Action Button */}
