@@ -314,8 +314,29 @@ const AppNavigator = () => {
         return 'SetMasterPassword';
       }
 
-      // Step 2: Master password exists, check session validity
-      console.log('Master password exists, checking session validity');
+      // Step 2: Master password exists, attempt to restore session first
+      console.log('Master password exists, attempting session restoration');
+      
+      // Try to restore authentication from vault service
+      let sessionRestored = false;
+      try {
+        await vaultService.initialize();
+        sessionRestored = await vaultService.tryRestoreAuthentication();
+        console.log(`Session restoration result: ${sessionRestored}`);
+      } catch (error) {
+        console.error('Error during session restoration:', error);
+        sessionRestored = false;
+      }
+
+      // If session was successfully restored, we can go directly to MainTabs
+      if (sessionRestored) {
+        console.log('Session restored successfully, navigating to MainTabs');
+        await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, Date.now().toString());
+        return 'MainTabs';
+      }
+
+      // Step 3: No valid session, check activity-based session validity
+      console.log('No valid session token, checking activity-based session validity');
       const lastActiveTime = await AsyncStorage.getItem(LAST_ACTIVE_TIME_KEY);
 
       if (!lastActiveTime) {
@@ -324,7 +345,7 @@ const AppNavigator = () => {
         return 'Login';
       }
 
-      // Step 3: Check if session is still valid based on user's auto-lock timeout
+      // Check if session is still valid based on user's auto-lock timeout
       const lastActive = parseInt(lastActiveTime, 10);
       const now = Date.now();
       const timeDifference = now - lastActive;
@@ -345,23 +366,9 @@ const AppNavigator = () => {
       // Skip session timeout check if user set timeout to 0 (Never)
       if (activityTimeout === 0) {
         console.log(
-          'Auto-lock disabled (timeout: 0), pre-initializing vault for MainTabs'
+          'Auto-lock disabled (timeout: 0), but no session token - requiring authentication'
         );
-        // Pre-initialize vault service to ensure database is ready
-        try {
-          console.log(
-            'App.js: Pre-initializing vault service for MainTabs access...'
-          );
-          await vaultService.initialize();
-          console.log('App.js: Vault service pre-initialized successfully');
-        } catch (initError) {
-          console.error('App.js: Vault pre-initialization failed:', initError);
-          // If initialization fails, fall back to login to retry
-          return 'Login';
-        }
-        // Update activity timestamp
-        await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, Date.now().toString());
-        return 'MainTabs';
+        return 'Login';
       }
 
       if (timeDifference > activityTimeout) {
@@ -377,27 +384,11 @@ const AppNavigator = () => {
         }
         return 'Login';
       } else {
-        // Session still valid, pre-initialize vault and go to MainTabs
+        // Activity session still valid but no vault session - require authentication
         console.log(
-          `Session valid (${Math.round(timeDifference / 1000)}s ago, timeout: ${activityTimeout / 1000}s), pre-initializing vault for MainTabs`
+          `Activity session valid (${Math.round(timeDifference / 1000)}s ago, timeout: ${activityTimeout / 1000}s), but no vault session - requiring authentication`
         );
-
-        // Pre-initialize vault service to ensure database is ready
-        try {
-          console.log(
-            'App.js: Pre-initializing vault service for MainTabs access...'
-          );
-          await vaultService.initialize();
-          console.log('App.js: Vault service pre-initialized successfully');
-        } catch (initError) {
-          console.error('App.js: Vault pre-initialization failed:', initError);
-          // If initialization fails, fall back to login to retry
-          return 'Login';
-        }
-
-        // Update activity timestamp
-        await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, Date.now().toString());
-        return 'MainTabs';
+        return 'Login';
       }
     } catch (error) {
       console.error('Error checking vault status:', error);
