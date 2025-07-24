@@ -10,7 +10,7 @@ class DatabaseService {
     this.db = null;
     this.dbName = 'passwordManager.db';
     this.dbVersion = '1.0';
-    this.currentSchemaVersion = 2;
+    this.currentSchemaVersion = 3;
     this.isInitialized = false;
     this.isInitializing = false; // Add initialization lock
     this.initializationPromise = null; // Store the initialization promise
@@ -194,6 +194,10 @@ class DatabaseService {
         // Add trash functionality
         await this.addTrashTables();
         await this.addTrashIndexes();
+        break;
+      case 3:
+        // Fix invalid FontAwesome5 icon names in categories
+        await this.fixCategoryIcons();
         break;
       default:
         console.warn(`No migration defined for version ${version}`);
@@ -539,6 +543,41 @@ class DatabaseService {
   }
 
   /**
+   * Fix invalid FontAwesome5 icon names in categories (Migration v3)
+   * @returns {Promise<void>}
+   */
+  async fixCategoryIcons() {
+    try {
+      if (!this.db) {
+        throw new Error('Database connection is null in fixCategoryIcons');
+      }
+
+      console.log('Fixing invalid category icon names...');
+
+      // Map of invalid icon names to valid FontAwesome5 names
+      const iconMappings = {
+        people: 'users',
+        card: 'credit-card',
+        mail: 'envelope',
+        bag: 'shopping-bag',
+      };
+
+      // Update each invalid icon name
+      for (const [oldIcon, newIcon] of Object.entries(iconMappings)) {
+        await this.execAsyncSafe(
+          'UPDATE categories SET icon = ? WHERE icon = ?',
+          [newIcon, oldIcon]
+        );
+        console.log(`Updated icon: ${oldIcon} -> ${newIcon}`);
+      }
+
+      console.log('Category icon fixes completed');
+    } catch (error) {
+      throw new Error(`Failed to fix category icons: ${error.message}`);
+    }
+  }
+
+  /**
    * Create database indexes for performance
    * @returns {Promise<void>}
    */
@@ -606,14 +645,14 @@ class DatabaseService {
         {
           name: 'Social Media',
           description: 'Social media accounts',
-          icon: 'people',
+          icon: 'users',
           color: '#FF3B30',
           is_default: 1,
         },
         {
           name: 'Banking',
           description: 'Banking and financial accounts',
-          icon: 'card',
+          icon: 'credit-card',
           color: '#34C759',
           is_default: 1,
         },
@@ -627,14 +666,14 @@ class DatabaseService {
         {
           name: 'Email',
           description: 'Email accounts',
-          icon: 'mail',
+          icon: 'envelope',
           color: '#5856D6',
           is_default: 1,
         },
         {
           name: 'Shopping',
           description: 'Online shopping accounts',
-          icon: 'bag',
+          icon: 'shopping-bag',
           color: '#FF2D92',
           is_default: 1,
         },

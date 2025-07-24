@@ -11,6 +11,7 @@ import {
 import { IconButton, Snackbar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import Icon from 'react-native-vector-icons/FontAwesome5';
 import clipboardService from '../services/clipboardService';
 import vaultService from '../services/vaultService';
 import {
@@ -225,7 +226,7 @@ const PasswordDetailsScreen = () => {
                 },
               ]}
             >
-              <MaterialIcons
+              <Icon
                 name={entry.categoryIcon || 'folder'}
                 size={28}
                 color="#fff"

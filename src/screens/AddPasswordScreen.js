@@ -19,6 +19,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import vaultService from '../services/vaultService';
 import { usePasswords } from '../PasswordContext';
@@ -502,7 +503,7 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
                               { backgroundColor: item.color },
                             ]}
                           >
-                            <MaterialIcons
+                            <Icon
                               name={item.icon}
                               size={16}
                               color="#fff"
