@@ -19,6 +19,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import Icon from 'react-native-vector-icons/FontAwesome5';
 import {
   useNavigation,
   useFocusEffect,
@@ -414,7 +415,7 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
                       : getSelectedCategoryName()}
                   </Text>
                   <MaterialIcons
-                    name="chevron-down"
+                    name="keyboard-arrow-down"
                     size={24}
                     color={theme.colors.textSecondary}
                   />
@@ -436,7 +437,7 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
                               { backgroundColor: item.color },
                             ]}
                           >
-                            <MaterialIcons
+                            <Icon
                               name={item.icon}
                               size={16}
                               color="#fff"
