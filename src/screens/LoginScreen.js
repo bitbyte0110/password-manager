@@ -518,16 +518,11 @@ const LoginScreen = ({ navigation: navProp }) => {
   const showLockoutModal = () => {
     Alert.alert(
       'Account Locked',
-      'Too many failed attempts. Choose an option:',
+      'Too many failed attempts. You can use your recovery phrase to regain access.',
       [
         {
           text: 'Use Recovery Phrase',
-          onPress: () => navigation.navigate('RecoveryScreen'),
-        },
-        {
-          text: 'Reset Vault',
-          onPress: () => navigation.navigate('ResetVaultScreen'),
-          style: 'destructive',
+          onPress: () => navigation.navigate('ForgotPassword'),
         },
       ],
       { cancelable: false }
