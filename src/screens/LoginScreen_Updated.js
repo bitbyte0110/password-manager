@@ -10,14 +10,11 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Modal,
-  Alert,
 } from 'react-native';
 import { Button, Snackbar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import bcrypt from 'bcryptjs';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useNavigation } from '@react-navigation/native';
 import vaultService from '../services/vaultService';
@@ -25,18 +22,6 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../../App_Updated'; // Import useAuth hook
 import SecureTextInput from '../components/SecureTextInput';
 import { getMFAEnabled, getBiometricEnabled } from '../utils/authUtils';
-
-// Password lockout constants
-const FAILED_ATTEMPTS_KEY = 'vault_failedAttempts';
-const LOCKOUT_TIME_KEY = 'vault_lockoutTime';
-
-// Biometric failure constants
-const BIOMETRIC_FAILED_ATTEMPTS_KEY = 'vault_biometricFailCount';
-const BIOMETRIC_LAST_FAILED_KEY = 'vault_lastBiometricFailed';
-
-const MAX_FAILED_ATTEMPTS = 3;
-const LOCKOUT_DURATION = 30 * 60 * 1000; // 30 minutes
-const BIOMETRIC_TIMEOUT_DURATION = 30 * 1000; // 30 seconds
 
 const LoginScreen = ({ navigation: navProp }) => {
   const navigation = navProp || useNavigation();
@@ -47,9 +32,6 @@ const LoginScreen = ({ navigation: navProp }) => {
   const [masterPassword, setMasterPassword] = useState('');
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [failedAttempts, setFailedAttempts] = useState(0);
-  const [isLocked, setIsLocked] = useState(false);
-  const [lockoutEndTime, setLockoutEndTime] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
   const [biometricAvailable, setBiometricAvailable] = useState(false);
@@ -77,7 +59,6 @@ const LoginScreen = ({ navigation: navProp }) => {
 
   const initializeScreen = async () => {
     try {
-      await checkLockoutStatus();
       await checkBiometricAvailability();
       await loadAutoLockSettings();
     } catch (error) {
@@ -99,44 +80,6 @@ const LoginScreen = ({ navigation: navProp }) => {
     }
   };
 
-  const checkLockoutStatus = async () => {
-    try {
-      const attempts = await AsyncStorage.getItem(FAILED_ATTEMPTS_KEY);
-      const lockoutTime = await AsyncStorage.getItem(LOCKOUT_TIME_KEY);
-
-      const currentAttempts = attempts ? parseInt(attempts, 10) : 0;
-      setFailedAttempts(currentAttempts);
-
-      if (lockoutTime) {
-        const lockoutEndTime = parseInt(lockoutTime, 10);
-        const now = Date.now();
-
-        if (now < lockoutEndTime) {
-          setIsLocked(true);
-          setLockoutEndTime(lockoutEndTime);
-
-          // Set up countdown timer
-          const timer = setInterval(() => {
-            const currentTime = Date.now();
-            if (currentTime >= lockoutEndTime) {
-              clearInterval(timer);
-              setIsLocked(false);
-              setLockoutEndTime(null);
-              resetFailedAttempts();
-            }
-          }, 1000);
-
-          return () => clearInterval(timer);
-        } else {
-          // Lockout period has ended
-          await resetFailedAttempts();
-        }
-      }
-    } catch (error) {
-      console.error('Error checking lockout status:', error);
-    }
-  };
-
   const checkBiometricAvailability = async () => {
     try {
       const biometricEnabled = await getBiometricEnabled();
@@ -150,49 +93,7 @@ const LoginScreen = ({ navigation: navProp }) => {
     }
   };
 
-  const resetFailedAttempts = async () => {
-    try {
-      await AsyncStorage.removeItem(FAILED_ATTEMPTS_KEY);
-      await AsyncStorage.removeItem(LOCKOUT_TIME_KEY);
-      setFailedAttempts(0);
-      setIsLocked(false);
-      setLockoutEndTime(null);
-    } catch (error) {
-      console.error('Error resetting failed attempts:', error);
-    }
-  };
-
-  const incrementFailedAttempts = async () => {
-    try {
-      const newAttempts = failedAttempts + 1;
-      setFailedAttempts(newAttempts);
-      await AsyncStorage.setItem(FAILED_ATTEMPTS_KEY, newAttempts.toString());
-
-      if (newAttempts >= MAX_FAILED_ATTEMPTS) {
-        const lockoutEndTime = Date.now() + LOCKOUT_DURATION;
-        await AsyncStorage.setItem(LOCKOUT_TIME_KEY, lockoutEndTime.toString());
-        setIsLocked(true);
-        setLockoutEndTime(lockoutEndTime);
-
-        showSnackbar(
-          `Too many failed attempts. Account locked for ${LOCKOUT_DURATION / (60 * 1000)} minutes.`
-        );
-      } else {
-        showSnackbar(
-          `Invalid password. ${MAX_FAILED_ATTEMPTS - newAttempts} attempts remaining.`
-        );
-      }
-    } catch (error) {
-      console.error('Error incrementing failed attempts:', error);
-    }
-  };
-
   const handlePasswordLogin = async () => {
-    if (isLocked) {
-      showSnackbar('Account is temporarily locked. Please wait.');
-      return;
-    }
-
     if (!masterPassword.trim()) {
       setPasswordError('Please enter your master password');
       return;
@@ -211,7 +112,6 @@ const LoginScreen = ({ navigation: navProp }) => {
       const isValidPassword = await bcrypt.compare(masterPassword, masterHash);
 
       if (!isValidPassword) {
-        await incrementFailedAttempts();
         setPasswordError('Invalid master password');
         setMasterPassword('');
         return;
@@ -219,9 +119,6 @@ const LoginScreen = ({ navigation: navProp }) => {
 
       // Initialize vault service with master password
       await vaultService.unlockVault(masterPassword);
-
-      // Reset failed attempts on successful login
-      await resetFailedAttempts();
 
       // Login with authentication context
       await login(masterPassword);
@@ -242,25 +139,8 @@ const LoginScreen = ({ navigation: navProp }) => {
   };
 
   const handleBiometricLogin = async () => {
-    if (isLocked) {
-      showSnackbar('Account is temporarily locked. Please wait.');
-      return;
-    }
-
     try {
       setIsLoading(true);
-
-      // Check if biometric authentication recently failed
-      const lastFailed = await AsyncStorage.getItem(BIOMETRIC_LAST_FAILED_KEY);
-      if (lastFailed) {
-        const timeSinceLastFailed = Date.now() - parseInt(lastFailed, 10);
-        if (timeSinceLastFailed < BIOMETRIC_TIMEOUT_DURATION) {
-          showSnackbar(
-            'Biometric authentication temporarily disabled. Please use master password.'
-          );
-          return;
-        }
-      }
 
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Unlock your vault with biometrics',
@@ -290,30 +170,17 @@ const LoginScreen = ({ navigation: navProp }) => {
         // Initialize vault service
         await vaultService.unlockVault(storedMasterPassword);
 
-        // Reset failed attempts
-        await resetFailedAttempts();
-        await AsyncStorage.removeItem(BIOMETRIC_LAST_FAILED_KEY);
-
         // Login with authentication context
         await login(storedMasterPassword);
 
         showSnackbar('Biometric login successful!');
       } else {
-        // Record biometric failure
-        await AsyncStorage.setItem(
-          BIOMETRIC_LAST_FAILED_KEY,
-          Date.now().toString()
-        );
         showSnackbar(
           'Biometric authentication failed. Please try again or use your master password.'
         );
       }
     } catch (error) {
       console.error('Biometric login error:', error);
-      await AsyncStorage.setItem(
-        BIOMETRIC_LAST_FAILED_KEY,
-        Date.now().toString()
-      );
       showSnackbar(
         'Biometric authentication error. Please use your master password.'
       );
@@ -324,15 +191,6 @@ const LoginScreen = ({ navigation: navProp }) => {
 
   const showSnackbar = message => {
     setSnackbar({ visible: true, message });
-  };
-
-  const getLockoutTimeRemaining = () => {
-    if (!lockoutEndTime) return '';
-
-    const timeRemaining = lockoutEndTime - Date.now();
-    const minutes = Math.ceil(timeRemaining / (60 * 1000));
-
-    return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
   };
 
   const getAutoLockInfoMessage = () => {
@@ -377,77 +235,51 @@ const LoginScreen = ({ navigation: navProp }) => {
             </View>
           )}
 
-          {/* Lockout Message */}
-          {isLocked && (
-            <View style={styles.lockoutContainer}>
-              <Icon name="lock" size={40} color="#e74c3c" />
-              <Text style={styles.lockoutTitle}>Account Locked</Text>
-              <Text style={styles.lockoutText}>
-                Too many failed attempts. Please wait{' '}
-                {getLockoutTimeRemaining()} before trying again.
-              </Text>
-            </View>
-          )}
-
           {/* Login Form */}
-          {!isLocked && (
-            <View style={styles.loginForm}>
-              {/* Biometric Button */}
-              {biometricAvailable && (
-                <TouchableOpacity
-                  style={styles.biometricButton}
-                  onPress={handleBiometricLogin}
-                  disabled={isLoading}
-                >
-                  <Icon name="fingerprint" size={40} color="white" />
-                  <Text style={styles.biometricText}>Use Biometric</Text>
-                </TouchableOpacity>
-              )}
-
-              {/* OR Divider */}
-              {biometricAvailable && (
-                <View style={styles.dividerContainer}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>OR</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-              )}
-
-              {/* Password Input Button */}
+          <View style={styles.loginForm}>
+            {/* Biometric Button */}
+            {biometricAvailable && (
               <TouchableOpacity
-                style={styles.passwordButton}
-                onPress={() => setShowPasswordModal(true)}
+                style={styles.biometricButton}
+                onPress={handleBiometricLogin}
                 disabled={isLoading}
               >
-                <Icon name="key" size={20} color="white" />
-                <Text style={styles.passwordButtonText}>
-                  Enter Master Password
-                </Text>
+                <Icon name="fingerprint" size={40} color="white" />
+                <Text style={styles.biometricText}>Use Biometric</Text>
               </TouchableOpacity>
+            )}
 
-              {/* Failed attempts warning */}
-              {failedAttempts > 0 && failedAttempts < MAX_FAILED_ATTEMPTS && (
-                <View style={styles.warningContainer}>
-                  <Icon name="exclamation-triangle" size={16} color="#f39c12" />
-                  <Text style={styles.warningText}>
-                    {failedAttempts} failed attempt
-                    {failedAttempts > 1 ? 's' : ''}.{' '}
-                    {MAX_FAILED_ATTEMPTS - failedAttempts} remaining.
-                  </Text>
-                </View>
-              )}
+            {/* OR Divider */}
+            {biometricAvailable && (
+              <View style={styles.dividerContainer}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>OR</Text>
+                <View style={styles.dividerLine} />
+              </View>
+            )}
 
-              {/* Forgot Password */}
-              <TouchableOpacity
-                style={styles.forgotPasswordButton}
-                onPress={() => navigation.navigate('ForgotPassword')}
-              >
-                <Text style={styles.forgotPasswordText}>
-                  Forgot your master password?
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
+            {/* Password Input Button */}
+            <TouchableOpacity
+              style={styles.passwordButton}
+              onPress={() => setShowPasswordModal(true)}
+              disabled={isLoading}
+            >
+              <Icon name="key" size={20} color="white" />
+              <Text style={styles.passwordButtonText}>
+                Enter Master Password
+              </Text>
+            </TouchableOpacity>
+
+            {/* Forgot Password */}
+            <TouchableOpacity
+              style={styles.forgotPasswordButton}
+              onPress={() => navigation.navigate('ForgotPassword')}
+            >
+              <Text style={styles.forgotPasswordText}>
+                Forgot your master password?
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </LinearGradient>
 
@@ -576,26 +408,6 @@ const styles = StyleSheet.create({
   infoBannerClose: {
     padding: 4,
   },
-  lockoutContainer: {
-    alignItems: 'center',
-    padding: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 15,
-    marginBottom: 30,
-  },
-  lockoutTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#e74c3c',
-    marginTop: 15,
-    marginBottom: 10,
-  },
-  lockoutText: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-    lineHeight: 24,
-  },
   loginForm: {
     alignItems: 'center',
   },
@@ -650,23 +462,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 10,
-  },
-  warningContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(243, 156, 18, 0.2)',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(243, 156, 18, 0.4)',
-  },
-  warningText: {
-    color: '#f39c12',
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 8,
-    flex: 1,
   },
   forgotPasswordButton: {
     marginTop: 20,
