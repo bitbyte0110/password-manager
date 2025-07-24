@@ -149,27 +149,24 @@ const SessionManager = ({ children, navigationRef }) => {
 
   const handleSessionExpiry = async () => {
     try {
-      console.log('Auto-logout triggered - redirecting to login');
+      console.log('Session expiry triggered - clearing all session data and redirecting to login');
 
       // Clear vault service session
       await vaultService.clearSession();
 
-      // Clear activity timestamp
+      // Clear all session-related storage
       await AsyncStorage.removeItem(LAST_ACTIVE_TIME_KEY);
-
-      // Clear session token
       await SecureStore.deleteItemAsync('vault_sessionToken');
+      await SecureStore.deleteItemAsync('vault_biometricPassword');
 
       // Navigate directly to login without confirmation
       if (navigationRef.current) {
-        console.log(
-          'Navigation ref available, attempting to navigate to Login'
-        );
+        console.log('Navigation ref available, attempting to navigate to Login');
         try {
           // Check if we're already on the login screen
           const currentRoute = navigationRef.current.getCurrentRoute();
           if (currentRoute?.name !== 'Login') {
-            // Use reset instead of replace for navigation container ref
+            // Use reset to ensure complete navigation stack reset
             navigationRef.current.reset({
               index: 0,
               routes: [{ name: 'Login' }],
@@ -189,7 +186,7 @@ const SessionManager = ({ children, navigationRef }) => {
           }
         }
       } else {
-        console.error('Navigation ref not available for auto-logout');
+        console.error('Navigation ref not available for session expiry');
       }
     } catch (error) {
       console.error('Error handling session expiry:', error);
@@ -217,11 +214,21 @@ const SessionManager = ({ children, navigationRef }) => {
 
   const handleAppStateChange = async nextAppState => {
     if (appState.match(/inactive|background/) && nextAppState === 'active') {
-      console.log('App came to foreground, checking session validity');
-      await checkInactivity();
+      console.log('App came to foreground, requiring fresh authentication');
+      // Always clear session and require authentication when app comes to foreground
+      await handleSessionExpiry();
     } else if (nextAppState.match(/inactive|background/)) {
-      console.log('App going to background, updating activity timestamp');
-      await updateActivity();
+      console.log('App going to background, clearing session data');
+      // Clear all session data when app goes to background
+      try {
+        await vaultService.clearSession();
+        await SecureStore.deleteItemAsync('vault_sessionToken');
+        await SecureStore.deleteItemAsync('vault_biometricPassword');
+        await AsyncStorage.removeItem(LAST_ACTIVE_TIME_KEY);
+        console.log('Session data cleared due to app backgrounding');
+      } catch (error) {
+        console.error('Error clearing session data on background:', error);
+      }
     }
 
     setAppState(nextAppState);
@@ -314,84 +321,21 @@ const AppNavigator = () => {
         return 'SetMasterPassword';
       }
 
-      // Step 2: Master password exists, attempt to restore session first
-      console.log('Master password exists, attempting session restoration');
-
-      // Try to restore authentication from vault service
-      let sessionRestored = false;
+      // Step 2: Master password exists, always require authentication
+      console.log('Master password exists, requiring fresh authentication');
+      
+      // Clear any existing sessions to ensure fresh login
       try {
-        await vaultService.initialize();
-        sessionRestored = await vaultService.tryRestoreAuthentication();
-        console.log(`Session restoration result: ${sessionRestored}`);
+        await vaultService.clearSession();
+        await SecureStore.deleteItemAsync('vault_sessionToken');
+        await AsyncStorage.removeItem(LAST_ACTIVE_TIME_KEY);
+        console.log('Cleared existing sessions for fresh authentication');
       } catch (error) {
-        console.error('Error during session restoration:', error);
-        sessionRestored = false;
+        console.error('Error clearing existing sessions:', error);
       }
 
-      // If session was successfully restored, we can go directly to MainTabs
-      if (sessionRestored) {
-        console.log('Session restored successfully, navigating to MainTabs');
-        await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, Date.now().toString());
-        return 'MainTabs';
-      }
-
-      // Step 3: No valid session, check activity-based session validity
-      console.log(
-        'No valid session token, checking activity-based session validity'
-      );
-      const lastActiveTime = await AsyncStorage.getItem(LAST_ACTIVE_TIME_KEY);
-
-      if (!lastActiveTime) {
-        // No activity timestamp, require authentication
-        console.log('No activity timestamp found, requiring authentication');
-        return 'Login';
-      }
-
-      // Check if session is still valid based on user's auto-lock timeout
-      const lastActive = parseInt(lastActiveTime, 10);
-      const now = Date.now();
-      const timeDifference = now - lastActive;
-
-      // Get user's auto-lock timeout preference
-      let activityTimeout = DEFAULT_ACTIVITY_TIMEOUT;
-      try {
-        const settings = await AsyncStorage.getItem('userSettings');
-        if (settings) {
-          const parsedSettings = JSON.parse(settings);
-          const userTimeout = parsedSettings.autoLockTimeout || 120; // Default 120 seconds
-          activityTimeout = userTimeout * 1000; // Convert to milliseconds
-        }
-      } catch (error) {
-        console.error('Error loading auto-lock settings:', error);
-      }
-
-      // Skip session timeout check if user set timeout to 0 (Never)
-      if (activityTimeout === 0) {
-        console.log(
-          'Auto-lock disabled (timeout: 0), but no session token - requiring authentication'
-        );
-        return 'Login';
-      }
-
-      if (timeDifference > activityTimeout) {
-        // Session expired, require re-authentication
-        console.log(
-          `Session expired (${Math.round(timeDifference / 1000)}s ago, timeout: ${activityTimeout / 1000}s), requiring authentication`
-        );
-        // Clear any session tokens since session is expired
-        try {
-          await SecureStore.deleteItemAsync('vault_sessionToken');
-        } catch (error) {
-          console.error('Error clearing expired session token:', error);
-        }
-        return 'Login';
-      } else {
-        // Activity session still valid but no vault session - require authentication
-        console.log(
-          `Activity session valid (${Math.round(timeDifference / 1000)}s ago, timeout: ${activityTimeout / 1000}s), but no vault session - requiring authentication`
-        );
-        return 'Login';
-      }
+      // Always require authentication - no session restoration
+      return 'Login';
     } catch (error) {
       console.error('Error checking vault status:', error);
       // On error, require authentication for security
