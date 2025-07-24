@@ -16,8 +16,15 @@ import zxcvbn from 'zxcvbn';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useTheme } from '../contexts/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width: screenWidth } = Dimensions.get('window');
+
+// Lockout constants - must match LoginScreen values
+const FAILED_ATTEMPTS_KEY = 'vault_failedAttempts';
+const LOCKOUT_TIME_KEY = 'vault_lockoutTime';
+const BIOMETRIC_FAILED_ATTEMPTS_KEY = 'vault_biometricFailCount';
+const BIOMETRIC_LAST_FAILED_KEY = 'vault_lastBiometricFailed';
 
 const ForgotPasswordScreen = ({ navigation: navProp }) => {
   const navigation = navProp || useNavigation();
@@ -208,6 +215,25 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
     setIsLoading(false);
   };
 
+  const clearAllLockoutStates = async () => {
+    try {
+      // Clear password lockout state
+      await AsyncStorage.removeItem(FAILED_ATTEMPTS_KEY);
+      await AsyncStorage.removeItem(LOCKOUT_TIME_KEY);
+      
+      // Clear biometric lockout state
+      await AsyncStorage.removeItem(BIOMETRIC_FAILED_ATTEMPTS_KEY);
+      await AsyncStorage.removeItem(BIOMETRIC_LAST_FAILED_KEY);
+      
+      // Clear any additional lockout-related keys
+      await AsyncStorage.removeItem('vault_lastActiveTime');
+      
+      console.log('All lockout states cleared successfully after password recovery');
+    } catch (error) {
+      console.error('Error clearing lockout states:', error);
+    }
+  };
+
   const handleResetPassword = async () => {
     if (!isFormValid) {
       showSnackbar('Please fix all errors before proceeding');
@@ -217,6 +243,9 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
     setIsLoading(true);
 
     try {
+      // Clear all lockout states and timers FIRST
+      await clearAllLockoutStates();
+
       // Hash the new password
       const saltRounds = 12;
       const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
@@ -239,12 +268,15 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
       clearSensitiveData();
 
       // Show success message
-      showSnackbar('Password reset successfully!');
+      showSnackbar('Password reset successfully! You can now log in with your new password.');
 
-      // Navigate to Login after delay
+      // Navigate to Login with clean navigation state
       setTimeout(() => {
-        navigation.replace('Login');
-      }, 1500);
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Login' }],
+        });
+      }, 2000);
     } catch (error) {
       console.error('Password reset error:', error);
 
