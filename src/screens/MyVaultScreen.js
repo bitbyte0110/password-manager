@@ -11,7 +11,13 @@ import {
   Dimensions,
   RefreshControl,
 } from 'react-native';
-import { Searchbar, Badge, Menu, ActivityIndicator, Snackbar } from 'react-native-paper';
+import {
+  Searchbar,
+  Badge,
+  Menu,
+  ActivityIndicator,
+  Snackbar,
+} from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/FontAwesome5';
@@ -29,13 +35,8 @@ const { height: screenHeight } = Dimensions.get('window');
 
 const MyVaultScreen = ({ navigation, route }) => {
   // State management from centralized context
-  const {
-    passwords,
-    categories,
-    loading,
-    refreshAll,
-    subscribeToRefresh,
-  } = usePasswords();
+  const { passwords, categories, loading, refreshAll, subscribeToRefresh } =
+    usePasswords();
   const { theme } = useTheme();
 
   // Local UI state only
@@ -195,10 +196,24 @@ const MyVaultScreen = ({ navigation, route }) => {
         }
       }
 
-      // Apply sorting only if needed
-      if (filtered !== passwords || sortBy !== 'last_updated') {
-        filtered = applySorting(filtered, sortBy);
+      // Determine the appropriate sorting method
+      let sortingMethod = sortBy;
+
+      // Always use alphabetical sorting within categories when filtering by category
+      if (
+        selectedCategory !== 'all' &&
+        selectedCategory !== 'favorites' &&
+        !searchQuery.trim()
+      ) {
+        sortingMethod = 'alphabetical';
       }
+      // Use category grouping when "by_category" is selected
+      else if (sortBy === 'by_category') {
+        sortingMethod = 'by_category';
+      }
+
+      // Apply sorting
+      filtered = applySorting(filtered, sortingMethod);
 
       setFilteredPasswords(filtered);
     } catch (error) {
@@ -238,10 +253,26 @@ const MyVaultScreen = ({ navigation, route }) => {
         });
       case 'by_category':
         return sorted.sort((a, b) => {
-          if (a.category_name && b.category_name) {
-            return a.category_name.localeCompare(b.category_name);
+          // Get category name from multiple possible sources
+          const aCategoryName =
+            a.category_name ||
+            categories.find(cat => cat.id === a.categoryId)?.name ||
+            'Uncategorized';
+          const bCategoryName =
+            b.category_name ||
+            categories.find(cat => cat.id === b.categoryId)?.name ||
+            'Uncategorized';
+
+          const categoryComparison = aCategoryName.localeCompare(bCategoryName);
+
+          // If categories are the same, sort alphabetically by title within the category
+          if (categoryComparison === 0) {
+            const aTitle = (a.title || '').toLowerCase();
+            const bTitle = (b.title || '').toLowerCase();
+            return aTitle.localeCompare(bTitle);
           }
-          return 0;
+
+          return categoryComparison;
         });
       default:
         return sorted;
@@ -283,9 +314,15 @@ const MyVaultScreen = ({ navigation, route }) => {
   // Add a handleCopy function for copying username/email from the card (if present)
   const handleCopy = async (item, value, isPassword = false) => {
     try {
-      const success = await clipboardService.copyToClipboard(value || '', isPassword);
+      const success = await clipboardService.copyToClipboard(
+        value || '',
+        isPassword
+      );
       if (success) {
-        setSnackbar({ visible: true, message: isPassword ? 'Password copied' : 'Username copied' });
+        setSnackbar({
+          visible: true,
+          message: isPassword ? 'Password copied' : 'Username copied',
+        });
       } else {
         setSnackbar({ visible: true, message: 'Copy failed' });
       }
