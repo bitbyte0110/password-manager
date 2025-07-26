@@ -54,32 +54,21 @@ const ExportScreen = ({ navigation }) => {
       };
       refreshSession();
 
-      // Cleanup function - clear export tracking if user navigates away
+      // No cleanup needed with simplified approach
       return () => {
-        if (!isExporting) {
-          // Only clear if not actively exporting
-          markExportEnd().catch(console.error);
-        }
+        // Session management now handled by timer-based system
       };
     }, [isExporting])
   );
 
-  // Track export operation state for session preservation
-  const markExportStart = async () => {
+  // Simple activity update to maintain session during export
+  const updateExportActivity = async () => {
     try {
-      await AsyncStorage.setItem('active_import_operation', 'true');
-      console.log('ExportScreen: Marked export operation as active');
+      const timestamp = Date.now().toString();
+      await AsyncStorage.setItem('vault_lastActiveTime', timestamp);
+      console.log('ExportScreen: Updated activity timestamp during export');
     } catch (error) {
-      console.error('ExportScreen: Failed to mark export start:', error);
-    }
-  };
-
-  const markExportEnd = async () => {
-    try {
-      await AsyncStorage.removeItem('active_import_operation');
-      console.log('ExportScreen: Marked export operation as completed');
-    } catch (error) {
-      console.error('ExportScreen: Failed to mark export end:', error);
+      console.error('ExportScreen: Failed to update activity:', error);
     }
   };
 
@@ -109,14 +98,13 @@ const ExportScreen = ({ navigation }) => {
       setIsExporting(true);
       setPasswordErrors([]);
 
-      // Mark export operation as active to prevent session clearing
-      await markExportStart();
+      // Update activity to keep session alive during export
+      await updateExportActivity();
 
       // Validate passwords
       const errors = validatePasswords();
       if (errors.length > 0) {
         setPasswordErrors(errors);
-        await markExportEnd();
         setIsExporting(false);
         return;
       }
@@ -130,7 +118,6 @@ const ExportScreen = ({ navigation }) => {
           'Your vault is empty. There are no passwords to export.',
           [{ text: 'OK' }]
         );
-        await markExportEnd();
         setIsExporting(false);
         return;
       }
@@ -148,8 +135,7 @@ const ExportScreen = ({ navigation }) => {
           [
             {
               text: 'OK',
-              onPress: async () => {
-                await markExportEnd();
+              onPress: () => {
                 navigation.goBack();
               },
             },
@@ -157,7 +143,6 @@ const ExportScreen = ({ navigation }) => {
         );
       } else {
         Alert.alert('Export Failed', result.error, [{ text: 'OK' }]);
-        await markExportEnd();
       }
     } catch (error) {
       console.error('Export error:', error);
@@ -166,7 +151,6 @@ const ExportScreen = ({ navigation }) => {
         'An unexpected error occurred during export. Please try again.',
         [{ text: 'OK' }]
       );
-      await markExportEnd();
     } finally {
       setIsExporting(false);
     }

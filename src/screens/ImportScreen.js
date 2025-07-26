@@ -53,32 +53,21 @@ const ImportScreen = ({ navigation }) => {
       };
       refreshSession();
 
-      // Cleanup function - clear import tracking if user navigates away
+      // No cleanup needed with simplified approach
       return () => {
-        if (!isImporting) {
-          // Only clear if not actively importing
-          markImportEnd().catch(console.error);
-        }
+        // Session management now handled by timer-based system
       };
     }, [isImporting])
   );
 
-  // Track import operation state for session preservation
-  const markImportStart = async () => {
+  // Simple activity update to maintain session during import
+  const updateImportActivity = async () => {
     try {
-      await AsyncStorage.setItem('active_import_operation', 'true');
-      console.log('ImportScreen: Marked import operation as active');
+      const timestamp = Date.now().toString();
+      await AsyncStorage.setItem('vault_lastActiveTime', timestamp);
+      console.log('ImportScreen: Updated activity timestamp during import');
     } catch (error) {
-      console.error('ImportScreen: Failed to mark import start:', error);
-    }
-  };
-
-  const markImportEnd = async () => {
-    try {
-      await AsyncStorage.removeItem('active_import_operation');
-      console.log('ImportScreen: Marked import operation as completed');
-    } catch (error) {
-      console.error('ImportScreen: Failed to mark import end:', error);
+      console.error('ImportScreen: Failed to update activity:', error);
     }
   };
 
@@ -91,8 +80,8 @@ const ImportScreen = ({ navigation }) => {
 
       setIsImporting(true);
 
-      // Mark import operation as active to prevent session clearing
-      await markImportStart();
+      // Update activity to keep session alive during import
+      await updateImportActivity();
 
       // Refresh session before starting import to prevent timeout
       console.log('ImportScreen: Refreshing session before file processing...');
@@ -104,7 +93,6 @@ const ImportScreen = ({ navigation }) => {
             'Authentication Error',
             'Your session has expired. Please log in again to import passwords.'
           );
-          await markImportEnd();
           setIsImporting(false);
           return;
         }
@@ -116,7 +104,6 @@ const ImportScreen = ({ navigation }) => {
 
       if (!result.success) {
         Alert.alert('Import Failed', result.error);
-        await markImportEnd();
         setIsImporting(false);
         return;
       }
@@ -129,9 +116,7 @@ const ImportScreen = ({ navigation }) => {
           {
             text: 'Cancel',
             style: 'cancel',
-            onPress: async () => {
-              // Mark import as ended if user cancels
-              await markImportEnd();
+            onPress: () => {
               setIsImporting(false);
             },
           },
@@ -148,7 +133,6 @@ const ImportScreen = ({ navigation }) => {
         'Import Error',
         'An unexpected error occurred. Please try again.'
       );
-      await markImportEnd();
     } finally {
       setIsImporting(false);
     }
@@ -217,17 +201,12 @@ const ImportScreen = ({ navigation }) => {
         const passwordEntry = importedData[i];
 
         try {
-          // Refresh session every 10 entries to prevent timeout during large imports
+          // Update activity every 10 entries to keep session alive during large imports
           if (i > 0 && i % 10 === 0) {
             console.log(
-              `ImportScreen: Refreshing session during import (entry ${i}/${importedData.length})...`
+              `ImportScreen: Updating activity during import (entry ${i}/${importedData.length})...`
             );
-            const midImportRefresh = await VaultService.refreshSession();
-            if (!midImportRefresh) {
-              console.warn(
-                `ImportScreen: Failed to refresh session at entry ${i}, continuing...`
-              );
-            }
+            await updateImportActivity();
           }
 
           console.log('Processing password entry:', {
@@ -289,10 +268,7 @@ const ImportScreen = ({ navigation }) => {
         [
           {
             text: 'OK',
-            onPress: async () => {
-              // Mark import as completed
-              await markImportEnd();
-
+            onPress: () => {
               // Navigate to MainTabs and then to MyVault
               navigation.reset({
                 index: 0,
@@ -326,9 +302,6 @@ const ImportScreen = ({ navigation }) => {
           'Some passwords could not be imported. Please check your vault and try again if needed.'
         );
       }
-
-      // Mark import as ended even on error
-      await markImportEnd();
     } finally {
       setIsImporting(false);
     }

@@ -46,18 +46,8 @@ import { DatabaseProvider } from './src/contexts/DatabaseContext';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-const theme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    primary: '#8e44ad',
-    accent: '#3498db',
-  },
-};
-
 // Constants for session management
 const DEFAULT_ACTIVITY_TIMEOUT = 2 * 60 * 1000; // 2 minutes in milliseconds (default)
-const ACTIVITY_CHECK_INTERVAL = 30 * 1000; // 30 seconds
 const LAST_ACTIVE_TIME_KEY = 'vault_lastActiveTime';
 
 // Session Management Component
@@ -218,55 +208,17 @@ const SessionManager = ({ children, navigationRef }) => {
 
   const handleAppStateChange = async nextAppState => {
     if (appState.match(/inactive|background/) && nextAppState === 'active') {
-      console.log('App came to foreground, checking for active operations...');
-
-      // Check if there's an active import operation
-      const activeImport = await AsyncStorage.getItem(
-        'active_import_operation'
-      );
-      if (activeImport) {
-        console.log(
-          'Active import operation detected, preserving session for import continuation'
-        );
-        // Don't clear session if import is in progress
-        // Update activity to prevent inactivity timeout
-        await updateActivity();
-        setAppState(nextAppState);
-        return;
-      }
-
-      console.log('No active operations, requiring fresh authentication');
-      // Clear session and require authentication when app comes to foreground
-      await handleSessionExpiry();
+      console.log('App came to foreground, updating activity timestamp');
+      // Simply update activity when app comes to foreground
+      // Let the timer-based system handle logout based on actual inactivity time
+      await updateActivity();
     } else if (nextAppState.match(/inactive|background/)) {
-      console.log('App going to background, checking for active operations...');
-
-      // Check if there's an active import operation
-      const activeImport = await AsyncStorage.getItem(
-        'active_import_operation'
+      console.log(
+        'App going to background, preserving session for timer-based logout'
       );
-      if (activeImport) {
-        console.log(
-          'Active import operation detected, preserving session data'
-        );
-        // Don't clear session data if import is in progress
-        // Just update activity and preserve session
-        await updateActivity();
-        setAppState(nextAppState);
-        return;
-      }
-
-      console.log('No active operations, clearing session data');
-      // Clear all session data when app goes to background (only if no active operations)
-      try {
-        await vaultService.clearSession();
-        await SecureStore.deleteItemAsync('vault_sessionToken');
-        await SecureStore.deleteItemAsync('vault_biometricPassword');
-        await AsyncStorage.removeItem(LAST_ACTIVE_TIME_KEY);
-        console.log('Session data cleared due to app backgrounding');
-      } catch (error) {
-        console.error('Error clearing session data on background:', error);
-      }
+      // Don't clear session data when app goes to background
+      // The inactivity timer will handle logout if the timeout period is exceeded
+      // This provides much better UX and is industry standard behavior
     }
 
     setAppState(nextAppState);
