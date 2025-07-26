@@ -595,6 +595,33 @@ class VaultService {
   }
 
   /**
+   * Refresh session token to extend session timeout
+   * @returns {Promise<boolean>} Refresh success
+   */
+  async refreshSession() {
+    if (!this.isUserAuthenticated()) {
+      console.log(
+        'VaultService: Cannot refresh session - user not authenticated'
+      );
+      return false;
+    }
+
+    try {
+      console.log('VaultService: Refreshing session token...');
+
+      // Create a new session token with current timestamp
+      await this.createSessionToken(this.masterPassword);
+      this.sessionStartTime = Date.now();
+
+      console.log('VaultService: Session token refreshed successfully');
+      return true;
+    } catch (error) {
+      console.error('VaultService: Error refreshing session:', error);
+      return false;
+    }
+  }
+
+  /**
    * Check if vault service is fully initialized and ready for operations
    * @returns {boolean} Initialization status
    */
