@@ -77,6 +77,17 @@ const MyVaultScreen = ({ navigation, route }) => {
   // Refresh data when screen gains focus (e.g., returning from AddPasswordScreen)
   useFocusEffect(
     useCallback(() => {
+      // Refresh session to prevent timeout
+      const refreshSession = async () => {
+        try {
+          console.log('MyVaultScreen: Refreshing session on focus...');
+          await vaultService.refreshSession();
+        } catch (error) {
+          console.warn('MyVaultScreen: Failed to refresh session:', error);
+        }
+      };
+      refreshSession();
+
       // Check if we should refresh data (from navigation params)
       if (route?.params?.shouldRefresh) {
         console.log('MyVaultScreen: Refreshing data due to navigation params');
