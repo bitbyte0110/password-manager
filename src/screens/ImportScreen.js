@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../contexts/ThemeContext';
 import VaultService from '../services/vaultService';
 import ImportExportService from '../services/importExportService';
@@ -51,8 +52,35 @@ const ImportScreen = ({ navigation }) => {
         }
       };
       refreshSession();
-    }, [])
+
+      // Cleanup function - clear import tracking if user navigates away
+      return () => {
+        if (!isImporting) {
+          // Only clear if not actively importing
+          markImportEnd().catch(console.error);
+        }
+      };
+    }, [isImporting])
   );
+
+  // Track import operation state for session preservation
+  const markImportStart = async () => {
+    try {
+      await AsyncStorage.setItem('active_import_operation', 'true');
+      console.log('ImportScreen: Marked import operation as active');
+    } catch (error) {
+      console.error('ImportScreen: Failed to mark import start:', error);
+    }
+  };
+
+  const markImportEnd = async () => {
+    try {
+      await AsyncStorage.removeItem('active_import_operation');
+      console.log('ImportScreen: Marked import operation as completed');
+    } catch (error) {
+      console.error('ImportScreen: Failed to mark import end:', error);
+    }
+  };
 
   const handleImport = async () => {
     try {
@@ -63,12 +91,32 @@ const ImportScreen = ({ navigation }) => {
 
       setIsImporting(true);
 
+      // Mark import operation as active to prevent session clearing
+      await markImportStart();
+
+      // Refresh session before starting import to prevent timeout
+      console.log('ImportScreen: Refreshing session before file processing...');
+      const sessionRefreshed = await VaultService.refreshSession();
+      if (!sessionRefreshed) {
+        console.log('ImportScreen: Session refresh failed before import');
+        if (!VaultService.isUserAuthenticated()) {
+          Alert.alert(
+            'Authentication Error',
+            'Your session has expired. Please log in again to import passwords.'
+          );
+          await markImportEnd();
+          setIsImporting(false);
+          return;
+        }
+      }
+
       // Import and decrypt the file
       const result =
         await ImportExportService.importVaultFromFile(importPassword);
 
       if (!result.success) {
         Alert.alert('Import Failed', result.error);
+        await markImportEnd();
         setIsImporting(false);
         return;
       }
@@ -78,7 +126,15 @@ const ImportScreen = ({ navigation }) => {
         'Confirm Import',
         `Found ${result.data.length} passwords to import.\n\nImport mode: ${importMode === 'merge' ? 'Merge with existing passwords' : 'Replace all existing passwords'}\n\nThis action cannot be undone.`,
         [
-          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: async () => {
+              // Mark import as ended if user cancels
+              await markImportEnd();
+              setIsImporting(false);
+            },
+          },
           {
             text: 'Import',
             style: 'destructive',
@@ -92,6 +148,7 @@ const ImportScreen = ({ navigation }) => {
         'Import Error',
         'An unexpected error occurred. Please try again.'
       );
+      await markImportEnd();
     } finally {
       setIsImporting(false);
     }
@@ -101,23 +158,46 @@ const ImportScreen = ({ navigation }) => {
     try {
       setIsImporting(true);
 
-      // Refresh session to prevent timeout during import process
-      console.log('ImportScreen: Refreshing session before import...');
-      const sessionRefreshed = await VaultService.refreshSession();
-      if (!sessionRefreshed) {
-        console.log(
-          'ImportScreen: Failed to refresh session, checking authentication...'
-        );
-        if (!VaultService.isUserAuthenticated()) {
-          Alert.alert(
-            'Authentication Error',
-            'Your session has expired. Please log in again to import passwords.'
+      // Critical: Refresh session to prevent timeout during import process
+      console.log(
+        'ImportScreen: Refreshing session before processing import...'
+      );
+      let sessionRefreshed = false;
+
+      // Try multiple times to refresh session if needed
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        sessionRefreshed = await VaultService.refreshSession();
+        if (sessionRefreshed) {
+          console.log(
+            `ImportScreen: Session refreshed successfully on attempt ${attempt}`
           );
-          return;
+          break;
+        } else {
+          console.log(
+            `ImportScreen: Session refresh attempt ${attempt} failed`
+          );
+          if (attempt < 3) {
+            // Wait a bit before retrying
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
         }
-      } else {
-        console.log('ImportScreen: Session refreshed successfully');
       }
+
+      // Final authentication check
+      if (!sessionRefreshed || !VaultService.isUserAuthenticated()) {
+        console.log(
+          'ImportScreen: Authentication failed after session refresh attempts'
+        );
+        Alert.alert(
+          'Authentication Error',
+          'Your session has expired. Please log in again to import passwords.'
+        );
+        return;
+      }
+
+      console.log(
+        'ImportScreen: Authentication verified, proceeding with import'
+      );
 
       let importedCount = 0;
 
@@ -137,12 +217,17 @@ const ImportScreen = ({ navigation }) => {
         const passwordEntry = importedData[i];
 
         try {
-          // Refresh session every 20 entries to prevent timeout during large imports
-          if (i > 0 && i % 20 === 0) {
+          // Refresh session every 10 entries to prevent timeout during large imports
+          if (i > 0 && i % 10 === 0) {
             console.log(
               `ImportScreen: Refreshing session during import (entry ${i}/${importedData.length})...`
             );
-            await VaultService.refreshSession();
+            const midImportRefresh = await VaultService.refreshSession();
+            if (!midImportRefresh) {
+              console.warn(
+                `ImportScreen: Failed to refresh session at entry ${i}, continuing...`
+              );
+            }
           }
 
           console.log('Processing password entry:', {
@@ -161,6 +246,19 @@ const ImportScreen = ({ navigation }) => {
             if (existing) {
               // Skip or update existing entry based on user preference
               continue;
+            }
+          }
+
+          // Verify authentication before adding password entry
+          if (!VaultService.isUserAuthenticated()) {
+            console.error(
+              `ImportScreen: Authentication lost at entry ${i + 1}`
+            );
+            const emergencyRefresh = await VaultService.refreshSession();
+            if (!emergencyRefresh) {
+              throw new Error(
+                'Authentication lost during import - session expired'
+              );
             }
           }
 
@@ -191,7 +289,10 @@ const ImportScreen = ({ navigation }) => {
         [
           {
             text: 'OK',
-            onPress: () => {
+            onPress: async () => {
+              // Mark import as completed
+              await markImportEnd();
+
               // Navigate to MainTabs and then to MyVault
               navigation.reset({
                 index: 0,
@@ -208,10 +309,26 @@ const ImportScreen = ({ navigation }) => {
       );
     } catch (error) {
       console.error('Process import error:', error);
-      Alert.alert(
-        'Import Error',
-        'Some passwords could not be imported. Please check your vault and try again if needed.'
-      );
+
+      // Handle specific authentication errors
+      if (
+        error.message.includes('Authentication lost') ||
+        error.message.includes('session expired') ||
+        error.message.includes('not authenticated')
+      ) {
+        Alert.alert(
+          'Authentication Error',
+          'Your session expired during the import process. Some passwords may not have been imported. Please try importing again.'
+        );
+      } else {
+        Alert.alert(
+          'Import Error',
+          'Some passwords could not be imported. Please check your vault and try again if needed.'
+        );
+      }
+
+      // Mark import as ended even on error
+      await markImportEnd();
     } finally {
       setIsImporting(false);
     }
