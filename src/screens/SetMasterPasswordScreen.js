@@ -1,5 +1,5 @@
 import 'react-native-get-random-values';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,12 +14,12 @@ import { Card, TextInput, Snackbar, ProgressBar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SecureStore from 'expo-secure-store';
 import * as Crypto from 'expo-crypto';
-import bcrypt from 'react-native-bcrypt';
 import zxcvbn from 'zxcvbn';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { generateMnemonic } from '@scure/bip39';
 import { wordlist } from '@scure/bip39/wordlists/english';
 import { useTheme } from '../contexts/ThemeContext';
+import passwordUtils from '../utils/passwordUtils';
 
 const SetMasterPasswordScreen = ({ navigation }) => {
   const { theme } = useTheme();
@@ -120,42 +120,93 @@ const SetMasterPasswordScreen = ({ navigation }) => {
     }
 
     setIsLoading(true);
+
     try {
-      // Hash the master password with bcrypt (salt rounds = 10)
-      // Ensure we're passing a proper string to bcrypt
-      const hashedPassword = await bcrypt.hash(passwordString, 10);
+      console.log('SetMasterPasswordScreen: Starting password setup...');
+
+      // Hash the master password using PasswordUtils with robust error handling
+      console.log(
+        'SetMasterPasswordScreen: Hashing password with PasswordUtils...'
+      );
+      const hashedPassword = await passwordUtils.hashPassword(
+        passwordString,
+        12
+      );
+
+      console.log('SetMasterPasswordScreen: Password hashed successfully');
 
       // Generate recovery phrase
+      console.log('SetMasterPasswordScreen: Generating recovery phrase...');
       const recoveryPhrase = generateMnemonic(wordlist);
 
+      if (!recoveryPhrase) {
+        throw new Error('Failed to generate recovery phrase');
+      }
+
       // Hash the recovery phrase with SHA-256
+      console.log('SetMasterPasswordScreen: Hashing recovery phrase...');
       const recoveryHash = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
         recoveryPhrase
       );
 
+      if (!recoveryHash) {
+        throw new Error('Failed to hash recovery phrase');
+      }
+
       // Store the hashed password and recovery phrase hash
+      console.log('SetMasterPasswordScreen: Storing hashes in SecureStore...');
       await SecureStore.setItemAsync('vault_masterHash', hashedPassword);
       await SecureStore.setItemAsync('vault_recoveryHash', recoveryHash);
 
+      console.log('SetMasterPasswordScreen: Setup completed successfully');
       showSnackbar('Master password set successfully!');
 
-      // Navigate to ShowRecoveryPhraseScreen with the recovery phrase, then show setup modals
+      // Navigate to ShowRecoveryPhraseScreen immediately for better UX
+      console.log(
+        'SetMasterPasswordScreen: Navigating to recovery phrase screen...'
+      );
       setTimeout(() => {
-        if (navigation) {
-          navigation.replace('ShowRecoveryPhraseScreen', {
-            recoveryPhrase: recoveryPhrase,
-            masterPassword: passwordString, // Pass master password for vault authentication
-            showSetupModals: true, // Flag to trigger modal flow
-          });
+        try {
+          if (navigation) {
+            navigation.replace('ShowRecoveryPhraseScreen', {
+              recoveryPhrase: recoveryPhrase,
+              masterPassword: passwordString, // Pass master password for vault authentication
+              showSetupModals: true, // Flag to trigger modal flow
+            });
+          } else {
+            console.error(
+              'SetMasterPasswordScreen: Navigation object is undefined'
+            );
+            showSnackbar('Navigation error. Please restart the app.');
+          }
+        } catch (navError) {
+          console.error('SetMasterPasswordScreen: Navigation error:', navError);
+          showSnackbar('Navigation failed. Please restart the app.');
         }
-      }, 1500);
+      }, 1000); // Reduced delay for better UX
     } catch (error) {
-      console.error('Error setting master password:', error);
-      if (error.message && error.message.includes('Invalid string')) {
+      console.error(
+        'SetMasterPasswordScreen: Error setting master password:',
+        error
+      );
+      console.error('SetMasterPasswordScreen: Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
+
+      // Enhanced error handling
+      if (error.message && error.message.includes('Illegal callback')) {
+        showSnackbar('Password hashing failed. Please try again.');
+      } else if (error.message && error.message.includes('Invalid string')) {
         showSnackbar('Password format error. Please try again.');
+      } else if (error.message && error.message.includes('SecureStore')) {
+        showSnackbar('Storage error. Please check permissions and try again.');
+      } else if (error.message && error.message.includes('recovery phrase')) {
+        showSnackbar('Recovery phrase generation failed. Please try again.');
       } else {
-        showSnackbar('Error setting master password. Please try again.');
+        showSnackbar('Setup failed. Please try again.');
       }
     } finally {
       setIsLoading(false);
