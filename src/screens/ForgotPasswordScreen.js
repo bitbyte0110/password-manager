@@ -220,15 +220,17 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
       // Clear password lockout state
       await AsyncStorage.removeItem(FAILED_ATTEMPTS_KEY);
       await AsyncStorage.removeItem(LOCKOUT_TIME_KEY);
-      
+
       // Clear biometric lockout state
       await AsyncStorage.removeItem(BIOMETRIC_FAILED_ATTEMPTS_KEY);
       await AsyncStorage.removeItem(BIOMETRIC_LAST_FAILED_KEY);
-      
+
       // Clear any additional lockout-related keys
       await AsyncStorage.removeItem('vault_lastActiveTime');
-      
-      console.log('All lockout states cleared successfully after password recovery');
+
+      console.log(
+        'All lockout states cleared successfully after password recovery'
+      );
     } catch (error) {
       console.error('Error clearing lockout states:', error);
     }
@@ -268,7 +270,9 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
       clearSensitiveData();
 
       // Show success message
-      showSnackbar('Password reset successfully! You can now log in with your new password.');
+      showSnackbar(
+        'Password reset successfully! You can now log in with your new password.'
+      );
 
       // Navigate to Login with clean navigation state
       setTimeout(() => {

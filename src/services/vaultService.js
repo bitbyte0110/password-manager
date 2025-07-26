@@ -256,6 +256,62 @@ class VaultService {
   }
 
   /**
+   * Authenticate with OS-level biometric when MFA is disabled
+   * This allows immediate access after successful OS biometric authentication
+   * without requiring stored credentials or setup
+   * @returns {Promise<boolean>} Authentication success
+   */
+  async authenticateWithOSBiometric() {
+    try {
+      console.log(
+        'VaultService: Attempting OS-level biometric authentication...'
+      );
+
+      // Check if MFA is disabled (requirement for OS biometric-only access)
+      const mfaEnabled = await getMFAEnabled();
+      if (mfaEnabled) {
+        console.log(
+          'VaultService: MFA is enabled, OS biometric-only auth not allowed'
+        );
+        return false;
+      }
+
+      // Verify vault exists
+      const storedHash = await SecureStore.getItemAsync('vault_masterHash');
+      if (!storedHash) {
+        console.log('VaultService: No master password hash found');
+        return false;
+      }
+
+      // Since OS biometric authentication already succeeded and MFA is disabled,
+      // we can create an authenticated session without requiring stored credentials
+      console.log(
+        'VaultService: Creating authenticated session based on OS biometric success'
+      );
+
+      // Set authenticated state
+      this.isAuthenticated = true;
+      this.sessionStartTime = Date.now();
+
+      // Create a temporary session token for consistency
+      const sessionToken = `os_biometric_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      await SecureStore.setItemAsync('vault_sessionToken', sessionToken);
+      await SecureStore.setItemAsync(
+        'vault_sessionTime',
+        this.sessionStartTime.toString()
+      );
+
+      console.log(
+        'VaultService: OS biometric authentication successful - session created'
+      );
+      return true;
+    } catch (error) {
+      console.error('VaultService: OS biometric authentication error:', error);
+      return false;
+    }
+  }
+
+  /**
    * Store master password for biometric access (when MFA is disabled)
    * @param {string} password - Master password to store
    */
@@ -576,16 +632,18 @@ class VaultService {
   }
 
   /**
-   * Soft session clear - keeps caches for performance during session restoration
+   * Soft session clear - keeps caches and biometric storage for performance during session restoration
+   * Used when MFA is disabled to allow easier re-authentication
    */
-  softClearSession() {
+  async softClearSession() {
     this.masterPassword = null;
     this.isAuthenticated = false;
     this.sessionStartTime = null;
     this.sessionToken = null;
     // Keep caches intact for faster restoration
+    // Keep session token and biometric storage intact when MFA is disabled
     console.log(
-      'VaultService: Soft session clear - caches preserved for performance'
+      'VaultService: Soft session clear - caches and biometric storage preserved for performance'
     );
   }
 

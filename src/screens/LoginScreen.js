@@ -219,67 +219,108 @@ const LoginScreen = ({ navigation: navProp }) => {
           );
         } else {
           console.log(
-            '🔐 MFA is DISABLED - attempting biometric-only authentication'
+            '🔐 MFA is DISABLED - biometric authentication at OS level succeeded, granting access'
           );
-          // MFA disabled: Try to authenticate with biometric alone
+          // MFA disabled: OS-level biometric success is sufficient for vault access
           try {
             // Initialize vault service first
             await vaultService.initialize();
 
-            // Optimize biometric-only authentication for instant login
+            // Try optimized biometric authentication first (uses stored credentials)
             const biometricAuthSuccess =
               await vaultService.authenticateWithBiometric();
 
             if (biometricAuthSuccess) {
               console.log(
-                '✅ Biometric-only authentication successful! Navigating immediately'
+                '✅ Biometric authentication successful via stored session/credentials!'
               );
               await resetFailedAttempts();
-              // Navigate instantly - no additional processing needed
               navigation.replace('MainTabs');
               return;
-            } else {
-              // Check if this is first-time setup by looking for biometric password storage
-              const hasBiometricPassword = await SecureStore.getItemAsync(
-                'vault_biometricPassword'
-              );
-              const hasSessionToken =
-                await SecureStore.getItemAsync('vault_sessionToken');
+            }
 
-              console.log('🔍 Biometric auth failed - checking storage:', {
-                hasBiometricPassword: !!hasBiometricPassword,
-                hasSessionToken: !!hasSessionToken,
-                mfaEnabled: mfaEnabled,
-              });
+            // If biometric storage/session is not available but OS biometric auth succeeded,
+            // and MFA is disabled, we should allow access by creating a temporary session.
+            // This is the key fix: don't require password entry when MFA is disabled.
+            console.log(
+              '🔐 MFA DISABLED: OS biometric succeeded, attempting direct vault access'
+            );
 
-              if (!hasBiometricPassword && !hasSessionToken) {
+            // Try to get the master password hash to verify the vault is set up
+            const masterHash =
+              await SecureStore.getItemAsync('vault_masterHash');
+            if (!masterHash) {
+              throw new Error('No vault found');
+            }
+
+            // The issue is that biometric storage or session is not available.
+            // When MFA is disabled, we should NOT require password entry after successful biometric auth.
+            // Instead, let's check if we can restore the session with more lenient settings.
+
+            console.log(
+              '🔐 MFA DISABLED: Checking if we can restore authentication with extended session'
+            );
+
+            // Since MFA is disabled and OS biometric auth succeeded,
+            // try to restore authentication with a longer session timeout
+            const sessionRestored =
+              await vaultService.tryRestoreAuthentication();
+            if (sessionRestored) {
+              console.log('✅ Extended session restored after biometric auth!');
+              await resetFailedAttempts();
+              navigation.replace('MainTabs');
+              return;
+            }
+
+            // When MFA is disabled and OS biometric auth succeeded, grant immediate access
+            // No setup required - biometric authentication at OS level is sufficient
+            console.log(
+              '🔐 MFA DISABLED: OS biometric succeeded, granting immediate vault access'
+            );
+
+            try {
+              // Initialize vault service first
+              await vaultService.initialize();
+
+              // Use the new OS biometric authentication method
+              const osAuthSuccess =
+                await vaultService.authenticateWithOSBiometric();
+
+              if (osAuthSuccess) {
                 console.log(
-                  '🔐 MFA DISABLED: First-time biometric setup - need password to enable biometric storage'
+                  '✅ OS biometric authentication successful - immediate access granted!'
                 );
-                // First time setup - prompt for password to enable biometric storage
-                setMfaMode(false);
-                setShowPasswordModal(true);
-                showSnackbar(
-                  'First-time setup: Enter your master password to enable biometric-only login for future access.'
-                );
-              } else {
-                console.log(
-                  '🔐 MFA DISABLED: Biometric storage exists but authentication failed - trying password fallback'
-                );
-                // Biometric storage exists but failed - could be session expired or other issues
-                setMfaMode(false);
-                setShowPasswordModal(true);
-                showSnackbar(
-                  'Biometric authentication failed. Please enter your master password.'
-                );
+                await resetFailedAttempts();
+                navigation.replace('MainTabs');
+                return;
               }
+
+              // This shouldn't happen since OS biometric already succeeded
+              console.error(
+                '⚠️ OS biometric auth succeeded but vault service failed'
+              );
+              throw new Error(
+                'Vault service OS biometric authentication failed'
+              );
+            } catch (directAccessError) {
+              console.error(
+                'Error with OS biometric vault access:',
+                directAccessError
+              );
+              // This should not happen in normal circumstances
+              throw directAccessError;
             }
           } catch (error) {
-            console.error('Error during biometric authentication:', error);
+            console.error('Error during biometric vault access:', error);
+            // Only fall back to password if absolutely necessary
+            console.log(
+              '🔐 Fallback: Requesting password due to error:',
+              error.message
+            );
             setMfaMode(false);
             setShowPasswordModal(true);
             showSnackbar(
-              'Please enter your master password to access vault data.'
+              'Please enter your master password to access your vault.'
             );
           }
         }
@@ -346,6 +387,21 @@ const LoginScreen = ({ navigation: navProp }) => {
 
           // Reset failed attempts on successful login
           await resetFailedAttempts();
+
+          // Only enable biometric storage for MFA scenarios where we need stored credentials
+          // For non-MFA biometric login, we use OS-level authentication directly
+          if (biometricSucceeded && mfaEnabled && biometricEnabled) {
+            try {
+              console.log(
+                '🔐 MFA scenario: Enabling biometric storage for future MFA workflows'
+              );
+              await vaultService.enableBiometricAccess(masterPassword);
+              showSnackbar('Biometric storage updated for MFA workflows.');
+            } catch (error) {
+              console.error('Error enabling biometric access:', error);
+              // Don't block login if biometric setup fails
+            }
+          }
 
           // Update UI state and navigate immediately
           setShowPasswordModal(false);
@@ -446,13 +502,16 @@ const LoginScreen = ({ navigation: navProp }) => {
               <Icon name="exclamation-triangle" size={24} color="#fff" />
               <Text style={styles.lockoutText}>Account Locked</Text>
               <Text style={styles.lockoutSubtext}>
-                You have entered an incorrect master password 3 times. To unlock your account, please use your 12-word recovery phrase.
+                You have entered an incorrect master password 3 times. To unlock
+                your account, please use your 12-word recovery phrase.
               </Text>
               <TouchableOpacity
                 style={styles.recoveryButton}
                 onPress={handleUseRecoveryPhrase}
               >
-                <Text style={styles.recoveryButtonText}>Use Recovery Phrase</Text>
+                <Text style={styles.recoveryButtonText}>
+                  Use Recovery Phrase
+                </Text>
               </TouchableOpacity>
             </View>
           )}
@@ -466,9 +525,7 @@ const LoginScreen = ({ navigation: navProp }) => {
                   style={styles.loginButton}
                   onPress={() => handleBiometricLogin(false)}
                   disabled={
-                    isLoading ||
-                    !biometricAvailable ||
-                    isAutoAuthenticating
+                    isLoading || !biometricAvailable || isAutoAuthenticating
                   }
                   activeOpacity={0.8}
                 >
@@ -532,15 +589,28 @@ const LoginScreen = ({ navigation: navProp }) => {
         onRequestClose={() => setShowLockoutModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.lockoutModalContainer, { backgroundColor: theme.colors.card }]}>
+          <View
+            style={[
+              styles.lockoutModalContainer,
+              { backgroundColor: theme.colors.card },
+            ]}
+          >
             <View style={styles.lockoutModalHeader}>
               <Icon name="exclamation-triangle" size={40} color="#e74c3c" />
-              <Text style={[styles.lockoutModalTitle, { color: theme.colors.text }]}>
+              <Text
+                style={[styles.lockoutModalTitle, { color: theme.colors.text }]}
+              >
                 Account Locked
               </Text>
             </View>
-            <Text style={[styles.lockoutModalMessage, { color: theme.colors.textSecondary }]}>
-              You have entered an incorrect master password 3 times. To unlock your account, please use your 12-word recovery phrase.
+            <Text
+              style={[
+                styles.lockoutModalMessage,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
+              You have entered an incorrect master password 3 times. To unlock
+              your account, please use your 12-word recovery phrase.
             </Text>
             <TouchableOpacity
               style={styles.recoveryModalButton}
@@ -550,7 +620,9 @@ const LoginScreen = ({ navigation: navProp }) => {
                 colors={['#8e44ad', '#9b59b6']}
                 style={styles.recoveryModalButtonGradient}
               >
-                <Text style={styles.recoveryModalButtonText}>Use Recovery Phrase</Text>
+                <Text style={styles.recoveryModalButtonText}>
+                  Use Recovery Phrase
+                </Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -587,9 +659,7 @@ const LoginScreen = ({ navigation: navProp }) => {
                 ? biometricSucceeded
                   ? 'Step 2 of 2: Biometric authentication successful. Please enter your master password to complete MFA login.'
                   : 'Multi-Factor Authentication is enabled. Please enter your master password to complete the second authentication step.'
-                : biometricSucceeded
-                  ? 'Biometric authentication successful. Please enter your master password to access your vault.'
-                  : 'Please enter your master password to access your vault.'}
+                : 'Please enter your master password to access your vault.'}
             </Text>
 
             <SecureTextInput

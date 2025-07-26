@@ -149,7 +149,9 @@ const SessionManager = ({ children, navigationRef }) => {
 
   const handleSessionExpiry = async () => {
     try {
-      console.log('Session expiry triggered - clearing all session data and redirecting to login');
+      console.log(
+        'Session expiry triggered - clearing all session data and redirecting to login'
+      );
 
       // Clear vault service session
       await vaultService.clearSession();
@@ -161,7 +163,9 @@ const SessionManager = ({ children, navigationRef }) => {
 
       // Navigate directly to login without confirmation
       if (navigationRef.current) {
-        console.log('Navigation ref available, attempting to navigate to Login');
+        console.log(
+          'Navigation ref available, attempting to navigate to Login'
+        );
         try {
           // Check if we're already on the login screen
           const currentRoute = navigationRef.current.getCurrentRoute();
@@ -323,7 +327,7 @@ const AppNavigator = () => {
 
       // Step 2: Master password exists, always require authentication
       console.log('Master password exists, requiring fresh authentication');
-      
+
       // Clear any existing sessions to ensure fresh login
       try {
         await vaultService.clearSession();
