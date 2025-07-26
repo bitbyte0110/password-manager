@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Card, Button, Snackbar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as SecureStore from 'expo-secure-store';
 import clipboardService from '../services/clipboardService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
@@ -73,6 +74,26 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
       // Set initial activity timestamp for new user
       const timestamp = Date.now().toString();
       await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, timestamp);
+
+      // Clear any existing session tokens for first-time setup
+      console.log(
+        'ShowRecoveryPhraseScreen: Clearing any existing session data for fresh setup...'
+      );
+      try {
+        await vaultService.clearSession();
+        // Also clear any potentially corrupted session tokens directly
+        await SecureStore.deleteItemAsync('vault_sessionToken');
+        await SecureStore.deleteItemAsync('vault_sessionTime');
+        await SecureStore.deleteItemAsync('vault_biometricPassword');
+        console.log(
+          'ShowRecoveryPhraseScreen: All session data cleared for fresh setup'
+        );
+      } catch (clearError) {
+        console.warn(
+          'ShowRecoveryPhraseScreen: Could not clear session (non-critical):',
+          clearError
+        );
+      }
 
       // Initialize vault service first (including database)
       console.log('ShowRecoveryPhraseScreen: Initializing vault service...');

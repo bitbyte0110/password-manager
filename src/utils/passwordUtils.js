@@ -44,9 +44,64 @@ class PasswordUtils {
         throw new Error('Salt rounds must be between 10 and 15');
       }
 
-      // Generate salt and hash password
-      const salt = await bcrypt.genSalt(rounds);
-      const hashedPassword = await bcrypt.hash(password, salt);
+      // Generate salt and hash password with proper callback handling
+      let hashedPassword;
+
+      try {
+        // Try callback-based approach first (more reliable with react-native-bcrypt)
+        hashedPassword = await new Promise((resolve, reject) => {
+          bcrypt.hash(password, rounds, (error, hash) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve(hash);
+            }
+          });
+        });
+      } catch (callbackError) {
+        console.log(
+          'PasswordUtils: Callback-based bcrypt failed, trying alternative...'
+        );
+
+        // Fallback 1: Try with salt generation first
+        try {
+          const salt = await new Promise((resolve, reject) => {
+            bcrypt.genSalt(rounds, (error, salt) => {
+              if (error) {
+                reject(error);
+              } else {
+                resolve(salt);
+              }
+            });
+          });
+
+          hashedPassword = await new Promise((resolve, reject) => {
+            bcrypt.hash(password, salt, (error, hash) => {
+              if (error) {
+                reject(error);
+              } else {
+                resolve(hash);
+              }
+            });
+          });
+        } catch (saltError) {
+          // Fallback 2: Try direct await (some versions may support this)
+          console.log(
+            'PasswordUtils: Salt-based approach failed, trying direct await...'
+          );
+          try {
+            hashedPassword = await bcrypt.hash(password, rounds);
+          } catch (directError) {
+            throw new Error(
+              `All bcrypt methods failed. Callback: ${callbackError.message}, Salt: ${saltError.message}, Direct: ${directError.message}`
+            );
+          }
+        }
+      }
+
+      if (!hashedPassword) {
+        throw new Error('Password hashing failed - no hash generated');
+      }
 
       return hashedPassword;
     } catch (error) {
@@ -70,8 +125,34 @@ class PasswordUtils {
         throw new Error('Password and hash must be strings');
       }
 
-      // Verify password against hash
-      const isValid = await bcrypt.compare(password, hashedPassword);
+      // Verify password against hash with proper callback handling
+      let isValid;
+
+      try {
+        // Try callback-based approach first
+        isValid = await new Promise((resolve, reject) => {
+          bcrypt.compare(password, hashedPassword, (error, result) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve(result);
+            }
+          });
+        });
+      } catch (callbackError) {
+        console.log(
+          'PasswordUtils: Callback-based compare failed, trying direct await...'
+        );
+        try {
+          // Fallback: Try direct await
+          isValid = await bcrypt.compare(password, hashedPassword);
+        } catch (directError) {
+          throw new Error(
+            `Password verification failed. Callback: ${callbackError.message}, Direct: ${directError.message}`
+          );
+        }
+      }
+
       return isValid;
     } catch (error) {
       console.error('Password verification error:', error.message);

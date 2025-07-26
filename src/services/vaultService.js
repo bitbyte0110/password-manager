@@ -45,7 +45,28 @@ class VaultService {
       await this.autoCleanupExpiredTrash();
 
       // Try to restore authentication if session is valid
-      await this.tryRestoreAuthentication();
+      // Don't throw errors during initialization - session restoration is optional
+      try {
+        await this.tryRestoreAuthentication();
+        console.log('VaultService: Session restoration completed');
+      } catch (sessionError) {
+        console.warn(
+          'VaultService: Session restoration failed (non-critical):',
+          sessionError.message
+        );
+        // Clear potentially corrupted session data during initialization
+        try {
+          await SecureStore.deleteItemAsync('vault_sessionToken');
+          console.log(
+            'VaultService: Cleared corrupted session token during initialization'
+          );
+        } catch (clearError) {
+          console.warn(
+            'VaultService: Could not clear session token:',
+            clearError.message
+          );
+        }
+      }
 
       return true;
     } catch (error) {
