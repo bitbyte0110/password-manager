@@ -2353,10 +2353,15 @@ class DatabaseService {
 
         // Move each password to deleted_passwords table
         for (const password of passwords) {
+          // Calculate expiration date based on retention settings
+          const retentionDays = 30; // Default retention period
+          const expirationDate = new Date();
+          expirationDate.setDate(expirationDate.getDate() + retentionDays);
+
           await this.db.runAsync(
             `INSERT INTO deleted_passwords (
-              original_password_id, encrypted_payload, created_at, updated_at, last_accessed, deleted_at, category_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+              original_password_id, encrypted_payload, original_created_at, original_updated_at, original_last_accessed, deleted_at, expires_at, category_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               password.id,
               password.encrypted_payload,
@@ -2364,6 +2369,7 @@ class DatabaseService {
               password.updated_at,
               password.last_accessed,
               currentTimestamp,
+              expirationDate.toISOString(),
               password.category_id,
             ]
           );
