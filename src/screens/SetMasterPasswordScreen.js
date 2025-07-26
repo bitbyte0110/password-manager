@@ -14,7 +14,7 @@ import { Card, TextInput, Snackbar, ProgressBar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SecureStore from 'expo-secure-store';
 import * as Crypto from 'expo-crypto';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'react-native-bcrypt';
 import zxcvbn from 'zxcvbn';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { generateMnemonic } from '@scure/bip39';

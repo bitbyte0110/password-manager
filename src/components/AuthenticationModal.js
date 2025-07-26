@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
 import { Button } from 'react-native-paper';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'react-native-bcrypt';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useTheme } from '../contexts/ThemeContext';
 import SecureTextInput from './SecureTextInput';
