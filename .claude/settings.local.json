@@ -14,7 +14,9 @@
       "Bash(rm:*)",
       "Bash(npx kill-port:*)",
       "Bash(taskkill:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm install:*)"
     ],
     "deny": []
   }

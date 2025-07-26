@@ -1,4 +1,4 @@
-import bcrypt from 'bcryptjs';
+import bcrypt from 'react-native-bcrypt';
 
 /**
  * Password Utilities for Password Manager

@@ -11,7 +11,7 @@ import { TextInput, Button, Snackbar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SecureStore from 'expo-secure-store';
 import * as Crypto from 'expo-crypto';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'react-native-bcrypt';
 import zxcvbn from 'zxcvbn';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
@@ -259,8 +259,9 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
       try {
         await SecureStore.deleteItemAsync('vault_sessionToken');
         await SecureStore.deleteItemAsync('vault_biometricPassword');
+        await SecureStore.deleteItemAsync('vault_sessionTime'); // Also clear session time if it exists
         console.log(
-          'Cleared session token and biometric password after recovery'
+          'Cleared all session tokens and biometric password after recovery'
         );
       } catch (clearError) {
         console.warn('Warning: Could not clear session data:', clearError);

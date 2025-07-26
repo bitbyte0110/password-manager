@@ -1,5 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'react-native-bcrypt';
 import { Buffer } from 'buffer';
 import databaseService from './databaseService';
 import encryptionService from './encryptionService';
@@ -118,10 +118,28 @@ class VaultService {
       }
 
       console.log(
-        'VaultService: Session token is valid, decrypting master password...'
+        'VaultService: Session token is valid, checking session type...'
       );
 
-      // Decrypt the master password from session token
+      // Check if this is an OS biometric session
+      if (sessionData.type === 'os_biometric') {
+        console.log(
+          'VaultService: Restoring OS biometric session (no master password required)'
+        );
+
+        // For OS biometric sessions, we don't have the actual master password
+        // but we can still maintain authentication state
+        this.masterPassword = null; // OS biometric sessions don't store master password
+        this.isAuthenticated = true;
+        this.sessionStartTime = sessionData.timestamp;
+        this.sessionToken = sessionToken;
+
+        console.log('VaultService: OS biometric session restored successfully');
+        console.log('=== END SESSION RESTORATION DEBUG ===');
+        return true;
+      }
+
+      // For regular sessions, decrypt the master password from session token
       let masterPassword;
       try {
         masterPassword = this.decryptSessionToken(
@@ -293,13 +311,17 @@ class VaultService {
       this.isAuthenticated = true;
       this.sessionStartTime = Date.now();
 
-      // Create a temporary session token for consistency
-      const sessionToken = `os_biometric_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      await SecureStore.setItemAsync('vault_sessionToken', sessionToken);
-      await SecureStore.setItemAsync(
-        'vault_sessionTime',
-        this.sessionStartTime.toString()
-      );
+      // Create a proper session token in JSON format to match tryRestoreAuthentication expectations
+      // Use a placeholder encrypted password since we don't have the actual master password
+      const sessionData = {
+        encryptedPassword: 'os_biometric_placeholder', // Placeholder for OS biometric sessions
+        salt: 'os_biometric_salt',
+        timestamp: this.sessionStartTime,
+        type: 'os_biometric', // Mark this as an OS biometric session
+      };
+
+      this.sessionToken = JSON.stringify(sessionData);
+      await SecureStore.setItemAsync('vault_sessionToken', this.sessionToken);
 
       console.log(
         'VaultService: OS biometric authentication successful - session created'
@@ -591,7 +613,26 @@ class VaultService {
    * @returns {boolean} Authentication status
    */
   isUserAuthenticated() {
-    return this.isAuthenticated && this.masterPassword !== null;
+    // For regular sessions, require both isAuthenticated and masterPassword
+    // For OS biometric sessions, only require isAuthenticated (masterPassword is null by design)
+    return (
+      this.isAuthenticated &&
+      (this.masterPassword !== null || this.isOSBiometricSession())
+    );
+  }
+
+  /**
+   * Check if current session is an OS biometric session
+   * @returns {boolean} Whether this is an OS biometric session
+   */
+  isOSBiometricSession() {
+    if (!this.sessionToken) return false;
+    try {
+      const sessionData = JSON.parse(this.sessionToken);
+      return sessionData.type === 'os_biometric';
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -647,6 +688,62 @@ class VaultService {
       this.dbService &&
       this.dbService.isInitialized
     );
+  }
+
+  /**
+   * Check if vault is ready for data operations (requires master password)
+   * @returns {boolean} Ready for data operations
+   */
+  isVaultReadyForDataOperations() {
+    return (
+      this.isVaultReady() &&
+      (this.masterPassword !== null || !this.isOSBiometricSession())
+    );
+  }
+
+  /**
+   * Upgrade an OS biometric session to a full session with master password
+   * @param {string} masterPassword - Master password to verify and store
+   * @returns {Promise<boolean>} Upgrade success
+   */
+  async upgradeOSBiometricSession(masterPassword) {
+    try {
+      if (!this.isOSBiometricSession()) {
+        throw new Error('Not an OS biometric session');
+      }
+
+      console.log(
+        'VaultService: Upgrading OS biometric session with master password...'
+      );
+
+      // Verify the master password
+      const storedHash = await SecureStore.getItemAsync('vault_masterHash');
+      if (!storedHash) {
+        throw new Error('No master password set');
+      }
+
+      const bcrypt = require('react-native-bcrypt');
+      const isValid = await bcrypt.compare(masterPassword, storedHash);
+      if (!isValid) {
+        throw new Error('Invalid master password');
+      }
+
+      // Upgrade the session
+      this.masterPassword = masterPassword;
+      this.sessionStartTime = Date.now();
+
+      // Create a new session token with the actual master password
+      await this.createSessionToken(masterPassword);
+
+      console.log('VaultService: OS biometric session upgraded successfully');
+      return true;
+    } catch (error) {
+      console.error(
+        'VaultService: Error upgrading OS biometric session:',
+        error
+      );
+      throw error;
+    }
   }
 
   /**
@@ -1386,7 +1483,18 @@ class VaultService {
       if (!this.masterPassword) {
         console.log('Attempting to restore authentication...');
         const restored = await this.tryRestoreAuthentication();
-        if (!restored || !this.masterPassword) {
+        if (!restored) {
+          throw new Error('Authentication could not be restored');
+        }
+
+        // If this is an OS biometric session, we need the user to provide master password
+        if (this.isOSBiometricSession()) {
+          throw new Error(
+            'NEED_MASTER_PASSWORD: OS biometric session requires master password for data access'
+          );
+        }
+
+        if (!this.masterPassword) {
           throw new Error(
             'Master password not available - authentication required'
           );
