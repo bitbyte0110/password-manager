@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as LocalAuthentication from 'expo-local-authentication';
 import bcrypt from 'react-native-bcrypt';
 import { Alert } from 'react-native';
+import passwordUtils from './passwordUtils';
 
 /**
  * Utility functions for authentication flows
@@ -179,7 +180,7 @@ const authenticateWithPassword = async (title, message) => {
                 return;
               }
 
-              const isValid = await bcrypt.compare(password, storedHash);
+              const isValid = await passwordUtils.verifyPassword(password, storedHash);
               if (isValid) {
                 resolve({
                   success: true,

@@ -39,15 +39,27 @@ const MFASetupModal = ({ visible, onComplete }) => {
 
       if (verifiedSettings.mfaEnabled === true) {
         console.log('✅ MFA setting verified in storage');
-        onComplete(true);
+        if (typeof onComplete === 'function') {
+          onComplete(true);
+        } else {
+          console.error('❌ onComplete callback is not a function');
+        }
       } else {
         console.error('❌ MFA setting verification failed');
-        onComplete(false);
+        if (typeof onComplete === 'function') {
+          onComplete(false);
+        } else {
+          console.error('❌ onComplete callback is not a function');
+        }
       }
     } catch (error) {
       console.error('❌ Error enabling MFA:', error);
       // On storage failure, default to disabled for consistency
-      onComplete(false);
+      if (typeof onComplete === 'function') {
+        onComplete(false);
+      } else {
+        console.error('❌ onComplete callback is not a function in error handler');
+      }
     } finally {
       setIsEnabling(false);
     }
@@ -81,16 +93,28 @@ const MFASetupModal = ({ visible, onComplete }) => {
 
       if (verifiedSettings.mfaEnabled === false) {
         console.log('✅ MFA disabled setting verified in storage');
-        onComplete(false);
+        if (typeof onComplete === 'function') {
+          onComplete(false);
+        } else {
+          console.error('❌ onComplete callback is not a function');
+        }
       } else {
         console.error('❌ MFA disabled setting verification failed');
         // Force disable if verification fails
-        onComplete(false);
+        if (typeof onComplete === 'function') {
+          onComplete(false);
+        } else {
+          console.error('❌ onComplete callback is not a function');
+        }
       }
     } catch (error) {
       console.error('❌ Error skipping MFA:', error);
       // On storage failure, default to disabled for consistency
-      onComplete(false);
+      if (typeof onComplete === 'function') {
+        onComplete(false);
+      } else {
+        console.error('❌ onComplete callback is not a function in skip error handler');
+      }
     } finally {
       setIsDisabling(false);
     }

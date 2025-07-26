@@ -13,6 +13,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as Crypto from 'expo-crypto';
 import bcrypt from 'react-native-bcrypt';
 import zxcvbn from 'zxcvbn';
+import passwordUtils from '../utils/passwordUtils';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useTheme } from '../contexts/ThemeContext';
@@ -250,7 +251,7 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
 
       // Hash the new password
       const saltRounds = 12;
-      const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+      const newPasswordHash = await passwordUtils.hashPassword(newPassword, saltRounds);
 
       // Update the master password hash in SecureStore
       await SecureStore.setItemAsync('vault_masterHash', newPasswordHash);

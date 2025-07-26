@@ -22,6 +22,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../../App_Updated'; // Import useAuth hook
 import SecureTextInput from '../components/SecureTextInput';
 import { getMFAEnabled, getBiometricEnabled } from '../utils/authUtils';
+import passwordUtils from '../utils/passwordUtils';
 
 const LoginScreen = ({ navigation: navProp }) => {
   const navigation = navProp || useNavigation();
@@ -109,7 +110,7 @@ const LoginScreen = ({ navigation: navProp }) => {
         throw new Error('No master password found. Please set up your vault.');
       }
 
-      const isValidPassword = await bcrypt.compare(masterPassword, masterHash);
+      const isValidPassword = await passwordUtils.verifyPassword(masterPassword, masterHash);
 
       if (!isValidPassword) {
         setPasswordError('Invalid master password');

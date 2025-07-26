@@ -7,6 +7,7 @@ import bcrypt from 'react-native-bcrypt';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { useTheme } from '../contexts/ThemeContext';
 import SecureTextInput from './SecureTextInput';
+import passwordUtils from '../utils/passwordUtils';
 
 const AuthenticationModal = ({
   visible,
@@ -136,7 +137,7 @@ const AuthenticationModal = ({
         return;
       }
 
-      const isValid = await bcrypt.compare(password, storedHash);
+      const isValid = await passwordUtils.verifyPassword(password, storedHash);
       if (isValid) {
         const method = authMethod === 'mfa' ? 'mfa' : 'password';
         onSuccess({ success: true, method, password });

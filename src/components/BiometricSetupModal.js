@@ -30,11 +30,19 @@ const BiometricSetupModal = ({ visible, onComplete }) => {
       await SecureStore.setItemAsync('vault_biometricEnabled', 'true');
 
       console.log('Biometric enabled during initial setup');
-      onComplete(true);
+      if (typeof onComplete === 'function') {
+        onComplete(true);
+      } else {
+        console.error('❌ onComplete callback is not a function in biometric enable');
+      }
     } catch (error) {
       console.error('Error enabling biometric:', error);
       // Still proceed even if storage fails
-      onComplete(true);
+      if (typeof onComplete === 'function') {
+        onComplete(true);
+      } else {
+        console.error('❌ onComplete callback is not a function in biometric enable error');
+      }
     } finally {
       setIsEnabling(false);
     }
@@ -59,11 +67,19 @@ const BiometricSetupModal = ({ visible, onComplete }) => {
       await SecureStore.setItemAsync('vault_biometricEnabled', 'false');
 
       console.log('Biometric skipped during initial setup');
-      onComplete(false);
+      if (typeof onComplete === 'function') {
+        onComplete(false);
+      } else {
+        console.error('❌ onComplete callback is not a function in biometric skip');
+      }
     } catch (error) {
       console.error('Error skipping biometric:', error);
       // Still proceed even if storage fails
-      onComplete(false);
+      if (typeof onComplete === 'function') {
+        onComplete(false);
+      } else {
+        console.error('❌ onComplete callback is not a function in biometric skip error');
+      }
     } finally {
       setIsSkipping(false);
     }
