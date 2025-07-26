@@ -85,13 +85,22 @@ const ImportScreen = ({ navigation }) => {
     try {
       setIsImporting(true);
 
-      // Check authentication first
-      if (!VaultService.isUserAuthenticated()) {
-        Alert.alert(
-          'Authentication Error',
-          'Please log in to import passwords.'
+      // Refresh session to prevent timeout during import process
+      console.log('ImportScreen: Refreshing session before import...');
+      const sessionRefreshed = await VaultService.refreshSession();
+      if (!sessionRefreshed) {
+        console.log(
+          'ImportScreen: Failed to refresh session, checking authentication...'
         );
-        return;
+        if (!VaultService.isUserAuthenticated()) {
+          Alert.alert(
+            'Authentication Error',
+            'Your session has expired. Please log in again to import passwords.'
+          );
+          return;
+        }
+      } else {
+        console.log('ImportScreen: Session refreshed successfully');
       }
 
       let importedCount = 0;
@@ -108,13 +117,24 @@ const ImportScreen = ({ navigation }) => {
         `Processing ${importedData.length} password entries for import...`
       );
 
-      for (const passwordEntry of importedData) {
+      for (let i = 0; i < importedData.length; i++) {
+        const passwordEntry = importedData[i];
+
         try {
+          // Refresh session every 20 entries to prevent timeout during large imports
+          if (i > 0 && i % 20 === 0) {
+            console.log(
+              `ImportScreen: Refreshing session during import (entry ${i}/${importedData.length})...`
+            );
+            await VaultService.refreshSession();
+          }
+
           console.log('Processing password entry:', {
             website: passwordEntry.website || passwordEntry.title,
             username: passwordEntry.username,
             hasPassword: !!passwordEntry.password,
           });
+
           // Check if password already exists (for merge mode)
           if (importMode === 'merge') {
             const existing = await VaultService.findDuplicatePassword(
