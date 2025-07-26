@@ -61,8 +61,20 @@ const PasswordDetailsScreen = () => {
     setLoading(true);
     try {
       console.log('PasswordDetailsScreen: Fetching entry for ID:', id);
-      const startTime = Date.now();
 
+      // Refresh session before fetching to prevent authentication errors
+      console.log('PasswordDetailsScreen: Refreshing session before fetch...');
+      const sessionRefreshed = await vaultService.refreshSession();
+      if (!sessionRefreshed) {
+        console.log(
+          'PasswordDetailsScreen: Session refresh failed, checking authentication...'
+        );
+        if (!vaultService.isUserAuthenticated()) {
+          throw new Error('User not authenticated - session expired');
+        }
+      }
+
+      const startTime = Date.now();
       const data = await vaultService.getPasswordEntry(id);
 
       const endTime = Date.now();
@@ -80,7 +92,25 @@ const PasswordDetailsScreen = () => {
       });
     } catch (e) {
       console.error('PasswordDetailsScreen: Error fetching entry:', e);
-      setDecryptionError(true);
+
+      // Handle authentication errors specifically
+      if (
+        e.message.includes('not authenticated') ||
+        e.message.includes('session expired')
+      ) {
+        Alert.alert(
+          'Session Expired',
+          'Your session has expired. Please log in again to view password details.',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.goBack(),
+            },
+          ]
+        );
+      } else {
+        setDecryptionError(true);
+      }
       setEntry(null);
     } finally {
       setLoading(false);

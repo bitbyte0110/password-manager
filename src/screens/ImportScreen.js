@@ -15,6 +15,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import VaultService from '../services/vaultService';
 import ImportExportService from '../services/importExportService';
@@ -37,6 +38,21 @@ const ImportScreen = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importMode, setImportMode] = useState('merge'); // 'merge' or 'replace'
+
+  // Refresh session when screen gains focus to prevent timeout during import process
+  useFocusEffect(
+    React.useCallback(() => {
+      const refreshSession = async () => {
+        try {
+          console.log('ImportScreen: Refreshing session on focus...');
+          await VaultService.refreshSession();
+        } catch (error) {
+          console.warn('ImportScreen: Failed to refresh session:', error);
+        }
+      };
+      refreshSession();
+    }, [])
+  );
 
   const handleImport = async () => {
     try {

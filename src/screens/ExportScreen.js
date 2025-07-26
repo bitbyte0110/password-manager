@@ -15,6 +15,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import VaultService from '../services/vaultService';
 import ImportExportService from '../services/importExportService';
@@ -38,6 +39,21 @@ const ExportScreen = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [passwordErrors, setPasswordErrors] = useState([]);
+
+  // Refresh session when screen gains focus to prevent timeout during export process
+  useFocusEffect(
+    React.useCallback(() => {
+      const refreshSession = async () => {
+        try {
+          console.log('ExportScreen: Refreshing session on focus...');
+          await VaultService.refreshSession();
+        } catch (error) {
+          console.warn('ExportScreen: Failed to refresh session:', error);
+        }
+      };
+      refreshSession();
+    }, [])
+  );
 
   const validatePasswords = () => {
     const errors = [];
