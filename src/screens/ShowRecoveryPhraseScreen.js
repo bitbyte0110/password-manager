@@ -70,76 +70,134 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
   };
 
   const initializeVaultAndNavigate = async () => {
-    try {
-      // Set initial activity timestamp for new user
-      const timestamp = Date.now().toString();
-      await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, timestamp);
-
-      // Clear any existing session tokens for first-time setup
-      console.log(
-        'ShowRecoveryPhraseScreen: Clearing any existing session data for fresh setup...'
-      );
+    const maxRetries = 3;
+    let attempt = 0;
+    
+    while (attempt < maxRetries) {
       try {
-        await vaultService.clearSession();
-        // Also clear any potentially corrupted session tokens directly
-        await SecureStore.deleteItemAsync('vault_sessionToken');
-        await SecureStore.deleteItemAsync('vault_sessionTime');
-        await SecureStore.deleteItemAsync('vault_biometricPassword');
+        attempt++;
+        console.log(`ShowRecoveryPhraseScreen: Initialization attempt ${attempt}/${maxRetries}`);
+        
+        // Set initial activity timestamp for new user
+        const timestamp = Date.now().toString();
+        await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, timestamp);
+
+        // Clear any existing session tokens for first-time setup
         console.log(
-          'ShowRecoveryPhraseScreen: All session data cleared for fresh setup'
+          'ShowRecoveryPhraseScreen: Clearing any existing session data for fresh setup...'
         );
-      } catch (clearError) {
-        console.warn(
-          'ShowRecoveryPhraseScreen: Could not clear session (non-critical):',
-          clearError
-        );
-      }
-
-      // Initialize vault service first (including database)
-      console.log('ShowRecoveryPhraseScreen: Initializing vault service...');
-      await vaultService.initialize();
-
-      // Then authenticate if master password is available
-      if (masterPassword) {
-        console.log(
-          'ShowRecoveryPhraseScreen: Authenticating vault service...'
-        );
-        await vaultService.authenticate(masterPassword);
-        console.log(
-          'ShowRecoveryPhraseScreen: Vault service authenticated successfully'
-        );
-      }
-
-      // Ensure database is fully ready before navigation
-      console.log('ShowRecoveryPhraseScreen: Verifying database is ready...');
-      if (!vaultService.isUserAuthenticated()) {
-        throw new Error('Vault service authentication failed');
-      }
-
-      console.log(
-        'ShowRecoveryPhraseScreen: Setup complete, navigating to MainTabs'
-      );
-      setShowSuccessScreen(true);
-      setTimeout(() => {
-        if (navigation) {
-          navigation.replace('MainTabs');
+        try {
+          await vaultService.clearSession();
+          // Also clear any potentially corrupted session tokens directly
+          await SecureStore.deleteItemAsync('vault_sessionToken');
+          await SecureStore.deleteItemAsync('vault_sessionTime');
+          await SecureStore.deleteItemAsync('vault_biometricPassword');
+          console.log(
+            'ShowRecoveryPhraseScreen: All session data cleared for fresh setup'
+          );
+        } catch (clearError) {
+          console.warn(
+            'ShowRecoveryPhraseScreen: Could not clear session (non-critical):',
+            clearError
+          );
         }
-      }, 2500);
-    } catch (error) {
-      console.error(
-        'ShowRecoveryPhraseScreen: Error setting up authentication:',
-        error
-      );
-      Alert.alert(
-        'Setup Error',
-        'Failed to initialize your vault. Please try again.',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation?.replace('SetMasterPassword'),
-          },
-        ]
-      );
+
+        // Initialize vault service first (including database)
+        console.log('ShowRecoveryPhraseScreen: Initializing vault service...');
+        await vaultService.initialize();
+
+        // Then authenticate if master password is available
+        if (masterPassword) {
+          console.log(
+            'ShowRecoveryPhraseScreen: Authenticating vault service...'
+          );
+          
+          // Add extra delay and retry logic for authentication
+          let authSuccess = false;
+          for (let authAttempt = 1; authAttempt <= 3; authAttempt++) {
+            try {
+              console.log(`ShowRecoveryPhraseScreen: Auth attempt ${authAttempt}/3`);
+              await vaultService.authenticate(masterPassword);
+              console.log(
+                'ShowRecoveryPhraseScreen: Vault service authenticated successfully'
+              );
+              authSuccess = true;
+              break;
+            } catch (authError) {
+              console.warn(`ShowRecoveryPhraseScreen: Auth attempt ${authAttempt} failed:`, authError.message);
+              
+              // If it's a callback error, wait a bit and retry
+              if (authError.message?.includes('Illegal callback') && authAttempt < 3) {
+                console.log('ShowRecoveryPhraseScreen: Waiting before retry due to callback error...');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                continue;
+              } else {
+                throw authError;
+              }
+            }
+          }
+          
+          if (!authSuccess) {
+            throw new Error('Authentication failed after multiple attempts');
+          }
+        }
+
+        // Ensure database is fully ready before navigation
+        console.log('ShowRecoveryPhraseScreen: Verifying database is ready...');
+        if (!vaultService.isUserAuthenticated()) {
+          throw new Error('Vault service authentication failed');
+        }
+
+        console.log(
+          'ShowRecoveryPhraseScreen: Setup complete, navigating to MainTabs'
+        );
+        setShowSuccessScreen(true);
+        setTimeout(() => {
+          if (navigation) {
+            navigation.replace('MainTabs');
+          }
+        }, 2500);
+        
+        // Success - break out of retry loop
+        return;
+        
+      } catch (error) {
+        console.error(
+          `ShowRecoveryPhraseScreen: Error setting up authentication (attempt ${attempt}):`,
+          error
+        );
+        
+        // If it's a callback error and we have retries left, try again
+        if (error.message?.includes('Illegal callback') && attempt < maxRetries) {
+          console.log('ShowRecoveryPhraseScreen: Retrying due to callback error...');
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          continue;
+        }
+        
+        // If this was the last attempt or it's not a callback error, show error
+        Alert.alert(
+          'Setup Error',
+          `Failed to initialize your vault${attempt < maxRetries ? '. Retrying...' : '. Please try again.'}`,
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                if (attempt >= maxRetries) {
+                  navigation?.replace('SetMasterPassword');
+                }
+              },
+            },
+          ]
+        );
+        
+        // If not the last attempt, continue the loop
+        if (attempt < maxRetries) {
+          continue;
+        }
+        
+        // Last attempt failed, exit
+        break;
+      }
     }
   };
 
@@ -159,14 +217,28 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
   };
 
   const handleMFASetupComplete = async mfaEnabled => {
-    setShowMFAModal(false);
+    try {
+      setShowMFAModal(false);
 
-    console.log(
-      `MFA setup completed with result: ${mfaEnabled ? 'enabled' : 'disabled'}`
-    );
+      console.log(
+        `MFA setup completed with result: ${mfaEnabled ? 'enabled' : 'disabled'}`
+      );
 
-    // Initialize vault and navigate
-    await initializeVaultAndNavigate();
+      // Initialize vault and navigate
+      await initializeVaultAndNavigate();
+    } catch (error) {
+      console.error('ShowRecoveryPhraseScreen: Error in handleMFASetupComplete:', error);
+      Alert.alert(
+        'Setup Error',
+        'Failed to complete MFA setup. Please try again.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation?.replace('SetMasterPassword'),
+          },
+        ]
+      );
+    }
   };
 
   if (!recoveryPhrase) {

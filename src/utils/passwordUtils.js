@@ -12,6 +12,181 @@ class PasswordUtils {
   }
 
   /**
+   * Safe bcrypt hash wrapper with multiple fallback strategies
+   * @param {string} password - Plain text password to hash
+   * @param {number} rounds - Salt rounds
+   * @returns {Promise<string>} Hashed password
+   */
+  async _safeBcryptHash(password, rounds) {
+    const strategies = [
+      // Strategy 1: Callback with explicit function declaration
+      () => new Promise((resolve, reject) => {
+        const handleResult = (error, hash) => {
+          if (error) {
+            reject(new Error(`Bcrypt hash error: ${error.message || error}`));
+          } else if (!hash) {
+            reject(new Error('Bcrypt returned empty hash'));
+          } else {
+            resolve(hash);
+          }
+        };
+        
+        try {
+          bcrypt.hash(password, rounds, handleResult);
+        } catch (syncError) {
+          reject(new Error(`Bcrypt hash sync error: ${syncError.message}`));
+        }
+      }),
+
+      // Strategy 2: Salt generation then hash
+      () => new Promise((resolve, reject) => {
+        const handleSalt = (saltError, salt) => {
+          if (saltError) {
+            reject(new Error(`Salt generation error: ${saltError.message || saltError}`));
+            return;
+          }
+          
+          const handleHash = (hashError, hash) => {
+            if (hashError) {
+              reject(new Error(`Hash with salt error: ${hashError.message || hashError}`));
+            } else if (!hash) {
+              reject(new Error('Hash with salt returned empty result'));
+            } else {
+              resolve(hash);
+            }
+          };
+          
+          try {
+            bcrypt.hash(password, salt, handleHash);
+          } catch (syncError) {
+            reject(new Error(`Hash with salt sync error: ${syncError.message}`));
+          }
+        };
+        
+        try {
+          bcrypt.genSalt(rounds, handleSalt);
+        } catch (syncError) {
+          reject(new Error(`Salt generation sync error: ${syncError.message}`));
+        }
+      }),
+
+      // Strategy 3: Direct await (for newer versions)
+      async () => {
+        try {
+          const result = await bcrypt.hash(password, rounds);
+          if (!result) {
+            throw new Error('Direct bcrypt returned empty result');
+          }
+          return result;
+        } catch (error) {
+          throw new Error(`Direct bcrypt error: ${error.message || error}`);
+        }
+      },
+
+      // Strategy 4: Sync version as last resort
+      () => {
+        try {
+          const result = bcrypt.hashSync(password, rounds);
+          if (!result) {
+            throw new Error('Sync bcrypt returned empty result');
+          }
+          return Promise.resolve(result);
+        } catch (error) {
+          return Promise.reject(new Error(`Sync bcrypt error: ${error.message || error}`));
+        }
+      }
+    ];
+
+    let lastError = null;
+    
+    for (let i = 0; i < strategies.length; i++) {
+      try {
+        console.log(`PasswordUtils: Trying bcrypt strategy ${i + 1}/${strategies.length}`);
+        const result = await strategies[i]();
+        console.log(`PasswordUtils: Strategy ${i + 1} succeeded`);
+        return result;
+      } catch (error) {
+        console.warn(`PasswordUtils: Strategy ${i + 1} failed:`, error.message);
+        lastError = error;
+        
+        // Add delay between attempts to avoid rapid failures
+        if (i < strategies.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+    }
+    
+    throw new Error(`All bcrypt strategies failed. Last error: ${lastError?.message || 'Unknown error'}`);
+  }
+
+  /**
+   * Safe bcrypt compare wrapper with multiple fallback strategies
+   * @param {string} password - Plain text password
+   * @param {string} hash - Stored hash
+   * @returns {Promise<boolean>} Comparison result
+   */
+  async _safeBcryptCompare(password, hash) {
+    const strategies = [
+      // Strategy 1: Callback with explicit function declaration
+      () => new Promise((resolve, reject) => {
+        const handleResult = (error, result) => {
+          if (error) {
+            reject(new Error(`Bcrypt compare error: ${error.message || error}`));
+          } else {
+            resolve(Boolean(result));
+          }
+        };
+        
+        try {
+          bcrypt.compare(password, hash, handleResult);
+        } catch (syncError) {
+          reject(new Error(`Bcrypt compare sync error: ${syncError.message}`));
+        }
+      }),
+
+      // Strategy 2: Direct await
+      async () => {
+        try {
+          const result = await bcrypt.compare(password, hash);
+          return Boolean(result);
+        } catch (error) {
+          throw new Error(`Direct bcrypt compare error: ${error.message || error}`);
+        }
+      },
+
+      // Strategy 3: Sync version as last resort
+      () => {
+        try {
+          const result = bcrypt.compareSync(password, hash);
+          return Promise.resolve(Boolean(result));
+        } catch (error) {
+          return Promise.reject(new Error(`Sync bcrypt compare error: ${error.message || error}`));
+        }
+      }
+    ];
+
+    let lastError = null;
+    
+    for (let i = 0; i < strategies.length; i++) {
+      try {
+        console.log(`PasswordUtils: Trying compare strategy ${i + 1}/${strategies.length}`);
+        const result = await strategies[i]();
+        console.log(`PasswordUtils: Compare strategy ${i + 1} succeeded`);
+        return result;
+      } catch (error) {
+        console.warn(`PasswordUtils: Compare strategy ${i + 1} failed:`, error.message);
+        lastError = error;
+        
+        if (i < strategies.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+    }
+    
+    throw new Error(`All bcrypt compare strategies failed. Last error: ${lastError?.message || 'Unknown error'}`);
+  }
+
+  /**
    * Hash a password using bcrypt with secure salt rounds
    * @param {string} password - Plain text password to hash
    * @param {number} rounds - Optional salt rounds (defaults to 12)
@@ -44,67 +219,15 @@ class PasswordUtils {
         throw new Error('Salt rounds must be between 10 and 15');
       }
 
-      // Generate salt and hash password with proper callback handling
-      let hashedPassword;
-
-      try {
-        // Try callback-based approach first (more reliable with react-native-bcrypt)
-        hashedPassword = await new Promise((resolve, reject) => {
-          bcrypt.hash(password, rounds, (error, hash) => {
-            if (error) {
-              reject(error);
-            } else {
-              resolve(hash);
-            }
-          });
-        });
-      } catch (callbackError) {
-        console.log(
-          'PasswordUtils: Callback-based bcrypt failed, trying alternative...'
-        );
-
-        // Fallback 1: Try with salt generation first
-        try {
-          const salt = await new Promise((resolve, reject) => {
-            bcrypt.genSalt(rounds, (error, salt) => {
-              if (error) {
-                reject(error);
-              } else {
-                resolve(salt);
-              }
-            });
-          });
-
-          hashedPassword = await new Promise((resolve, reject) => {
-            bcrypt.hash(password, salt, (error, hash) => {
-              if (error) {
-                reject(error);
-              } else {
-                resolve(hash);
-              }
-            });
-          });
-        } catch (saltError) {
-          // Fallback 2: Try direct await (some versions may support this)
-          console.log(
-            'PasswordUtils: Salt-based approach failed, trying direct await...'
-          );
-          try {
-            hashedPassword = await bcrypt.hash(password, rounds);
-          } catch (directError) {
-            throw new Error(
-              `All bcrypt methods failed. Callback: ${callbackError.message}, Salt: ${saltError.message}, Direct: ${directError.message}`
-            );
-          }
-        }
-      }
-
+      const hashedPassword = await this._safeBcryptHash(password, rounds);
+      
       if (!hashedPassword) {
         throw new Error('Password hashing failed - no hash generated');
       }
 
       return hashedPassword;
     } catch (error) {
+      console.error('PasswordUtils: Hash password failed:', error);
       throw new Error(`Password hashing failed: ${error.message}`);
     }
   }
@@ -118,44 +241,19 @@ class PasswordUtils {
   async verifyPassword(password, hashedPassword) {
     try {
       if (!password || !hashedPassword) {
-        throw new Error('Password and hash are required');
+        console.warn('PasswordUtils: Missing password or hash for verification');
+        return false;
       }
 
       if (typeof password !== 'string' || typeof hashedPassword !== 'string') {
-        throw new Error('Password and hash must be strings');
+        console.warn('PasswordUtils: Password and hash must be strings');
+        return false;
       }
 
-      // Verify password against hash with proper callback handling
-      let isValid;
-
-      try {
-        // Try callback-based approach first
-        isValid = await new Promise((resolve, reject) => {
-          bcrypt.compare(password, hashedPassword, (error, result) => {
-            if (error) {
-              reject(error);
-            } else {
-              resolve(result);
-            }
-          });
-        });
-      } catch (callbackError) {
-        console.log(
-          'PasswordUtils: Callback-based compare failed, trying direct await...'
-        );
-        try {
-          // Fallback: Try direct await
-          isValid = await bcrypt.compare(password, hashedPassword);
-        } catch (directError) {
-          throw new Error(
-            `Password verification failed. Callback: ${callbackError.message}, Direct: ${directError.message}`
-          );
-        }
-      }
-
-      return isValid;
+      const isValid = await this._safeBcryptCompare(password, hashedPassword);
+      return Boolean(isValid);
     } catch (error) {
-      console.error('Password verification error:', error.message);
+      console.error('PasswordUtils: Password verification error:', error.message);
       return false; // Return false on any error for security
     }
   }

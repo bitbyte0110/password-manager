@@ -4,6 +4,7 @@ import { Buffer } from 'buffer';
 import databaseService from './databaseService';
 import encryptionService from './encryptionService';
 import { getMFAEnabled } from '../utils/authUtils';
+import passwordUtils from '../utils/passwordUtils';
 
 /**
  * Vault Service for handling master password and data operations
@@ -449,7 +450,7 @@ class VaultService {
         throw new Error('No master password set');
       }
 
-      const isValid = await bcrypt.compare(password, storedHash);
+      const isValid = await passwordUtils.verifyPassword(password, storedHash);
       if (isValid) {
         this.masterPassword = password;
         this.isAuthenticated = true;
@@ -744,7 +745,7 @@ class VaultService {
       }
 
       const bcrypt = require('react-native-bcrypt');
-      const isValid = await bcrypt.compare(masterPassword, storedHash);
+      const isValid = await passwordUtils.verifyPassword(masterPassword, storedHash);
       if (!isValid) {
         throw new Error('Invalid master password');
       }
@@ -1638,7 +1639,7 @@ class VaultService {
         throw new Error('No master password found');
       }
 
-      const isOldPasswordValid = await bcrypt.compare(oldPassword, storedHash);
+      const isOldPasswordValid = await passwordUtils.verifyPassword(oldPassword, storedHash);
       if (!isOldPasswordValid) {
         throw new Error('Invalid current password');
       }
@@ -1660,7 +1661,7 @@ class VaultService {
 
       // Create new password hash
       const saltRounds = 12;
-      const newHash = await bcrypt.hash(newPassword, saltRounds);
+      const newHash = await passwordUtils.hashPassword(newPassword, saltRounds);
 
       // Re-encrypt all entries with new password
       const reEncryptedEntries = [];
