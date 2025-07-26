@@ -74,8 +74,24 @@ export const useSessionManager = () => {
           `Session expired due to inactivity (${Math.round(timeDifference / 1000)}s > ${activityTimeout / 1000}s)`
         );
 
-        // Clear session data
-        await vaultService.clearSession();
+        // Clear session data - use soft clear to preserve biometric credentials when MFA is disabled
+        const { getMFAEnabled } = require('../utils/authUtils');
+        const mfaEnabled = await getMFAEnabled();
+
+        if (mfaEnabled) {
+          // MFA enabled: full security clear
+          console.log(
+            'SessionManager: MFA enabled - performing full session clear'
+          );
+          await vaultService.clearSession();
+        } else {
+          // MFA disabled: soft clear to preserve biometric access
+          console.log(
+            'SessionManager: MFA disabled - performing soft session clear'
+          );
+          await vaultService.softClearSession();
+        }
+
         await AsyncStorage.removeItem(LAST_ACTIVE_TIME_KEY);
 
         // Navigate to login screen
