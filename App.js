@@ -218,12 +218,46 @@ const SessionManager = ({ children, navigationRef }) => {
 
   const handleAppStateChange = async nextAppState => {
     if (appState.match(/inactive|background/) && nextAppState === 'active') {
-      console.log('App came to foreground, requiring fresh authentication');
-      // Always clear session and require authentication when app comes to foreground
+      console.log('App came to foreground, checking for active operations...');
+
+      // Check if there's an active import operation
+      const activeImport = await AsyncStorage.getItem(
+        'active_import_operation'
+      );
+      if (activeImport) {
+        console.log(
+          'Active import operation detected, preserving session for import continuation'
+        );
+        // Don't clear session if import is in progress
+        // Update activity to prevent inactivity timeout
+        await updateActivity();
+        setAppState(nextAppState);
+        return;
+      }
+
+      console.log('No active operations, requiring fresh authentication');
+      // Clear session and require authentication when app comes to foreground
       await handleSessionExpiry();
     } else if (nextAppState.match(/inactive|background/)) {
-      console.log('App going to background, clearing session data');
-      // Clear all session data when app goes to background
+      console.log('App going to background, checking for active operations...');
+
+      // Check if there's an active import operation
+      const activeImport = await AsyncStorage.getItem(
+        'active_import_operation'
+      );
+      if (activeImport) {
+        console.log(
+          'Active import operation detected, preserving session data'
+        );
+        // Don't clear session data if import is in progress
+        // Just update activity and preserve session
+        await updateActivity();
+        setAppState(nextAppState);
+        return;
+      }
+
+      console.log('No active operations, clearing session data');
+      // Clear all session data when app goes to background (only if no active operations)
       try {
         await vaultService.clearSession();
         await SecureStore.deleteItemAsync('vault_sessionToken');

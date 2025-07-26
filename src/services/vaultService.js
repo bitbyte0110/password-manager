@@ -599,22 +599,38 @@ class VaultService {
    * @returns {Promise<boolean>} Refresh success
    */
   async refreshSession() {
-    if (!this.isUserAuthenticated()) {
+    try {
+      console.log('VaultService: Attempting to refresh session...');
+
+      // If we have a master password in memory, we can refresh the session
+      if (this.masterPassword) {
+        console.log(
+          'VaultService: Master password available, refreshing session token...'
+        );
+
+        // Re-authenticate and create new session token
+        this.isAuthenticated = true;
+        this.sessionStartTime = Date.now();
+        await this.createSessionToken(this.masterPassword);
+
+        console.log('VaultService: Session token refreshed successfully');
+        return true;
+      }
+
+      // If no master password in memory, try to restore from stored session
       console.log(
-        'VaultService: Cannot refresh session - user not authenticated'
+        'VaultService: No master password in memory, trying to restore session...'
+      );
+      const restored = await this.tryRestoreAuthentication();
+      if (restored) {
+        console.log('VaultService: Session restored successfully');
+        return true;
+      }
+
+      console.log(
+        'VaultService: Cannot refresh session - no authentication available'
       );
       return false;
-    }
-
-    try {
-      console.log('VaultService: Refreshing session token...');
-
-      // Create a new session token with current timestamp
-      await this.createSessionToken(this.masterPassword);
-      this.sessionStartTime = Date.now();
-
-      console.log('VaultService: Session token refreshed successfully');
-      return true;
     } catch (error) {
       console.error('VaultService: Error refreshing session:', error);
       return false;
