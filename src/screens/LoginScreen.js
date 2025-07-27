@@ -23,7 +23,7 @@ import { getMFAEnabled, getBiometricEnabled } from '../utils/authUtils';
 const FAILED_ATTEMPTS_KEY = 'vault_failedAttempts';
 const MAX_FAILED_ATTEMPTS = 3;
 
-const LoginScreen = ({ navigation: navProp }) => {
+const LoginScreen = ({ navigation: navProp, route }) => {
   const navigation = navProp || useNavigation();
   const { theme } = useTheme();
 
@@ -294,19 +294,22 @@ const LoginScreen = ({ navigation: navProp }) => {
                 return;
               }
 
-              // This shouldn't happen since OS biometric already succeeded
-              console.error(
-                '⚠️ OS biometric auth succeeded but vault service failed'
+              // OS biometric succeeded but vault service couldn't proceed without stored master password
+              console.log(
+                '🔐 OS biometric succeeded but no stored master password found - requesting password'
               );
-              throw new Error(
-                'Vault service OS biometric authentication failed'
+              setMfaMode(false);
+              setShowPasswordModal(true);
+              showSnackbar(
+                'Please enter your master password to enable biometric access.'
               );
+              return;
             } catch (directAccessError) {
               console.error(
                 'Error with OS biometric vault access:',
                 directAccessError
               );
-              // This should not happen in normal circumstances
+              // Fall through to the error handling below
               throw directAccessError;
             }
           } catch (error) {
@@ -387,6 +390,30 @@ const LoginScreen = ({ navigation: navProp }) => {
           // Reset failed attempts on successful login
           await resetFailedAttempts();
 
+          // Check if this is a session upgrade for OS biometric session
+          if (
+            route?.params?.upgradeSession &&
+            vaultService.isOSBiometricSession()
+          ) {
+            try {
+              console.log(
+                'LoginScreen: Upgrading OS biometric session with master password'
+              );
+              await vaultService.provideMasterPasswordForBiometric(
+                masterPassword
+              );
+              showSnackbar('Biometric access restored successfully!');
+            } catch (upgradeError) {
+              console.error(
+                'LoginScreen: Error upgrading biometric session:',
+                upgradeError
+              );
+              showSnackbar(
+                'Session upgraded but biometric access may be limited.'
+              );
+            }
+          }
+
           // Only enable biometric storage for MFA scenarios where we need stored credentials
           // For non-MFA biometric login, we use OS-level authentication directly
           if (biometricSucceeded && mfaEnabled && biometricEnabled) {
@@ -408,8 +435,20 @@ const LoginScreen = ({ navigation: navProp }) => {
           setMfaMode(false);
           setBiometricSucceeded(false);
 
-          // Navigate immediately for instant login
-          navigation.replace('MainTabs');
+          // Navigate to the requested destination or MainTabs
+          const returnTo = route?.params?.returnTo;
+          const formData = route?.params?.formData;
+
+          if (returnTo === 'AddPassword' && formData) {
+            // Return to AddPassword screen with preserved form data
+            navigation.replace('AddPassword', {
+              restoredFormData: formData,
+              sessionUpgraded: true,
+            });
+          } else {
+            // Navigate immediately for instant login
+            navigation.replace('MainTabs');
+          }
         } else {
           // Handle failed authentication
           await incrementFailedAttempts();
