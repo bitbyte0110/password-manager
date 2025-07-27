@@ -20,55 +20,69 @@ class PasswordUtils {
   async _safeBcryptHash(password, rounds) {
     const strategies = [
       // Strategy 1: Callback with explicit function declaration
-      () => new Promise((resolve, reject) => {
-        const handleResult = (error, hash) => {
-          if (error) {
-            reject(new Error(`Bcrypt hash error: ${error.message || error}`));
-          } else if (!hash) {
-            reject(new Error('Bcrypt returned empty hash'));
-          } else {
-            resolve(hash);
-          }
-        };
-        
-        try {
-          bcrypt.hash(password, rounds, handleResult);
-        } catch (syncError) {
-          reject(new Error(`Bcrypt hash sync error: ${syncError.message}`));
-        }
-      }),
-
-      // Strategy 2: Salt generation then hash
-      () => new Promise((resolve, reject) => {
-        const handleSalt = (saltError, salt) => {
-          if (saltError) {
-            reject(new Error(`Salt generation error: ${saltError.message || saltError}`));
-            return;
-          }
-          
-          const handleHash = (hashError, hash) => {
-            if (hashError) {
-              reject(new Error(`Hash with salt error: ${hashError.message || hashError}`));
+      () =>
+        new Promise((resolve, reject) => {
+          const handleResult = (error, hash) => {
+            if (error) {
+              reject(new Error(`Bcrypt hash error: ${error.message || error}`));
             } else if (!hash) {
-              reject(new Error('Hash with salt returned empty result'));
+              reject(new Error('Bcrypt returned empty hash'));
             } else {
               resolve(hash);
             }
           };
-          
+
           try {
-            bcrypt.hash(password, salt, handleHash);
+            bcrypt.hash(password, rounds, handleResult);
           } catch (syncError) {
-            reject(new Error(`Hash with salt sync error: ${syncError.message}`));
+            reject(new Error(`Bcrypt hash sync error: ${syncError.message}`));
           }
-        };
-        
-        try {
-          bcrypt.genSalt(rounds, handleSalt);
-        } catch (syncError) {
-          reject(new Error(`Salt generation sync error: ${syncError.message}`));
-        }
-      }),
+        }),
+
+      // Strategy 2: Salt generation then hash
+      () =>
+        new Promise((resolve, reject) => {
+          const handleSalt = (saltError, salt) => {
+            if (saltError) {
+              reject(
+                new Error(
+                  `Salt generation error: ${saltError.message || saltError}`
+                )
+              );
+              return;
+            }
+
+            const handleHash = (hashError, hash) => {
+              if (hashError) {
+                reject(
+                  new Error(
+                    `Hash with salt error: ${hashError.message || hashError}`
+                  )
+                );
+              } else if (!hash) {
+                reject(new Error('Hash with salt returned empty result'));
+              } else {
+                resolve(hash);
+              }
+            };
+
+            try {
+              bcrypt.hash(password, salt, handleHash);
+            } catch (syncError) {
+              reject(
+                new Error(`Hash with salt sync error: ${syncError.message}`)
+              );
+            }
+          };
+
+          try {
+            bcrypt.genSalt(rounds, handleSalt);
+          } catch (syncError) {
+            reject(
+              new Error(`Salt generation sync error: ${syncError.message}`)
+            );
+          }
+        }),
 
       // Strategy 3: Direct await (for newer versions)
       async () => {
@@ -92,31 +106,37 @@ class PasswordUtils {
           }
           return Promise.resolve(result);
         } catch (error) {
-          return Promise.reject(new Error(`Sync bcrypt error: ${error.message || error}`));
+          return Promise.reject(
+            new Error(`Sync bcrypt error: ${error.message || error}`)
+          );
         }
-      }
+      },
     ];
 
     let lastError = null;
-    
+
     for (let i = 0; i < strategies.length; i++) {
       try {
-        console.log(`PasswordUtils: Trying bcrypt strategy ${i + 1}/${strategies.length}`);
+        console.log(
+          `PasswordUtils: Trying bcrypt strategy ${i + 1}/${strategies.length}`
+        );
         const result = await strategies[i]();
         console.log(`PasswordUtils: Strategy ${i + 1} succeeded`);
         return result;
       } catch (error) {
         console.warn(`PasswordUtils: Strategy ${i + 1} failed:`, error.message);
         lastError = error;
-        
+
         // Add delay between attempts to avoid rapid failures
         if (i < strategies.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
     }
-    
-    throw new Error(`All bcrypt strategies failed. Last error: ${lastError?.message || 'Unknown error'}`);
+
+    throw new Error(
+      `All bcrypt strategies failed. Last error: ${lastError?.message || 'Unknown error'}`
+    );
   }
 
   /**
@@ -128,21 +148,26 @@ class PasswordUtils {
   async _safeBcryptCompare(password, hash) {
     const strategies = [
       // Strategy 1: Callback with explicit function declaration
-      () => new Promise((resolve, reject) => {
-        const handleResult = (error, result) => {
-          if (error) {
-            reject(new Error(`Bcrypt compare error: ${error.message || error}`));
-          } else {
-            resolve(Boolean(result));
+      () =>
+        new Promise((resolve, reject) => {
+          const handleResult = (error, result) => {
+            if (error) {
+              reject(
+                new Error(`Bcrypt compare error: ${error.message || error}`)
+              );
+            } else {
+              resolve(Boolean(result));
+            }
+          };
+
+          try {
+            bcrypt.compare(password, hash, handleResult);
+          } catch (syncError) {
+            reject(
+              new Error(`Bcrypt compare sync error: ${syncError.message}`)
+            );
           }
-        };
-        
-        try {
-          bcrypt.compare(password, hash, handleResult);
-        } catch (syncError) {
-          reject(new Error(`Bcrypt compare sync error: ${syncError.message}`));
-        }
-      }),
+        }),
 
       // Strategy 2: Direct await
       async () => {
@@ -150,7 +175,9 @@ class PasswordUtils {
           const result = await bcrypt.compare(password, hash);
           return Boolean(result);
         } catch (error) {
-          throw new Error(`Direct bcrypt compare error: ${error.message || error}`);
+          throw new Error(
+            `Direct bcrypt compare error: ${error.message || error}`
+          );
         }
       },
 
@@ -160,30 +187,39 @@ class PasswordUtils {
           const result = bcrypt.compareSync(password, hash);
           return Promise.resolve(Boolean(result));
         } catch (error) {
-          return Promise.reject(new Error(`Sync bcrypt compare error: ${error.message || error}`));
+          return Promise.reject(
+            new Error(`Sync bcrypt compare error: ${error.message || error}`)
+          );
         }
-      }
+      },
     ];
 
     let lastError = null;
-    
+
     for (let i = 0; i < strategies.length; i++) {
       try {
-        console.log(`PasswordUtils: Trying compare strategy ${i + 1}/${strategies.length}`);
+        console.log(
+          `PasswordUtils: Trying compare strategy ${i + 1}/${strategies.length}`
+        );
         const result = await strategies[i]();
         console.log(`PasswordUtils: Compare strategy ${i + 1} succeeded`);
         return result;
       } catch (error) {
-        console.warn(`PasswordUtils: Compare strategy ${i + 1} failed:`, error.message);
+        console.warn(
+          `PasswordUtils: Compare strategy ${i + 1} failed:`,
+          error.message
+        );
         lastError = error;
-        
+
         if (i < strategies.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
     }
-    
-    throw new Error(`All bcrypt compare strategies failed. Last error: ${lastError?.message || 'Unknown error'}`);
+
+    throw new Error(
+      `All bcrypt compare strategies failed. Last error: ${lastError?.message || 'Unknown error'}`
+    );
   }
 
   /**
@@ -220,7 +256,7 @@ class PasswordUtils {
       }
 
       const hashedPassword = await this._safeBcryptHash(password, rounds);
-      
+
       if (!hashedPassword) {
         throw new Error('Password hashing failed - no hash generated');
       }
@@ -241,7 +277,9 @@ class PasswordUtils {
   async verifyPassword(password, hashedPassword) {
     try {
       if (!password || !hashedPassword) {
-        console.warn('PasswordUtils: Missing password or hash for verification');
+        console.warn(
+          'PasswordUtils: Missing password or hash for verification'
+        );
         return false;
       }
 
@@ -253,7 +291,10 @@ class PasswordUtils {
       const isValid = await this._safeBcryptCompare(password, hashedPassword);
       return Boolean(isValid);
     } catch (error) {
-      console.error('PasswordUtils: Password verification error:', error.message);
+      console.error(
+        'PasswordUtils: Password verification error:',
+        error.message
+      );
       return false; // Return false on any error for security
     }
   }

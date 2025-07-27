@@ -110,7 +110,10 @@ const LoginScreen = ({ navigation: navProp }) => {
         throw new Error('No master password found. Please set up your vault.');
       }
 
-      const isValidPassword = await passwordUtils.verifyPassword(masterPassword, masterHash);
+      const isValidPassword = await passwordUtils.verifyPassword(
+        masterPassword,
+        masterHash
+      );
 
       if (!isValidPassword) {
         setPasswordError('Invalid master password');

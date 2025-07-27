@@ -72,12 +72,14 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
   const initializeVaultAndNavigate = async () => {
     const maxRetries = 3;
     let attempt = 0;
-    
+
     while (attempt < maxRetries) {
       try {
         attempt++;
-        console.log(`ShowRecoveryPhraseScreen: Initialization attempt ${attempt}/${maxRetries}`);
-        
+        console.log(
+          `ShowRecoveryPhraseScreen: Initialization attempt ${attempt}/${maxRetries}`
+        );
+
         // Set initial activity timestamp for new user
         const timestamp = Date.now().toString();
         await AsyncStorage.setItem(LAST_ACTIVE_TIME_KEY, timestamp);
@@ -111,12 +113,14 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
           console.log(
             'ShowRecoveryPhraseScreen: Authenticating vault service...'
           );
-          
+
           // Add extra delay and retry logic for authentication
           let authSuccess = false;
           for (let authAttempt = 1; authAttempt <= 3; authAttempt++) {
             try {
-              console.log(`ShowRecoveryPhraseScreen: Auth attempt ${authAttempt}/3`);
+              console.log(
+                `ShowRecoveryPhraseScreen: Auth attempt ${authAttempt}/3`
+              );
               await vaultService.authenticate(masterPassword);
               console.log(
                 'ShowRecoveryPhraseScreen: Vault service authenticated successfully'
@@ -124,11 +128,19 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
               authSuccess = true;
               break;
             } catch (authError) {
-              console.warn(`ShowRecoveryPhraseScreen: Auth attempt ${authAttempt} failed:`, authError.message);
-              
+              console.warn(
+                `ShowRecoveryPhraseScreen: Auth attempt ${authAttempt} failed:`,
+                authError.message
+              );
+
               // If it's a callback error, wait a bit and retry
-              if (authError.message?.includes('Illegal callback') && authAttempt < 3) {
-                console.log('ShowRecoveryPhraseScreen: Waiting before retry due to callback error...');
+              if (
+                authError.message?.includes('Illegal callback') &&
+                authAttempt < 3
+              ) {
+                console.log(
+                  'ShowRecoveryPhraseScreen: Waiting before retry due to callback error...'
+                );
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 continue;
               } else {
@@ -136,7 +148,7 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
               }
             }
           }
-          
+
           if (!authSuccess) {
             throw new Error('Authentication failed after multiple attempts');
           }
@@ -157,23 +169,27 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
             navigation.replace('MainTabs');
           }
         }, 2500);
-        
+
         // Success - break out of retry loop
         return;
-        
       } catch (error) {
         console.error(
           `ShowRecoveryPhraseScreen: Error setting up authentication (attempt ${attempt}):`,
           error
         );
-        
+
         // If it's a callback error and we have retries left, try again
-        if (error.message?.includes('Illegal callback') && attempt < maxRetries) {
-          console.log('ShowRecoveryPhraseScreen: Retrying due to callback error...');
+        if (
+          error.message?.includes('Illegal callback') &&
+          attempt < maxRetries
+        ) {
+          console.log(
+            'ShowRecoveryPhraseScreen: Retrying due to callback error...'
+          );
           await new Promise(resolve => setTimeout(resolve, 2000));
           continue;
         }
-        
+
         // If this was the last attempt or it's not a callback error, show error
         Alert.alert(
           'Setup Error',
@@ -189,12 +205,12 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
             },
           ]
         );
-        
+
         // If not the last attempt, continue the loop
         if (attempt < maxRetries) {
           continue;
         }
-        
+
         // Last attempt failed, exit
         break;
       }
@@ -227,7 +243,10 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
       // Initialize vault and navigate
       await initializeVaultAndNavigate();
     } catch (error) {
-      console.error('ShowRecoveryPhraseScreen: Error in handleMFASetupComplete:', error);
+      console.error(
+        'ShowRecoveryPhraseScreen: Error in handleMFASetupComplete:',
+        error
+      );
       Alert.alert(
         'Setup Error',
         'Failed to complete MFA setup. Please try again.',

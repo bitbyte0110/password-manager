@@ -33,7 +33,9 @@ const BiometricSetupModal = ({ visible, onComplete }) => {
       if (typeof onComplete === 'function') {
         onComplete(true);
       } else {
-        console.error('❌ onComplete callback is not a function in biometric enable');
+        console.error(
+          '❌ onComplete callback is not a function in biometric enable'
+        );
       }
     } catch (error) {
       console.error('Error enabling biometric:', error);
@@ -41,7 +43,9 @@ const BiometricSetupModal = ({ visible, onComplete }) => {
       if (typeof onComplete === 'function') {
         onComplete(true);
       } else {
-        console.error('❌ onComplete callback is not a function in biometric enable error');
+        console.error(
+          '❌ onComplete callback is not a function in biometric enable error'
+        );
       }
     } finally {
       setIsEnabling(false);
@@ -70,7 +74,9 @@ const BiometricSetupModal = ({ visible, onComplete }) => {
       if (typeof onComplete === 'function') {
         onComplete(false);
       } else {
-        console.error('❌ onComplete callback is not a function in biometric skip');
+        console.error(
+          '❌ onComplete callback is not a function in biometric skip'
+        );
       }
     } catch (error) {
       console.error('Error skipping biometric:', error);
@@ -78,7 +84,9 @@ const BiometricSetupModal = ({ visible, onComplete }) => {
       if (typeof onComplete === 'function') {
         onComplete(false);
       } else {
-        console.error('❌ onComplete callback is not a function in biometric skip error');
+        console.error(
+          '❌ onComplete callback is not a function in biometric skip error'
+        );
       }
     } finally {
       setIsSkipping(false);

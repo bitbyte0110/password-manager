@@ -745,7 +745,10 @@ class VaultService {
       }
 
       const bcrypt = require('react-native-bcrypt');
-      const isValid = await passwordUtils.verifyPassword(masterPassword, storedHash);
+      const isValid = await passwordUtils.verifyPassword(
+        masterPassword,
+        storedHash
+      );
       if (!isValid) {
         throw new Error('Invalid master password');
       }
@@ -1198,6 +1201,30 @@ class VaultService {
       throw new Error('User not authenticated');
     }
 
+    // Ensure master password is available for encryption
+    if (!this.masterPassword) {
+      console.log(
+        'VaultService: Master password not available, attempting to restore authentication...'
+      );
+      const restored = await this.tryRestoreAuthentication();
+      if (!restored) {
+        throw new Error('Authentication could not be restored');
+      }
+
+      // If this is an OS biometric session, we need the user to provide master password
+      if (this.isOSBiometricSession()) {
+        throw new Error(
+          'NEED_MASTER_PASSWORD: OS biometric session requires master password for data operations'
+        );
+      }
+
+      if (!this.masterPassword) {
+        throw new Error(
+          'Master password not available - authentication required'
+        );
+      }
+    }
+
     try {
       const newId = await this.dbService.addPassword(
         passwordEntry,
@@ -1237,6 +1264,30 @@ class VaultService {
   async updatePasswordEntry(id, passwordEntry) {
     if (!this.isUserAuthenticated()) {
       throw new Error('User not authenticated');
+    }
+
+    // Ensure master password is available for encryption
+    if (!this.masterPassword) {
+      console.log(
+        'VaultService: Master password not available for update, attempting to restore authentication...'
+      );
+      const restored = await this.tryRestoreAuthentication();
+      if (!restored) {
+        throw new Error('Authentication could not be restored');
+      }
+
+      // If this is an OS biometric session, we need the user to provide master password
+      if (this.isOSBiometricSession()) {
+        throw new Error(
+          'NEED_MASTER_PASSWORD: OS biometric session requires master password for data operations'
+        );
+      }
+
+      if (!this.masterPassword) {
+        throw new Error(
+          'Master password not available - authentication required'
+        );
+      }
     }
 
     try {
@@ -1503,7 +1554,9 @@ class VaultService {
     try {
       // Verify master password is available
       if (!this.masterPassword) {
-        console.log('Attempting to restore authentication...');
+        console.log(
+          'VaultService: Master password not available for decryption, attempting to restore authentication...'
+        );
         const restored = await this.tryRestoreAuthentication();
         if (!restored) {
           throw new Error('Authentication could not be restored');
@@ -1639,7 +1692,10 @@ class VaultService {
         throw new Error('No master password found');
       }
 
-      const isOldPasswordValid = await passwordUtils.verifyPassword(oldPassword, storedHash);
+      const isOldPasswordValid = await passwordUtils.verifyPassword(
+        oldPassword,
+        storedHash
+      );
       if (!isOldPasswordValid) {
         throw new Error('Invalid current password');
       }
@@ -1926,6 +1982,30 @@ class VaultService {
   async addPassword(passwordData) {
     if (!this.isUserAuthenticated()) {
       throw new Error('User not authenticated');
+    }
+
+    // Ensure master password is available for encryption
+    if (!this.masterPassword) {
+      console.log(
+        'VaultService: Master password not available for addPassword, attempting to restore authentication...'
+      );
+      const restored = await this.tryRestoreAuthentication();
+      if (!restored) {
+        throw new Error('Authentication could not be restored');
+      }
+
+      // If this is an OS biometric session, we need the user to provide master password
+      if (this.isOSBiometricSession()) {
+        throw new Error(
+          'NEED_MASTER_PASSWORD: OS biometric session requires master password for data operations'
+        );
+      }
+
+      if (!this.masterPassword) {
+        throw new Error(
+          'Master password not available - authentication required'
+        );
+      }
     }
 
     try {

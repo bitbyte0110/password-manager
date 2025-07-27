@@ -180,7 +180,10 @@ const authenticateWithPassword = async (title, message) => {
                 return;
               }
 
-              const isValid = await passwordUtils.verifyPassword(password, storedHash);
+              const isValid = await passwordUtils.verifyPassword(
+                password,
+                storedHash
+              );
               if (isValid) {
                 resolve({
                   success: true,
