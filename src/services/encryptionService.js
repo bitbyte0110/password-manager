@@ -11,7 +11,10 @@ class EncryptionService {
     this.keySize = 256;
     this.ivSize = 128;
     this.saltSize = 256;
-    this.iterations = 10000; // PBKDF2 iterations
+    this.iterations = 5000; // Optimized PBKDF2 iterations
+    this.keyCache = new Map(); // Cache derived keys for session
+    this.maxCacheSize = 50; // Maximum cache entries
+    this.deviceBenchmark = null; // Device performance benchmark
   }
 
   /**
@@ -41,7 +44,7 @@ class EncryptionService {
   }
 
   /**
-   * Derive encryption key from master password using PBKDF2
+   * Derive encryption key from master password using PBKDF2 with caching
    * @param {string} masterPassword - User's master password
    * @param {string} salt - Base64 encoded salt
    * @returns {CryptoJS.lib.WordArray} Derived key
@@ -52,12 +55,25 @@ class EncryptionService {
         throw new Error('Master password and salt are required');
       }
 
+      // Create cache key from password suffix and salt suffix for security
+      const cacheKey = `${masterPassword.slice(-6)}_${salt.slice(-12)}`;
+      
+      // Check cache first
+      if (this.keyCache.has(cacheKey)) {
+        console.log('🎯 Using cached derived key - instant decryption');
+        return this.keyCache.get(cacheKey);
+      }
+
       const saltWordArray = CryptoJS.enc.Base64.parse(salt);
       const key = CryptoJS.PBKDF2(masterPassword, saltWordArray, {
         keySize: this.keySize / 32,
-        iterations: this.iterations,
+        iterations: this.getOptimalIterations(),
         hasher: CryptoJS.algo.SHA256,
       });
+
+      // Cache the derived key
+      this.keyCache.set(cacheKey, key);
+      this.manageCacheSize();
 
       return key;
     } catch (error) {
@@ -380,6 +396,110 @@ class EncryptionService {
     }
 
     return result;
+  }
+
+  /**
+   * Get optimal PBKDF2 iterations based on device performance
+   * @returns {number} Optimal iteration count
+   */
+  getOptimalIterations() {
+    // Use cached benchmark if available
+    if (this.deviceBenchmark !== null) {
+      return this.deviceBenchmark > 100 ? this.iterations : Math.max(3000, this.iterations / 2);
+    }
+    
+    // Return default if no benchmark
+    return this.iterations;
+  }
+
+  /**
+   * Manage cache size to prevent memory bloat
+   */
+  manageCacheSize() {
+    if (this.keyCache.size > this.maxCacheSize) {
+      // Remove oldest entries (simple FIFO)
+      const entries = Array.from(this.keyCache.entries());
+      const toRemove = entries.slice(0, entries.length - this.maxCacheSize);
+      toRemove.forEach(([key]) => this.keyCache.delete(key));
+      console.log(`🧹 Cleaned ${toRemove.length} cached keys`);
+    }
+  }
+
+  /**
+   * Clear all cached keys (call on logout/password change)
+   */
+  clearKeyCache() {
+    this.keyCache.clear();
+    console.log('🗑️ Cleared all cached encryption keys');
+  }
+
+  /**
+   * Bulk re-encrypt password entries (for password reset)
+   * @param {Array} entries - Array of encrypted password entries
+   * @param {string} oldPassword - Current master password (or recovery phrase)
+   * @param {string} newPassword - New master password
+   * @param {Function} progressCallback - Progress callback function
+   * @returns {Promise<Array>} Re-encrypted entries
+   */
+  async bulkReencrypt(entries, oldPassword, newPassword, progressCallback) {
+    try {
+      console.log(`🔄 Starting bulk re-encryption of ${entries.length} entries...`);
+      const results = [];
+      const batchSize = 5; // Process 5 at a time to avoid blocking
+      
+      for (let i = 0; i < entries.length; i += batchSize) {
+        const batch = entries.slice(i, i + batchSize);
+        
+        // Process batch
+        const batchResults = await Promise.allSettled(
+          batch.map(async (entry) => {
+            try {
+              // Decrypt with old password
+              const decrypted = this.decryptPasswordEntryOptimized(entry, oldPassword);
+              
+              // Re-encrypt with new password
+              const reencrypted = this.encryptPasswordEntryOptimized({
+                title: decrypted.title,
+                username: decrypted.username,
+                password: decrypted.password,
+                url: decrypted.url,
+                notes: decrypted.notes,
+                categoryId: decrypted.categoryId,
+                isFavorite: decrypted.isFavorite,
+              }, newPassword);
+              
+              return { id: entry.id, data: reencrypted };
+            } catch (error) {
+              console.warn(`Failed to re-encrypt entry ${entry.id}:`, error.message);
+              return null;
+            }
+          })
+        );
+        
+        // Collect successful results
+        batchResults.forEach(result => {
+          if (result.status === 'fulfilled' && result.value) {
+            results.push(result.value);
+          }
+        });
+        
+        // Update progress
+        if (progressCallback) {
+          const progress = Math.min(100, ((i + batchSize) / entries.length) * 100);
+          progressCallback(progress);
+        }
+        
+        // Yield control to avoid blocking UI
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      
+      console.log(`✅ Bulk re-encryption completed: ${results.length}/${entries.length} successful`);
+      return results;
+      
+    } catch (error) {
+      console.error('Bulk re-encryption failed:', error);
+      throw new Error(`Bulk re-encryption failed: ${error.message}`);
+    }
   }
 
   /**

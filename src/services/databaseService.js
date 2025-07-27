@@ -1003,6 +1003,94 @@ class DatabaseService {
   }
 
   /**
+   * Get essential passwords (favorites + recently accessed)
+   * @returns {Promise<Array>} Array of essential encrypted password entries
+   */
+  async getEssentialPasswords() {
+    return await this.executeWithRetry(async () => {
+      if (!this.db) throw new Error('Database not initialized');
+
+      const query = `
+        SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon
+        FROM passwords p
+        LEFT JOIN categories c ON p.category_id = c.id
+        WHERE p.is_favorite = 1 OR p.id IN (
+          SELECT id FROM passwords ORDER BY last_accessed DESC LIMIT 10
+        )
+        ORDER BY p.is_favorite DESC, p.last_accessed DESC
+        LIMIT 20
+      `;
+
+      return await this.db.getAllAsync(query);
+    }, 'Get essential passwords');
+  }
+
+  /**
+   * Get password entries with pagination support
+   * @param {Object} options - Query options
+   * @returns {Promise<Array>} Array of encrypted password entries
+   */
+  async getPasswordEntriesPaginated(options = {}) {
+    return await this.executeWithRetry(async () => {
+      const {
+        page = 0,
+        limit = 20,
+        categoryId = null,
+        isFavorite = null,
+        sortBy = 'updated_at',
+        sortOrder = 'DESC',
+      } = options;
+
+      const offset = page * limit;
+
+      if (!this.db) throw new Error('Database not initialized');
+
+      let query = `
+        SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon
+        FROM passwords p
+        LEFT JOIN categories c ON p.category_id = c.id
+      `;
+
+      const conditions = [];
+      const params = [];
+
+      if (categoryId !== null) {
+        conditions.push('p.category_id = ?');
+        params.push(categoryId);
+      }
+
+      if (isFavorite !== null) {
+        conditions.push('p.is_favorite = ?');
+        params.push(isFavorite ? 1 : 0);
+      }
+
+      if (conditions.length > 0) {
+        query += ' WHERE ' + conditions.join(' AND ');
+      }
+
+      // Validate sort column to prevent SQL injection
+      const validSortColumns = [
+        'created_at',
+        'updated_at',
+        'last_accessed',
+        'id',
+      ];
+      const validSortBy = validSortColumns.includes(sortBy)
+        ? sortBy
+        : 'updated_at';
+      const validSortOrder = ['ASC', 'DESC'].includes(sortOrder.toUpperCase())
+        ? sortOrder.toUpperCase()
+        : 'DESC';
+
+      query += ` ORDER BY p.${validSortBy} ${validSortOrder}`;
+      query += ` LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}`;
+
+      const result = await this.db.getAllAsync(query, params);
+      return result;
+    }, 'Get paginated password entries');
+  }
+
+  /**
    * Get all password entries with enhanced error handling (optimized)
    * @param {Object} options - Query options
    * @returns {Promise<Array>} Array of encrypted password entries
