@@ -57,7 +57,7 @@ class EncryptionService {
 
       // Create cache key from password suffix and salt suffix for security
       const cacheKey = `${masterPassword.slice(-6)}_${salt.slice(-12)}`;
-      
+
       // Check cache first
       if (this.keyCache.has(cacheKey)) {
         console.log('🎯 Using cached derived key - instant decryption');
@@ -405,9 +405,11 @@ class EncryptionService {
   getOptimalIterations() {
     // Use cached benchmark if available
     if (this.deviceBenchmark !== null) {
-      return this.deviceBenchmark > 100 ? this.iterations : Math.max(3000, this.iterations / 2);
+      return this.deviceBenchmark > 100
+        ? this.iterations
+        : Math.max(3000, this.iterations / 2);
     }
-    
+
     // Return default if no benchmark
     return this.iterations;
   }
@@ -443,59 +445,74 @@ class EncryptionService {
    */
   async bulkReencrypt(entries, oldPassword, newPassword, progressCallback) {
     try {
-      console.log(`🔄 Starting bulk re-encryption of ${entries.length} entries...`);
+      console.log(
+        `🔄 Starting bulk re-encryption of ${entries.length} entries...`
+      );
       const results = [];
       const batchSize = 5; // Process 5 at a time to avoid blocking
-      
+
       for (let i = 0; i < entries.length; i += batchSize) {
         const batch = entries.slice(i, i + batchSize);
-        
+
         // Process batch
         const batchResults = await Promise.allSettled(
-          batch.map(async (entry) => {
+          batch.map(async entry => {
             try {
               // Decrypt with old password
-              const decrypted = this.decryptPasswordEntryOptimized(entry, oldPassword);
-              
+              const decrypted = this.decryptPasswordEntryOptimized(
+                entry,
+                oldPassword
+              );
+
               // Re-encrypt with new password
-              const reencrypted = this.encryptPasswordEntryOptimized({
-                title: decrypted.title,
-                username: decrypted.username,
-                password: decrypted.password,
-                url: decrypted.url,
-                notes: decrypted.notes,
-                categoryId: decrypted.categoryId,
-                isFavorite: decrypted.isFavorite,
-              }, newPassword);
-              
+              const reencrypted = this.encryptPasswordEntryOptimized(
+                {
+                  title: decrypted.title,
+                  username: decrypted.username,
+                  password: decrypted.password,
+                  url: decrypted.url,
+                  notes: decrypted.notes,
+                  categoryId: decrypted.categoryId,
+                  isFavorite: decrypted.isFavorite,
+                },
+                newPassword
+              );
+
               return { id: entry.id, data: reencrypted };
             } catch (error) {
-              console.warn(`Failed to re-encrypt entry ${entry.id}:`, error.message);
+              console.warn(
+                `Failed to re-encrypt entry ${entry.id}:`,
+                error.message
+              );
               return null;
             }
           })
         );
-        
+
         // Collect successful results
         batchResults.forEach(result => {
           if (result.status === 'fulfilled' && result.value) {
             results.push(result.value);
           }
         });
-        
+
         // Update progress
         if (progressCallback) {
-          const progress = Math.min(100, ((i + batchSize) / entries.length) * 100);
+          const progress = Math.min(
+            100,
+            ((i + batchSize) / entries.length) * 100
+          );
           progressCallback(progress);
         }
-        
+
         // Yield control to avoid blocking UI
         await new Promise(resolve => setTimeout(resolve, 10));
       }
-      
-      console.log(`✅ Bulk re-encryption completed: ${results.length}/${entries.length} successful`);
+
+      console.log(
+        `✅ Bulk re-encryption completed: ${results.length}/${entries.length} successful`
+      );
       return results;
-      
     } catch (error) {
       console.error('Bulk re-encryption failed:', error);
       throw new Error(`Bulk re-encryption failed: ${error.message}`);

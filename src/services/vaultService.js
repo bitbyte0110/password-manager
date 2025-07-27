@@ -417,7 +417,7 @@ class VaultService {
       console.log(
         'VaultService: No stored biometric password or session available, OS biometric authentication cannot proceed without master password'
       );
-      
+
       // Return false to indicate biometric authentication failed
       // This will trigger the fallback logic in LoginScreen to prompt for master password
       return false;
@@ -516,101 +516,110 @@ class VaultService {
    * @returns {Promise<boolean>} Authentication success
    */
   async authenticate(password) {
-    return await performanceMonitor.trackLogin(async () => {
-      const storedHash = await SecureStore.getItemAsync('vault_masterHash');
-      if (!storedHash) {
-        throw new Error('No master password set');
-      }
-
-      const isValid = await passwordUtils.verifyPassword(password, storedHash);
-      if (isValid) {
-        this.masterPassword = password;
-        this.isAuthenticated = true;
-        this.sessionStartTime = Date.now();
-
-        // Create and store session token for restoration
-        await this.createSessionToken(password);
-
-        // Critical: Always store master password for biometric access when MFA is disabled
-        const mfaEnabled = await getMFAEnabled();
-        if (!mfaEnabled) {
-          try {
-            console.log(
-              'VaultService: Storing master password for biometric access (MFA disabled)'
-            );
-            await this.enableBiometricAccess(password);
-          } catch (biometricError) {
-            console.warn(
-              'VaultService: Could not store password for biometric access:',
-              biometricError
-            );
-            // Don't fail login if biometric storage fails
-          }
+    return await performanceMonitor.trackLogin(
+      async () => {
+        const storedHash = await SecureStore.getItemAsync('vault_masterHash');
+        if (!storedHash) {
+          throw new Error('No master password set');
         }
 
-        // OPTIMIZED: Preload only essential data for instant UI display
-        console.log(
-          'VaultService: Starting optimized essential data preloading...'
+        const isValid = await passwordUtils.verifyPassword(
+          password,
+          storedHash
         );
+        if (isValid) {
+          this.masterPassword = password;
+          this.isAuthenticated = true;
+          this.sessionStartTime = Date.now();
 
-        // Preload essential passwords immediately (favorites + recent)
-        const essentialPromise = this.getEssentialPasswordsInstant()
-          .then(essentialPasswords => {
-            console.log(
-              `VaultService: ⚡ Essential passwords loaded: ${essentialPasswords.length} entries`
-            );
-            return essentialPasswords;
-          })
-          .catch(error => {
-            console.warn('VaultService: Essential password preloading failed:', error);
-            return [];
-          });
+          // Create and store session token for restoration
+          await this.createSessionToken(password);
 
-        // Schedule background loading of remaining data
-        this.scheduleBackgroundLoading();
-
-        // Schedule background category preloading
-        setImmediate(async () => {
-          try {
-            const categories = await this.getCategories();
-            console.log(
-              `VaultService: Background - Loaded ${categories.length} categories`
-            );
-          } catch (error) {
-            console.warn(
-              'VaultService: Background - Could not load categories:',
-              error
-            );
-          }
-        });
-
-        // Store essential promise for instant access by UI components
-        this._passwordPreloadPromise = essentialPromise;
-
-        // Schedule background migration (non-blocking)
-        setImmediate(async () => {
-          try {
-            const migratedCount = await this.migrateLegacyEntries();
-            if (migratedCount > 0) {
+          // Critical: Always store master password for biometric access when MFA is disabled
+          const mfaEnabled = await getMFAEnabled();
+          if (!mfaEnabled) {
+            try {
               console.log(
-                `Background - Migrated ${migratedCount} entries to optimized format`
+                'VaultService: Storing master password for biometric access (MFA disabled)'
+              );
+              await this.enableBiometricAccess(password);
+            } catch (biometricError) {
+              console.warn(
+                'VaultService: Could not store password for biometric access:',
+                biometricError
+              );
+              // Don't fail login if biometric storage fails
+            }
+          }
+
+          // OPTIMIZED: Preload only essential data for instant UI display
+          console.log(
+            'VaultService: Starting optimized essential data preloading...'
+          );
+
+          // Preload essential passwords immediately (favorites + recent)
+          const essentialPromise = this.getEssentialPasswordsInstant()
+            .then(essentialPasswords => {
+              console.log(
+                `VaultService: ⚡ Essential passwords loaded: ${essentialPasswords.length} entries`
+              );
+              return essentialPasswords;
+            })
+            .catch(error => {
+              console.warn(
+                'VaultService: Essential password preloading failed:',
+                error
+              );
+              return [];
+            });
+
+          // Schedule background loading of remaining data
+          this.scheduleBackgroundLoading();
+
+          // Schedule background category preloading
+          setImmediate(async () => {
+            try {
+              const categories = await this.getCategories();
+              console.log(
+                `VaultService: Background - Loaded ${categories.length} categories`
+              );
+            } catch (error) {
+              console.warn(
+                'VaultService: Background - Could not load categories:',
+                error
               );
             }
-          } catch (error) {
-            console.warn('Background - Migration failed:', error);
-          }
-        });
+          });
 
-        console.log(
-          'VaultService: Authentication successful, session token created'
-        );
-        return true;
+          // Store essential promise for instant access by UI components
+          this._passwordPreloadPromise = essentialPromise;
+
+          // Schedule background migration (non-blocking)
+          setImmediate(async () => {
+            try {
+              const migratedCount = await this.migrateLegacyEntries();
+              if (migratedCount > 0) {
+                console.log(
+                  `Background - Migrated ${migratedCount} entries to optimized format`
+                );
+              }
+            } catch (error) {
+              console.warn('Background - Migration failed:', error);
+            }
+          });
+
+          console.log(
+            'VaultService: Authentication successful, session token created'
+          );
+          return true;
+        }
+        return false;
+      },
+      {
+        hasBiometric: false,
+        preloadCount: 0,
       }
-      return false;
-    }, { 
-      hasBiometric: false, 
-      preloadCount: 0 
-    });
+    );
   }
 
   /**
@@ -866,40 +875,47 @@ class VaultService {
       throw new Error('User not authenticated');
     }
 
-    return await performanceMonitor.trackVaultLoading(async () => {
-      // Check cache first
-      const cacheKey = 'essential_passwords';
-      const cached = this.entryCache.get(cacheKey);
-      const cacheTime = this.cacheTimestamps.get(cacheKey);
+    return await performanceMonitor.trackVaultLoading(
+      async () => {
+        // Check cache first
+        const cacheKey = 'essential_passwords';
+        const cached = this.entryCache.get(cacheKey);
+        const cacheTime = this.cacheTimestamps.get(cacheKey);
 
-      if (cached && cacheTime && Date.now() - cacheTime < this.CACHE_TTL) {
-        console.log('🎯 Using cached essential passwords - instant load');
-        return cached;
+        if (cached && cacheTime && Date.now() - cacheTime < this.CACHE_TTL) {
+          console.log('🎯 Using cached essential passwords - instant load');
+          return cached;
+        }
+
+        // Load essential passwords only
+        const essentialEntries = await this.dbService.getEssentialPasswords();
+        console.log(
+          `⚡ Loading ${essentialEntries.length} essential passwords...`
+        );
+
+        // Decrypt essential passwords
+        const decryptedEssential = await Promise.allSettled(
+          essentialEntries.map(entry => this.decryptPasswordEntry(entry))
+        );
+
+        const finalEntries = decryptedEssential
+          .filter(result => result.status === 'fulfilled')
+          .map(result => result.value);
+
+        // Cache for instant access
+        this.entryCache.set(cacheKey, finalEntries);
+        this.cacheTimestamps.set(cacheKey, Date.now());
+
+        console.log(
+          `✅ Essential passwords loaded: ${finalEntries.length} entries`
+        );
+        return finalEntries;
+      },
+      {
+        loadType: 'essential',
+        cacheHit: cached ? true : false,
       }
-
-      // Load essential passwords only
-      const essentialEntries = await this.dbService.getEssentialPasswords();
-      console.log(`⚡ Loading ${essentialEntries.length} essential passwords...`);
-
-      // Decrypt essential passwords
-      const decryptedEssential = await Promise.allSettled(
-        essentialEntries.map(entry => this.decryptPasswordEntry(entry))
-      );
-
-      const finalEntries = decryptedEssential
-        .filter(result => result.status === 'fulfilled')
-        .map(result => result.value);
-
-      // Cache for instant access
-      this.entryCache.set(cacheKey, finalEntries);
-      this.cacheTimestamps.set(cacheKey, Date.now());
-
-      console.log(`✅ Essential passwords loaded: ${finalEntries.length} entries`);
-      return finalEntries;
-    }, {
-      loadType: 'essential',
-      cacheHit: cached ? true : false
-    });
+    );
   }
 
   /**
@@ -913,7 +929,7 @@ class VaultService {
 
     try {
       console.log('🔄 Starting background password loading...');
-      
+
       let page = 0;
       const batchSize = 15;
       let hasMore = true;
@@ -925,7 +941,7 @@ class VaultService {
             page,
             limit: batchSize,
             sortBy: 'updated_at',
-            sortOrder: 'DESC'
+            sortOrder: 'DESC',
           });
 
           if (batch.length === 0) {
@@ -951,15 +967,16 @@ class VaultService {
 
           // Yield control to avoid blocking
           await new Promise(resolve => setTimeout(resolve, 50));
-
         } catch (batchError) {
-          console.warn(`Background loading failed for page ${page}:`, batchError);
+          console.warn(
+            `Background loading failed for page ${page}:`,
+            batchError
+          );
           page++;
         }
       }
 
       console.log('✅ Background password loading completed');
-
     } catch (error) {
       console.warn('Background password loading failed:', error);
     }
@@ -972,7 +989,7 @@ class VaultService {
     if (this.backgroundLoader) {
       clearTimeout(this.backgroundLoader);
     }
-    
+
     this.backgroundLoader = setTimeout(() => {
       this.loadRemainingPasswordsBackground();
     }, 200); // Start after 200ms
@@ -1847,8 +1864,10 @@ class VaultService {
    */
   async bulkReencryptVault(newPassword, recoveryKey, progressCallback) {
     try {
-      console.log('🔄 VaultService: Starting optimized bulk vault re-encryption...');
-      
+      console.log(
+        '🔄 VaultService: Starting optimized bulk vault re-encryption...'
+      );
+
       // Initialize vault service if needed
       if (!this.dbService || !this.dbService.isInitialized) {
         await this.initialize();
@@ -1875,7 +1894,9 @@ class VaultService {
         progressCallback
       );
 
-      console.log(`🔄 Updating ${reencryptedEntries.length} entries in database...`);
+      console.log(
+        `🔄 Updating ${reencryptedEntries.length} entries in database...`
+      );
 
       // Bulk update database in transaction
       await this.dbService.executeTransaction(async () => {
@@ -1889,13 +1910,12 @@ class VaultService {
 
       // Clear all caches since encryption has changed
       this.clearAllCaches();
-      
+
       // Clear encryption key cache since password changed
       encryptionService.clearKeyCache();
 
       console.log('✅ VaultService: Bulk re-encryption completed successfully');
       return true;
-
     } catch (error) {
       console.error('❌ VaultService: Bulk re-encryption failed:', error);
       throw new Error(`Bulk re-encryption failed: ${error.message}`);

@@ -75,28 +75,28 @@ const ImportScreen = ({ navigation }) => {
   const validateAndRefreshSession = async () => {
     try {
       console.log('🔄 ImportScreen: Validating session for import...');
-      
+
       // Update activity to show we're actively using the app
       await updateImportActivity();
 
       // Check if vault service is authenticated
       if (!VaultService.isUserAuthenticated()) {
         console.log('❌ ImportScreen: User not authenticated');
-        
+
         Alert.alert(
           'Authentication Error',
           'Your session has expired. Please log in again to import passwords.',
           [
-            { 
-              text: 'OK', 
+            {
+              text: 'OK',
               onPress: () => {
                 // Navigate back to login
                 navigation.reset({
                   index: 0,
                   routes: [{ name: 'Login' }],
                 });
-              }
-            }
+              },
+            },
           ]
         );
         return false;
@@ -105,25 +105,27 @@ const ImportScreen = ({ navigation }) => {
       // Try to refresh session to extend timeout
       console.log('🔄 ImportScreen: Refreshing session...');
       const sessionRefreshed = await VaultService.refreshSession();
-      
+
       if (!sessionRefreshed) {
-        console.log('⚠️ ImportScreen: Session refresh failed, checking vault readiness...');
-        
+        console.log(
+          '⚠️ ImportScreen: Session refresh failed, checking vault readiness...'
+        );
+
         // Check if vault is ready for operations
         if (!VaultService.isVaultReadyForDataOperations()) {
           Alert.alert(
-            'Authentication Error', 
+            'Authentication Error',
             'Your session has expired. Please log in again to import passwords.',
             [
-              { 
-                text: 'OK', 
+              {
+                text: 'OK',
                 onPress: () => {
                   navigation.reset({
                     index: 0,
                     routes: [{ name: 'Login' }],
                   });
-                }
-              }
+                },
+              },
             ]
           );
           return false;
@@ -132,23 +134,22 @@ const ImportScreen = ({ navigation }) => {
 
       console.log('✅ ImportScreen: Session validated successfully');
       return true;
-
     } catch (error) {
       console.error('❌ ImportScreen: Session validation error:', error);
-      
+
       Alert.alert(
         'Session Error',
         'Unable to validate your session. Please try logging in again.',
         [
-          { 
-            text: 'OK', 
+          {
+            text: 'OK',
             onPress: () => {
               navigation.reset({
                 index: 0,
                 routes: [{ name: 'Login' }],
               });
-            }
-          }
+            },
+          },
         ]
       );
       return false;
@@ -221,7 +222,9 @@ const ImportScreen = ({ navigation }) => {
         return;
       }
 
-      console.log('ImportScreen: Authentication verified, proceeding with import');
+      console.log(
+        'ImportScreen: Authentication verified, proceeding with import'
+      );
 
       let importedCount = 0;
 
@@ -246,25 +249,27 @@ const ImportScreen = ({ navigation }) => {
             console.log(
               `ImportScreen: Validating session during import (entry ${i}/${importedData.length})...`
             );
-            
+
             // Update activity and validate session every 10 entries
             const sessionStillValid = await validateAndRefreshSession();
             if (!sessionStillValid) {
-              console.error(`ImportScreen: Session expired during import at entry ${i + 1}`);
-              
+              console.error(
+                `ImportScreen: Session expired during import at entry ${i + 1}`
+              );
+
               Alert.alert(
                 'Import Interrupted',
                 `Your session expired during import after processing ${importedCount} of ${importedData.length} passwords. Please log in again to continue.`,
                 [
-                  { 
-                    text: 'OK', 
+                  {
+                    text: 'OK',
                     onPress: () => {
                       navigation.reset({
                         index: 0,
                         routes: [{ name: 'Login' }],
                       });
-                    }
-                  }
+                    },
+                  },
                 ]
               );
               return;

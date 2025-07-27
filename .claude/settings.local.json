@@ -19,7 +19,8 @@
       "Bash(npm install:*)",
       "Bash(timeout 10s npm run start)",
       "Bash(cmd.exe:*)",
-      "Bash(expo start:*)"
+      "Bash(expo start:*)",
+      "Bash(npx prettier:*)"
     ],
     "deny": []
   }
