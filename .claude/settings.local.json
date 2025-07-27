@@ -16,7 +16,8 @@
       "Bash(taskkill:*)",
       "Bash(node:*)",
       "Bash(npm uninstall:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(timeout 10s npm run start)"
     ],
     "deny": []
   }
