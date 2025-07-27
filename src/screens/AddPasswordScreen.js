@@ -350,6 +350,21 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
       }, 1000);
     } catch (error) {
       console.error('Error saving password:', error);
+
+      // Handle the specific case where OS biometric session needs master password
+      if (error.message?.includes('NEED_MASTER_PASSWORD')) {
+        showSnackbar(
+          'Please log in with your master password to save passwords.'
+        );
+        // Navigate to login screen to upgrade the session
+        navigation.replace('Login', {
+          upgradeSession: true,
+          returnTo: 'AddPassword',
+          formData: formData,
+        });
+        return;
+      }
+
       showSnackbar('Error saving password. Please try again.');
     } finally {
       setIsSaving(false);

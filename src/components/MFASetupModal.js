@@ -58,7 +58,9 @@ const MFASetupModal = ({ visible, onComplete }) => {
       if (typeof onComplete === 'function') {
         onComplete(false);
       } else {
-        console.error('❌ onComplete callback is not a function in error handler');
+        console.error(
+          '❌ onComplete callback is not a function in error handler'
+        );
       }
     } finally {
       setIsEnabling(false);
@@ -113,7 +115,9 @@ const MFASetupModal = ({ visible, onComplete }) => {
       if (typeof onComplete === 'function') {
         onComplete(false);
       } else {
-        console.error('❌ onComplete callback is not a function in skip error handler');
+        console.error(
+          '❌ onComplete callback is not a function in skip error handler'
+        );
       }
     } finally {
       setIsDisabling(false);

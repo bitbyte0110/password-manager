@@ -134,7 +134,7 @@ export const PasswordProvider = ({ children }) => {
 
   // Enhanced add, update, delete helpers with immediate state updates and global sync
   const addPassword = useCallback(
-    async (entry, skipDatabaseSave = false) => {
+    async (entry) => {
       // Optimistically update local state immediately
       setPasswords(prev => [entry, ...prev]);
 
