@@ -269,31 +269,32 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
       try {
         setIsReencrypting(true);
         setReencryptionProgress(0);
-        
+
         console.log('🔄 Starting vault re-encryption with new password...');
-        
+
         // Import vault service for re-encryption
         const vaultService = require('../services/vaultService').default;
-        
+
         // Bulk re-encrypt all vault data
         await vaultService.bulkReencryptVault(
           newPassword,
           normalizedRecoveryPhrase, // Use recovery phrase to decrypt old data
-          (progress) => {
+          progress => {
             setReencryptionProgress(Math.round(progress));
             console.log(`🔄 Re-encryption progress: ${Math.round(progress)}%`);
           }
         );
-        
+
         console.log('✅ Vault re-encryption completed successfully');
         setIsReencrypting(false);
-        
       } catch (reencryptError) {
         console.error('❌ Vault re-encryption failed:', reencryptError);
         setIsReencrypting(false);
-        
+
         // Don't fail the entire process - data will be migrated on access
-        console.warn('Vault re-encryption failed, but password reset will continue. Data will be migrated on access.');
+        console.warn(
+          'Vault re-encryption failed, but password reset will continue. Data will be migrated on access.'
+        );
       }
 
       // Clear all session data to prevent authentication conflicts
@@ -301,7 +302,9 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
         await SecureStore.deleteItemAsync('vault_sessionToken');
         await SecureStore.deleteItemAsync('vault_biometricPassword');
         await SecureStore.deleteItemAsync('vault_sessionTime');
-        console.log('Cleared all session tokens and biometric password after recovery');
+        console.log(
+          'Cleared all session tokens and biometric password after recovery'
+        );
       } catch (clearError) {
         console.warn('Warning: Could not clear session data:', clearError);
       }
@@ -692,7 +695,7 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
                 Re-encrypting data with your new password...
               </Text>
             </View>
-            
+
             <View style={styles.progressContainer}>
               <ProgressBar
                 progress={reencryptionProgress / 100}
@@ -703,9 +706,10 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
                 {reencryptionProgress}% Complete
               </Text>
             </View>
-            
+
             <Text style={styles.progressNote}>
-              This process ensures your vault is optimized for faster access with your new password.
+              This process ensures your vault is optimized for faster access
+              with your new password.
             </Text>
           </View>
         </View>

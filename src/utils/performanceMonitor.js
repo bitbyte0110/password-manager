@@ -17,15 +17,15 @@ class PerformanceMonitor {
    */
   start(operation) {
     if (!this.isEnabled) return null;
-    
+
     const measurementId = `${operation}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     this.measurements.set(measurementId, {
       operation,
       startTime: performance.now(),
       timestamp: new Date().toISOString(),
     });
-    
+
     console.log(`🚀 Performance: Started measuring ${operation}`);
     return measurementId;
   }
@@ -38,16 +38,16 @@ class PerformanceMonitor {
    */
   end(measurementId, metadata = {}) {
     if (!this.isEnabled || !measurementId) return null;
-    
+
     const measurement = this.measurements.get(measurementId);
     if (!measurement) {
       console.warn(`Performance: Measurement ${measurementId} not found`);
       return null;
     }
-    
+
     const endTime = performance.now();
     const duration = endTime - measurement.startTime;
-    
+
     const result = {
       ...measurement,
       endTime,
@@ -55,14 +55,16 @@ class PerformanceMonitor {
       metadata,
       success: true,
     };
-    
+
     // Remove from active measurements
     this.measurements.delete(measurementId);
-    
+
     // Store result
     this.storeResult(result);
-    
-    console.log(`✅ Performance: ${measurement.operation} completed in ${duration.toFixed(2)}ms`);
+
+    console.log(
+      `✅ Performance: ${measurement.operation} completed in ${duration.toFixed(2)}ms`
+    );
     return result;
   }
 
@@ -73,13 +75,13 @@ class PerformanceMonitor {
    */
   fail(measurementId, error) {
     if (!this.isEnabled || !measurementId) return;
-    
+
     const measurement = this.measurements.get(measurementId);
     if (!measurement) return;
-    
+
     const endTime = performance.now();
     const duration = endTime - measurement.startTime;
-    
+
     const result = {
       ...measurement,
       endTime,
@@ -87,11 +89,13 @@ class PerformanceMonitor {
       success: false,
       error: error.message,
     };
-    
+
     this.measurements.delete(measurementId);
     this.storeResult(result);
-    
-    console.log(`❌ Performance: ${measurement.operation} failed after ${duration.toFixed(2)}ms - ${error.message}`);
+
+    console.log(
+      `❌ Performance: ${measurement.operation} failed after ${duration.toFixed(2)}ms - ${error.message}`
+    );
   }
 
   /**
@@ -102,7 +106,7 @@ class PerformanceMonitor {
     try {
       const key = `perf_${result.operation}_${Date.now()}`;
       await AsyncStorage.setItem(key, JSON.stringify(result));
-      
+
       // Clean up old results (keep last 50 per operation)
       this.cleanupOldResults(result.operation);
     } catch (error) {
@@ -121,12 +125,14 @@ class PerformanceMonitor {
         .filter(key => key.startsWith(`perf_${operation}_`))
         .sort()
         .reverse();
-      
+
       // Keep only the last 50 results
       if (perfKeys.length > 50) {
         const keysToDelete = perfKeys.slice(50);
         await AsyncStorage.multiRemove(keysToDelete);
-        console.log(`Performance: Cleaned up ${keysToDelete.length} old results for ${operation}`);
+        console.log(
+          `Performance: Cleaned up ${keysToDelete.length} old results for ${operation}`
+        );
       }
     } catch (error) {
       console.warn('Performance: Cleanup failed:', error);
@@ -141,24 +147,29 @@ class PerformanceMonitor {
   async getSummary(operation) {
     try {
       const allKeys = await AsyncStorage.getAllKeys();
-      const perfKeys = allKeys.filter(key => key.startsWith(`perf_${operation}_`));
-      
+      const perfKeys = allKeys.filter(key =>
+        key.startsWith(`perf_${operation}_`)
+      );
+
       if (perfKeys.length === 0) {
         return { operation, count: 0, averageTime: 0, successRate: 0 };
       }
-      
+
       const results = await AsyncStorage.multiGet(perfKeys);
       const measurements = results
         .map(([, value]) => JSON.parse(value))
         .filter(result => result.success)
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      
+
       const recentMeasurements = measurements.slice(0, 20); // Last 20 measurements
-      const totalDuration = recentMeasurements.reduce((sum, m) => sum + m.duration, 0);
+      const totalDuration = recentMeasurements.reduce(
+        (sum, m) => sum + m.duration,
+        0
+      );
       const averageTime = totalDuration / recentMeasurements.length;
       const successCount = measurements.filter(m => m.success).length;
       const successRate = (successCount / measurements.length) * 100;
-      
+
       return {
         operation,
         count: measurements.length,
@@ -179,7 +190,7 @@ class PerformanceMonitor {
    */
   async trackPasswordReset(operation) {
     const measurementId = this.start('password_reset');
-    
+
     try {
       const result = await operation();
       this.end(measurementId, { success: true });
@@ -198,7 +209,7 @@ class PerformanceMonitor {
    */
   async trackLogin(operation, metadata = {}) {
     const measurementId = this.start('login');
-    
+
     try {
       const result = await operation();
       this.end(measurementId, { ...metadata, success: true });
@@ -217,13 +228,13 @@ class PerformanceMonitor {
    */
   async trackVaultLoading(operation, metadata = {}) {
     const measurementId = this.start('vault_loading');
-    
+
     try {
       const result = await operation();
-      this.end(measurementId, { 
-        ...metadata, 
+      this.end(measurementId, {
+        ...metadata,
         entryCount: result?.length || 0,
-        success: true 
+        success: true,
       });
       return result;
     } catch (error) {
@@ -241,7 +252,7 @@ class PerformanceMonitor {
    */
   async trackEncryption(operation, type = 'encrypt', metadata = {}) {
     const measurementId = this.start(`encryption_${type}`);
-    
+
     try {
       const result = await operation();
       this.end(measurementId, { ...metadata, type, success: true });
@@ -259,17 +270,17 @@ class PerformanceMonitor {
   async getAllSummaries() {
     const operations = [
       'password_reset',
-      'login', 
+      'login',
       'vault_loading',
       'encryption_encrypt',
-      'encryption_decrypt'
+      'encryption_decrypt',
     ];
-    
+
     const summaries = {};
     for (const operation of operations) {
       summaries[operation] = await this.getSummary(operation);
     }
-    
+
     return summaries;
   }
 
@@ -280,10 +291,12 @@ class PerformanceMonitor {
     try {
       const allKeys = await AsyncStorage.getAllKeys();
       const perfKeys = allKeys.filter(key => key.startsWith('perf_'));
-      
+
       if (perfKeys.length > 0) {
         await AsyncStorage.multiRemove(perfKeys);
-        console.log(`Performance: Cleared ${perfKeys.length} performance records`);
+        console.log(
+          `Performance: Cleared ${perfKeys.length} performance records`
+        );
       }
     } catch (error) {
       console.error('Performance: Failed to clear data:', error);

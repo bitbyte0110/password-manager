@@ -149,7 +149,11 @@ const SessionManager = ({ children, navigationRef }) => {
       // Clear all session-related storage
       await AsyncStorage.removeItem(LAST_ACTIVE_TIME_KEY);
       await SecureStore.deleteItemAsync('vault_sessionToken');
-      await SecureStore.deleteItemAsync('vault_biometricPassword');
+
+      // Note: We intentionally do NOT clear vault_biometricPassword here
+      // to maintain consistency with manual logout behavior when MFA is disabled.
+      // This allows biometric authentication to work the same way after auto-logout
+      // as it does after manual logout when MFA is disabled and biometric is enabled.
 
       // Navigate directly to login without confirmation
       if (navigationRef.current) {
