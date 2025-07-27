@@ -71,6 +71,90 @@ const ImportScreen = ({ navigation }) => {
     }
   };
 
+  // Enhanced session validation with user-friendly error handling
+  const validateAndRefreshSession = async () => {
+    try {
+      console.log('🔄 ImportScreen: Validating session for import...');
+      
+      // Update activity to show we're actively using the app
+      await updateImportActivity();
+
+      // Check if vault service is authenticated
+      if (!VaultService.isUserAuthenticated()) {
+        console.log('❌ ImportScreen: User not authenticated');
+        
+        Alert.alert(
+          'Authentication Error',
+          'Your session has expired. Please log in again to import passwords.',
+          [
+            { 
+              text: 'OK', 
+              onPress: () => {
+                // Navigate back to login
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'Login' }],
+                });
+              }
+            }
+          ]
+        );
+        return false;
+      }
+
+      // Try to refresh session to extend timeout
+      console.log('🔄 ImportScreen: Refreshing session...');
+      const sessionRefreshed = await VaultService.refreshSession();
+      
+      if (!sessionRefreshed) {
+        console.log('⚠️ ImportScreen: Session refresh failed, checking vault readiness...');
+        
+        // Check if vault is ready for operations
+        if (!VaultService.isVaultReadyForDataOperations()) {
+          Alert.alert(
+            'Authentication Error', 
+            'Your session has expired. Please log in again to import passwords.',
+            [
+              { 
+                text: 'OK', 
+                onPress: () => {
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'Login' }],
+                  });
+                }
+              }
+            ]
+          );
+          return false;
+        }
+      }
+
+      console.log('✅ ImportScreen: Session validated successfully');
+      return true;
+
+    } catch (error) {
+      console.error('❌ ImportScreen: Session validation error:', error);
+      
+      Alert.alert(
+        'Session Error',
+        'Unable to validate your session. Please try logging in again.',
+        [
+          { 
+            text: 'OK', 
+            onPress: () => {
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            }
+          }
+        ]
+      );
+      return false;
+    }
+  };
+
   const handleImport = async () => {
     try {
       if (!importPassword.trim()) {
@@ -80,22 +164,11 @@ const ImportScreen = ({ navigation }) => {
 
       setIsImporting(true);
 
-      // Update activity to keep session alive during import
-      await updateImportActivity();
-
-      // Refresh session before starting import to prevent timeout
-      console.log('ImportScreen: Refreshing session before file processing...');
-      const sessionRefreshed = await VaultService.refreshSession();
-      if (!sessionRefreshed) {
-        console.log('ImportScreen: Session refresh failed before import');
-        if (!VaultService.isUserAuthenticated()) {
-          Alert.alert(
-            'Authentication Error',
-            'Your session has expired. Please log in again to import passwords.'
-          );
-          setIsImporting(false);
-          return;
-        }
+      // Enhanced session validation before import
+      const sessionValid = await validateAndRefreshSession();
+      if (!sessionValid) {
+        setIsImporting(false);
+        return;
       }
 
       // Import and decrypt the file
@@ -142,46 +215,13 @@ const ImportScreen = ({ navigation }) => {
     try {
       setIsImporting(true);
 
-      // Critical: Refresh session to prevent timeout during import process
-      console.log(
-        'ImportScreen: Refreshing session before processing import...'
-      );
-      let sessionRefreshed = false;
-
-      // Try multiple times to refresh session if needed
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        sessionRefreshed = await VaultService.refreshSession();
-        if (sessionRefreshed) {
-          console.log(
-            `ImportScreen: Session refreshed successfully on attempt ${attempt}`
-          );
-          break;
-        } else {
-          console.log(
-            `ImportScreen: Session refresh attempt ${attempt} failed`
-          );
-          if (attempt < 3) {
-            // Wait a bit before retrying
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-        }
-      }
-
-      // Final authentication check
-      if (!sessionRefreshed || !VaultService.isUserAuthenticated()) {
-        console.log(
-          'ImportScreen: Authentication failed after session refresh attempts'
-        );
-        Alert.alert(
-          'Authentication Error',
-          'Your session has expired. Please log in again to import passwords.'
-        );
+      // Enhanced session validation before processing
+      const sessionValid = await validateAndRefreshSession();
+      if (!sessionValid) {
         return;
       }
 
-      console.log(
-        'ImportScreen: Authentication verified, proceeding with import'
-      );
+      console.log('ImportScreen: Authentication verified, proceeding with import');
 
       let importedCount = 0;
 
@@ -201,12 +241,34 @@ const ImportScreen = ({ navigation }) => {
         const passwordEntry = importedData[i];
 
         try {
-          // Update activity every 10 entries to keep session alive during large imports
+          // Enhanced session management during large imports
           if (i > 0 && i % 10 === 0) {
             console.log(
-              `ImportScreen: Updating activity during import (entry ${i}/${importedData.length})...`
+              `ImportScreen: Validating session during import (entry ${i}/${importedData.length})...`
             );
-            await updateImportActivity();
+            
+            // Update activity and validate session every 10 entries
+            const sessionStillValid = await validateAndRefreshSession();
+            if (!sessionStillValid) {
+              console.error(`ImportScreen: Session expired during import at entry ${i + 1}`);
+              
+              Alert.alert(
+                'Import Interrupted',
+                `Your session expired during import after processing ${importedCount} of ${importedData.length} passwords. Please log in again to continue.`,
+                [
+                  { 
+                    text: 'OK', 
+                    onPress: () => {
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: 'Login' }],
+                      });
+                    }
+                  }
+                ]
+              );
+              return;
+            }
           }
 
           console.log('Processing password entry:', {
