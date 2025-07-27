@@ -6,7 +6,6 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Modal,
-  Alert,
 } from 'react-native';
 import { Button, Snackbar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -412,13 +411,23 @@ const LoginScreen = ({ navigation: navProp }) => {
           // Navigate immediately for instant login
           navigation.replace('MainTabs');
         } else {
+          // Handle failed authentication
           await incrementFailedAttempts();
+          const newAttempts = failedAttempts + 1;
+          const attemptsRemaining = MAX_FAILED_ATTEMPTS - newAttempts;
+
           if (mfaMode) {
             setPasswordError(
               'Invalid master password. MFA Step 2 failed - both biometric and password required.'
             );
+          } else if (attemptsRemaining > 0) {
+            const attemptText =
+              attemptsRemaining === 1 ? 'attempt' : 'attempts';
+            setPasswordError(
+              `Invalid master password. ${attemptsRemaining} ${attemptText} remaining.`
+            );
           } else {
-            setPasswordError('Invalid master password. Please try again.');
+            setPasswordError('Invalid master password.');
           }
           setMasterPassword('');
         }
@@ -426,8 +435,24 @@ const LoginScreen = ({ navigation: navProp }) => {
         console.error('Error authenticating vault service:', vaultError);
         // Handle specific authentication errors
         if (vaultError.message?.includes('Invalid')) {
+          // Handle failed authentication (same logic as the else block above)
           await incrementFailedAttempts();
-          setPasswordError('Invalid master password');
+          const newAttempts = failedAttempts + 1;
+          const attemptsRemaining = MAX_FAILED_ATTEMPTS - newAttempts;
+
+          if (mfaMode) {
+            setPasswordError(
+              'Invalid master password. MFA Step 2 failed - both biometric and password required.'
+            );
+          } else if (attemptsRemaining > 0) {
+            const attemptText =
+              attemptsRemaining === 1 ? 'attempt' : 'attempts';
+            setPasswordError(
+              `Invalid master password. ${attemptsRemaining} ${attemptText} remaining.`
+            );
+          } else {
+            setPasswordError('Invalid master password.');
+          }
           setMasterPassword('');
         } else {
           showSnackbar('Authentication error. Please try again.');
