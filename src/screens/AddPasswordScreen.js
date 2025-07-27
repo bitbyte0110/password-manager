@@ -97,6 +97,19 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
     }
   }, [route?.params?.generatedPassword]);
 
+  // Handle restored form data after session upgrade
+  useEffect(() => {
+    if (route?.params?.restoredFormData && route?.params?.sessionUpgraded) {
+      setFormData(route.params.restoredFormData);
+      showSnackbar('Session restored! You can now save your password.');
+      // Clear the parameters
+      navigation.setParams({
+        restoredFormData: undefined,
+        sessionUpgraded: undefined,
+      });
+    }
+  }, [route?.params?.restoredFormData, route?.params?.sessionUpgraded]);
+
   // Refresh categories when returning from AddCategoryScreen
   useFocusEffect(
     useCallback(() => {
@@ -353,14 +366,13 @@ const AddPasswordScreen = ({ navigation: navProp, route }) => {
 
       // Handle the specific case where OS biometric session needs master password
       if (error.message?.includes('NEED_MASTER_PASSWORD')) {
-        showSnackbar(
-          'Please log in with your master password to save passwords.'
-        );
-        // Navigate to login screen to upgrade the session
+        showSnackbar('Please enter your master password to save passwords.');
+        // For now, navigate to login screen - in the future this could be a modal
         navigation.replace('Login', {
           upgradeSession: true,
           returnTo: 'AddPassword',
           formData: formData,
+          reason: 'biometric_password_required',
         });
         return;
       }

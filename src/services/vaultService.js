@@ -146,17 +146,55 @@ class VaultService {
       // Check if this is an OS biometric session
       if (sessionData.type === 'os_biometric') {
         console.log(
-          'VaultService: Restoring OS biometric session (no master password required)'
+          'VaultService: Restoring OS biometric session, attempting to retrieve stored password...'
         );
 
-        // For OS biometric sessions, we don't have the actual master password
-        // but we can still maintain authentication state
-        this.masterPassword = null; // OS biometric sessions don't store master password
+        // Try to get the stored biometric password for full functionality
+        const biometricPassword = await SecureStore.getItemAsync(
+          'vault_biometricPassword'
+        );
+
+        if (biometricPassword) {
+          try {
+            // Decrypt the stored password and restore full session
+            console.log(
+              'VaultService: Found stored biometric password during session restore'
+            );
+            const decryptedPassword =
+              this.decryptBiometricPassword(biometricPassword);
+
+            this.masterPassword = decryptedPassword;
+            this.isAuthenticated = true;
+            this.sessionStartTime = sessionData.timestamp;
+            this.sessionToken = sessionToken;
+
+            console.log(
+              'VaultService: OS biometric session restored with full password access'
+            );
+            console.log('=== END SESSION RESTORATION DEBUG ===');
+            return true;
+          } catch (decryptError) {
+            console.error(
+              'VaultService: Error decrypting stored biometric password during session restore:',
+              decryptError
+            );
+            // Clear corrupted biometric password and continue with limited session
+            await SecureStore.deleteItemAsync('vault_biometricPassword');
+          }
+        }
+
+        // Fall back to limited session (will prompt for password when needed)
+        console.log(
+          'VaultService: No stored biometric password available, restoring limited OS biometric session'
+        );
+        this.masterPassword = null; // Limited session - will prompt for password
         this.isAuthenticated = true;
         this.sessionStartTime = sessionData.timestamp;
         this.sessionToken = sessionToken;
 
-        console.log('VaultService: OS biometric session restored successfully');
+        console.log(
+          'VaultService: OS biometric session restored (limited - will prompt for master password when needed)'
+        );
         console.log('=== END SESSION RESTORATION DEBUG ===');
         return true;
       }
@@ -297,8 +335,7 @@ class VaultService {
 
   /**
    * Authenticate with OS-level biometric when MFA is disabled
-   * This allows immediate access after successful OS biometric authentication
-   * without requiring stored credentials or setup
+   * Now attempts to retrieve stored master password, fallback to requesting it
    * @returns {Promise<boolean>} Authentication success
    */
   async authenticateWithOSBiometric() {
@@ -323,32 +360,66 @@ class VaultService {
         return false;
       }
 
-      // Since OS biometric authentication already succeeded and MFA is disabled,
-      // we can create an authenticated session without requiring stored credentials
-      console.log(
-        'VaultService: Creating authenticated session based on OS biometric success'
+      // First, try to get the stored biometric password
+      const biometricPassword = await SecureStore.getItemAsync(
+        'vault_biometricPassword'
       );
 
-      // Set authenticated state
-      this.isAuthenticated = true;
-      this.sessionStartTime = Date.now();
+      if (biometricPassword) {
+        try {
+          // Decrypt the stored password and authenticate normally
+          console.log(
+            'VaultService: Found stored biometric password, decrypting...'
+          );
+          const decryptedPassword =
+            this.decryptBiometricPassword(biometricPassword);
 
-      // Create a proper session token in JSON format to match tryRestoreAuthentication expectations
-      // Use a placeholder encrypted password since we don't have the actual master password
-      const sessionData = {
-        encryptedPassword: 'os_biometric_placeholder', // Placeholder for OS biometric sessions
-        salt: 'os_biometric_salt',
-        timestamp: this.sessionStartTime,
-        type: 'os_biometric', // Mark this as an OS biometric session
-      };
+          // Set the master password and authenticate properly
+          this.masterPassword = decryptedPassword;
+          this.isAuthenticated = true;
+          this.sessionStartTime = Date.now();
 
-      this.sessionToken = JSON.stringify(sessionData);
-      await SecureStore.setItemAsync('vault_sessionToken', this.sessionToken);
+          // Create normal session token with actual master password
+          await this.createSessionToken(decryptedPassword);
 
+          console.log(
+            'VaultService: OS biometric authentication successful with stored password'
+          );
+          return true;
+        } catch (decryptError) {
+          console.error(
+            'VaultService: Error decrypting stored biometric password:',
+            decryptError
+          );
+          // Clear corrupted biometric password and continue to fallback
+          await SecureStore.deleteItemAsync('vault_biometricPassword');
+        }
+      }
+
+      // If no stored password available, try to restore from session first
       console.log(
-        'VaultService: OS biometric authentication successful - session created'
+        'VaultService: No stored biometric password, trying session restoration...'
       );
-      return true;
+
+      try {
+        const sessionRestored = await this.tryRestoreAuthentication();
+        if (sessionRestored && this.masterPassword) {
+          console.log('VaultService: Session restored with master password');
+          return true;
+        }
+      } catch (sessionError) {
+        console.warn('VaultService: Session restoration failed:', sessionError);
+      }
+
+      // If no stored password or session available, we cannot proceed with OS biometric authentication
+      // The user will need to provide their master password at least once to enable biometric storage
+      console.log(
+        'VaultService: No stored biometric password or session available, OS biometric authentication cannot proceed without master password'
+      );
+      
+      // Return false to indicate biometric authentication failed
+      // This will trigger the fallback logic in LoginScreen to prompt for master password
+      return false;
     } catch (error) {
       console.error('VaultService: OS biometric authentication error:', error);
       return false;
@@ -459,6 +530,23 @@ class VaultService {
         // Create and store session token for restoration
         await this.createSessionToken(password);
 
+        // Critical: Always store master password for biometric access when MFA is disabled
+        const mfaEnabled = await getMFAEnabled();
+        if (!mfaEnabled) {
+          try {
+            console.log(
+              'VaultService: Storing master password for biometric access (MFA disabled)'
+            );
+            await this.enableBiometricAccess(password);
+          } catch (biometricError) {
+            console.warn(
+              'VaultService: Could not store password for biometric access:',
+              biometricError
+            );
+            // Don't fail login if biometric storage fails
+          }
+        }
+
         // Critical optimization: Preload password data immediately for instant vault display
         console.log(
           'VaultService: Starting immediate password preloading for instant vault access'
@@ -482,22 +570,6 @@ class VaultService {
 
         // Schedule other background operations for better UX
         setImmediate(async () => {
-          // Background biometric setup
-          const mfaEnabled = await getMFAEnabled();
-          if (!mfaEnabled) {
-            try {
-              await this.enableBiometricAccess(password);
-              console.log(
-                'VaultService: Background - Biometric access enabled'
-              );
-            } catch (error) {
-              console.warn(
-                'VaultService: Background - Could not enable biometric access:',
-                error
-              );
-            }
-          }
-
           // Preload categories in parallel with passwords
           try {
             const categories = await this.getCategories();
@@ -635,12 +707,9 @@ class VaultService {
    * @returns {boolean} Authentication status
    */
   isUserAuthenticated() {
-    // For regular sessions, require both isAuthenticated and masterPassword
-    // For OS biometric sessions, only require isAuthenticated (masterPassword is null by design)
-    return (
-      this.isAuthenticated &&
-      (this.masterPassword !== null || this.isOSBiometricSession())
-    );
+    // Require both isAuthenticated and masterPassword for all sessions
+    // We no longer create limited OS biometric sessions
+    return this.isAuthenticated && this.masterPassword !== null;
   }
 
   /**
@@ -717,10 +786,8 @@ class VaultService {
    * @returns {boolean} Ready for data operations
    */
   isVaultReadyForDataOperations() {
-    return (
-      this.isVaultReady() &&
-      (this.masterPassword !== null || !this.isOSBiometricSession())
-    );
+    // Since we no longer create limited sessions, this is the same as isVaultReady
+    return this.isVaultReady();
   }
 
   /**
@@ -911,9 +978,14 @@ class VaultService {
             console.warn(`Failed to decrypt entry ${entry.id}:`, decryptError);
             return {
               ...entry,
-              title: 'Decryption Error',
+              title: decryptError.message?.includes('NEED_MASTER_PASSWORD')
+                ? 'Master Password Required'
+                : 'Decryption Error',
               username: '',
               decryptionError: true,
+              needsMasterPassword: decryptError.message?.includes(
+                'NEED_MASTER_PASSWORD'
+              ),
             };
           }
         })
@@ -1562,13 +1634,8 @@ class VaultService {
           throw new Error('Authentication could not be restored');
         }
 
-        // If this is an OS biometric session, we need the user to provide master password
-        if (this.isOSBiometricSession()) {
-          throw new Error(
-            'NEED_MASTER_PASSWORD: OS biometric session requires master password for data access'
-          );
-        }
-
+        // Since we no longer create limited OS biometric sessions, this should not happen
+        // If we reach here without a master password, something went wrong with authentication
         if (!this.masterPassword) {
           throw new Error(
             'Master password not available - authentication required'
@@ -1858,6 +1925,67 @@ class VaultService {
       return migratedCount;
     } catch (error) {
       console.error('Migration failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Request and store master password for OS biometric sessions
+   * @param {string} masterPassword - Master password provided by user
+   * @returns {Promise<boolean>} Success status
+   */
+  async provideMasterPasswordForBiometric(masterPassword) {
+    try {
+      if (!this.isOSBiometricSession()) {
+        throw new Error('Not an OS biometric session');
+      }
+
+      // Verify the master password
+      const storedHash = await SecureStore.getItemAsync('vault_masterHash');
+      if (!storedHash) {
+        throw new Error('No master password set');
+      }
+
+      const isValid = await passwordUtils.verifyPassword(
+        masterPassword,
+        storedHash
+      );
+      if (!isValid) {
+        throw new Error('Invalid master password');
+      }
+
+      // Store the password in memory and enable biometric storage
+      this.masterPassword = masterPassword;
+
+      // Store for future biometric access (when MFA is disabled)
+      const mfaEnabled = await getMFAEnabled();
+      if (!mfaEnabled) {
+        try {
+          await this.enableBiometricAccess(masterPassword);
+          console.log(
+            'VaultService: Biometric access re-enabled after password provision'
+          );
+        } catch (biometricError) {
+          console.warn(
+            'VaultService: Could not re-enable biometric access:',
+            biometricError
+          );
+          // Continue anyway - we have the password in memory
+        }
+      }
+
+      // Update session token to include the actual password
+      await this.createSessionToken(masterPassword);
+
+      console.log(
+        'VaultService: Master password provided and stored for biometric session'
+      );
+      return true;
+    } catch (error) {
+      console.error(
+        'VaultService: Error providing master password for biometric session:',
+        error
+      );
       throw error;
     }
   }

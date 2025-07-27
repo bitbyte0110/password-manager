@@ -17,7 +17,9 @@
       "Bash(node:*)",
       "Bash(npm uninstall:*)",
       "Bash(npm install:*)",
-      "Bash(timeout 10s npm run start)"
+      "Bash(timeout 10s npm run start)",
+      "Bash(cmd.exe:*)",
+      "Bash(expo start:*)"
     ],
     "deny": []
   }
