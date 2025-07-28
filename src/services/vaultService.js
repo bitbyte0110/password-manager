@@ -1886,9 +1886,25 @@ class VaultService {
         return true;
       }
 
+      // Parse encrypted payloads before passing to encryption service
+      const parsedEntries = allEntries.map(entry => {
+        try {
+          return {
+            ...entry,
+            encrypted_payload: JSON.parse(entry.encrypted_payload),
+          };
+        } catch (parseError) {
+          console.error(
+            `Failed to parse encrypted_payload for entry ${entry.id}:`,
+            parseError
+          );
+          throw new Error(`Corrupted data for entry ${entry.id}`);
+        }
+      });
+
       // Use encryption service's bulk re-encrypt method
       const reencryptedEntries = await encryptionService.bulkReencrypt(
-        allEntries,
+        parsedEntries,
         recoveryKey,
         newPassword,
         progressCallback
