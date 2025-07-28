@@ -130,7 +130,7 @@ const SetMasterPasswordScreen = ({ navigation }) => {
       );
       const hashedPassword = await passwordUtils.hashPassword(
         passwordString,
-        12
+        10
       );
 
       console.log('SetMasterPasswordScreen: Password hashed successfully');

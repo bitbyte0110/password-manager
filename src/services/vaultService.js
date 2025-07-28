@@ -1977,7 +1977,7 @@ class VaultService {
       );
 
       // Create new password hash
-      const saltRounds = 12;
+      const saltRounds = 10;
       const newHash = await passwordUtils.hashPassword(newPassword, saltRounds);
 
       // Re-encrypt all entries with new password
