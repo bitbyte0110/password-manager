@@ -20,7 +20,8 @@
       "Bash(timeout 10s npm run start)",
       "Bash(cmd.exe:*)",
       "Bash(expo start:*)",
-      "Bash(npx prettier:*)"
+      "Bash(npx prettier:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

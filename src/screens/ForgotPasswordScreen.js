@@ -250,7 +250,7 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
       await clearAllLockoutStates();
 
       // Hash the new password
-      const saltRounds = 12;
+      const saltRounds = 10;
       const newPasswordHash = await passwordUtils.hashPassword(
         newPassword,
         saltRounds

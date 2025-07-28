@@ -6,7 +6,7 @@ import bcrypt from 'react-native-bcrypt';
  */
 class PasswordUtils {
   constructor() {
-    this.saltRounds = 12; // Secure salt rounds for bcrypt
+    this.saltRounds = 10; // Optimized salt rounds for mobile performance
     this.minPasswordLength = 12;
     this.maxPasswordLength = 128;
   }
