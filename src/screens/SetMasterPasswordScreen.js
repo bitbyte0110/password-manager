@@ -159,6 +159,24 @@ const SetMasterPasswordScreen = ({ navigation }) => {
       await SecureStore.setItemAsync('vault_masterHash', hashedPassword);
       await SecureStore.setItemAsync('vault_recoveryHash', recoveryHash);
 
+      // CRITICAL: Store encrypted master password for recovery purposes
+      console.log(
+        'SetMasterPasswordScreen: Encrypting master password for recovery...'
+      );
+      const encryptionService =
+        require('../services/encryptionService').default;
+      const encryptedMasterPassword = encryptionService.encryptText(
+        passwordString,
+        recoveryPhrase
+      );
+      await SecureStore.setItemAsync(
+        'vault_encryptedMasterPassword',
+        JSON.stringify(encryptedMasterPassword)
+      );
+      console.log(
+        'SetMasterPasswordScreen: Encrypted master password stored for recovery'
+      );
+
       console.log('SetMasterPasswordScreen: Setup completed successfully');
       showSnackbar('Master password set successfully!');
 

@@ -520,6 +520,26 @@ class EncryptionService {
   }
 
   /**
+   * Encrypt text with a key (alias for encrypt method)
+   * @param {string} plaintext - Text to encrypt
+   * @param {string} key - Encryption key
+   * @returns {object} Encrypted data object
+   */
+  encryptText(plaintext, key) {
+    return this.encrypt(plaintext, key);
+  }
+
+  /**
+   * Decrypt text with a key (alias for decrypt method)
+   * @param {object} encryptedData - Encrypted data object
+   * @param {string} key - Decryption key
+   * @returns {string} Decrypted plaintext
+   */
+  decryptText(encryptedData, key) {
+    return this.decrypt(encryptedData, key);
+  }
+
+  /**
    * Securely clear sensitive data from memory
    * @param {string} data - Sensitive string to clear
    */
