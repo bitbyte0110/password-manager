@@ -58,7 +58,6 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
   const [isReencrypting, setIsReencrypting] = useState(false);
   const [reencryptionProgress, setReencryptionProgress] = useState(0);
-  const [isLegacyVault, setIsLegacyVault] = useState(false);
 
   useEffect(() => {
     if (currentStep === 1) {
@@ -263,8 +262,8 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
       // Update the master password hash in SecureStore
       await SecureStore.setItemAsync('vault_masterHash', newPasswordHash);
 
-      // CRITICAL FIX: Re-encrypt all vault data with new password using recovered master password
-      // Use the already normalized recovery phrase from verification step
+      // CRITICAL FIX: Re-encrypt all vault data with new password
+      // Use the recovery phrase as the "old password" to decrypt existing data
       const normalizedRecoveryPhrase = recoveryPhrase;
 
       try {
@@ -273,92 +272,135 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
 
         console.log('🔄 Starting vault re-encryption with new password...');
 
-        // Try to get the encrypted master password (for new vaults that have this feature)
-        const encryptedMasterPasswordData = await SecureStore.getItemAsync(
-          'vault_encryptedMasterPassword'
-        );
+        // Get database service to retrieve all password entries
+        const databaseService = require('../services/databaseService').default;
+        const encryptionService = require('../services/encryptionService').default;
 
-        const encryptionService =
-          require('../services/encryptionService').default;
+        // Get all password entries
+        const allEntries = await databaseService.getPasswordEntries();
+        console.log(`🔄 Found ${allEntries.length} entries to re-encrypt`);
 
-        if (encryptedMasterPasswordData) {
-          // New vault with encrypted master password backup
-          console.log('✅ Found encrypted master password backup, recovering...');
-          try {
-            const encryptedMasterPassword = JSON.parse(encryptedMasterPasswordData);
-            originalMasterPassword = encryptionService.decryptText(
-              encryptedMasterPassword,
-              normalizedRecoveryPhrase
-            );
-            console.log('✅ Original master password recovered successfully');
-          } catch (decryptError) {
-            console.error('❌ Failed to decrypt master password backup:', decryptError);
-            throw new Error('Failed to recover master password from backup. The recovery phrase may be incorrect.');
-          }
-        } else {
-          // Legacy vault without encrypted master password backup
-          console.log('⚠️ No encrypted master password backup found (legacy vault)');
-          console.log('🔄 Skipping re-encryption for legacy vault...');
-          
-          // For legacy vaults, skip re-encryption and rely on migration during access
-          // This allows password reset to complete without losing data
-          originalMasterPassword = null; // Signal to skip re-encryption
-          setIsLegacyVault(true); // Update UI state
-        }
+        if (allEntries.length > 0) {
+          // Re-encrypt all entries with new password
+          const reEncryptedEntries = [];
+          let completed = 0;
 
-        // Import vault service for re-encryption
-        const vaultService = require('../services/vaultService').default;
+          for (const entry of allEntries) {
+            try {
+              console.log(`🔄 Re-encrypting entry ${entry.id}...`);
+              
+              // Try to decrypt with recovery phrase first (for legacy entries)
+              let decryptedEntry;
+              try {
+                // Parse the encrypted payload
+                const encryptedData = typeof entry.encrypted_payload === 'string' 
+                  ? JSON.parse(entry.encrypted_payload) 
+                  : entry.encrypted_payload;
 
-        if (originalMasterPassword) {
-          // Re-encrypt vault data with new password for vaults with backup
-          await vaultService.bulkReencryptVault(
-            newPassword,
-            originalMasterPassword, // Use recovered original master password to decrypt old data
-            progress => {
-              setReencryptionProgress(Math.round(progress));
-              console.log(`🔄 Re-encryption progress: ${Math.round(progress)}%`);
+                // Try to decrypt with recovery phrase
+                decryptedEntry = encryptionService.decryptPasswordEntry(
+                  encryptedData,
+                  normalizedRecoveryPhrase
+                );
+              } catch (recoveryDecryptError) {
+                // If recovery phrase doesn't work, try to get original master password from backup
+                console.log(`⚠️ Recovery phrase decryption failed for entry ${entry.id}, trying backup...`);
+                
+                const encryptedMasterPasswordData = await SecureStore.getItemAsync(
+                  'vault_encryptedMasterPassword'
+                );
+
+                if (encryptedMasterPasswordData) {
+                  try {
+                    const encryptedMasterPassword = JSON.parse(encryptedMasterPasswordData);
+                    const originalMasterPassword = encryptionService.decryptText(
+                      encryptedMasterPassword,
+                      normalizedRecoveryPhrase
+                    );
+                    
+                    // Try to decrypt with original master password
+                    const encryptedData = typeof entry.encrypted_payload === 'string' 
+                      ? JSON.parse(entry.encrypted_payload) 
+                      : entry.encrypted_payload;
+
+                    decryptedEntry = encryptionService.decryptPasswordEntry(
+                      encryptedData,
+                      originalMasterPassword
+                    );
+                  } catch (backupDecryptError) {
+                    console.error(`❌ Failed to decrypt entry ${entry.id} with both recovery phrase and backup:`, backupDecryptError);
+                    throw new Error(`Cannot decrypt entry ${entry.id}. Password data may be corrupted.`);
+                  }
+                } else {
+                  console.error(`❌ No backup available and recovery phrase failed for entry ${entry.id}`);
+                  throw new Error(`Cannot decrypt entry ${entry.id}. No backup available and recovery phrase failed.`);
+                }
+              }
+
+              // Re-encrypt with new password
+              const reEncryptedData = encryptionService.encryptPasswordEntryOptimized(
+                {
+                  title: decryptedEntry.title,
+                  username: decryptedEntry.username,
+                  password: decryptedEntry.password,
+                  url: decryptedEntry.url,
+                  notes: decryptedEntry.notes,
+                  categoryId: decryptedEntry.categoryId,
+                  isFavorite: decryptedEntry.isFavorite,
+                },
+                newPassword
+              );
+
+              reEncryptedEntries.push({
+                id: entry.id,
+                encryptedPayload: reEncryptedData.encrypted_payload,
+              });
+
+              completed++;
+              const progress = Math.round((completed / allEntries.length) * 100);
+              setReencryptionProgress(progress);
+              console.log(`🔄 Re-encryption progress: ${progress}%`);
+
+            } catch (error) {
+              console.error(`❌ Failed to re-encrypt entry ${entry.id}:`, error);
+              throw new Error(`Failed to re-encrypt password entry: ${error.message}`);
             }
-          );
+          }
+
+          console.log('🔄 All entries re-encrypted, updating database...');
+
+          // Update all entries in database with new encrypted data
+          for (const entry of reEncryptedEntries) {
+            await databaseService.db.runAsync(
+              `UPDATE passwords 
+               SET encrypted_payload = ?, 
+                   updated_at = CURRENT_TIMESTAMP
+               WHERE id = ?`,
+              [JSON.stringify(entry.encryptedPayload), entry.id]
+            );
+          }
 
           console.log('✅ Vault re-encryption completed successfully');
-
-          // Update the encrypted master password with the new password
-          const newEncryptedMasterPassword = encryptionService.encryptText(
-            newPassword,
-            normalizedRecoveryPhrase
-          );
-          await SecureStore.setItemAsync(
-            'vault_encryptedMasterPassword',
-            JSON.stringify(newEncryptedMasterPassword)
-          );
-          console.log('✅ Updated encrypted master password for future recovery');
-        } else {
-          // Legacy vault - create encrypted master password backup for future use
-          console.log('📦 Creating encrypted master password backup for legacy vault...');
-          const newEncryptedMasterPassword = encryptionService.encryptText(
-            newPassword,
-            normalizedRecoveryPhrase
-          );
-          await SecureStore.setItemAsync(
-            'vault_encryptedMasterPassword',
-            JSON.stringify(newEncryptedMasterPassword)
-          );
-          console.log('✅ Legacy vault upgraded with encrypted master password backup');
-          
-          // Set progress to 100% since we're skipping re-encryption
-          setReencryptionProgress(100);
-          console.log('⚠️ Legacy vault: Existing passwords will be migrated when accessed');
         }
 
+        // Create/update encrypted master password backup for future recovery
+        const newEncryptedMasterPassword = encryptionService.encryptText(
+          newPassword,
+          normalizedRecoveryPhrase
+        );
+        await SecureStore.setItemAsync(
+          'vault_encryptedMasterPassword',
+          JSON.stringify(newEncryptedMasterPassword)
+        );
+        console.log('✅ Updated encrypted master password backup for future recovery');
+
+        setReencryptionProgress(100);
         setIsReencrypting(false);
+
       } catch (reencryptError) {
         console.error('❌ Vault re-encryption failed:', reencryptError);
         setIsReencrypting(false);
-
-        // Don't fail the entire process - data will be migrated on access
-        console.warn(
-          'Vault re-encryption failed, but password reset will continue. Data will be migrated on access.'
-        );
+        throw reencryptError; // Re-throw to handle in outer catch block
       }
 
       // Clear all session data to prevent authentication conflicts
@@ -377,10 +419,7 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
       clearSensitiveData();
 
       // Show success message
-      const successMessage = isLegacyVault
-        ? '✅ Password reset successfully! Existing passwords will be available when accessed.'
-        : '✅ Password reset successfully! Your vault has been optimized for faster access.';
-      showSnackbar(successMessage);
+      showSnackbar('✅ Password reset successfully! All existing passwords have been re-encrypted with your new password.');
 
       // Navigate to Login with clean navigation state
       setTimeout(() => {
@@ -420,7 +459,6 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
     setShowNewPassword(false);
     setShowConfirmPassword(false);
     setPasswordStrength(null);
-    setIsLegacyVault(false);
   };
 
   const showSnackbar = message => {
@@ -758,9 +796,7 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
               <Icon name="shield-alt" size={32} color="#9b59b6" />
               <Text style={styles.progressTitle}>Securing Your Vault</Text>
               <Text style={styles.progressSubtitle}>
-                {isLegacyVault
-                  ? 'Upgrading vault for better security...'
-                  : 'Re-encrypting data with your new password...'}
+                Re-encrypting all password entries with your new password...
               </Text>
             </View>
 
@@ -776,8 +812,7 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
             </View>
 
             <Text style={styles.progressNote}>
-              This process ensures your vault is optimized for faster access
-              with your new password.
+              This ensures all your existing passwords work with your new master password.
             </Text>
           </View>
         </View>
