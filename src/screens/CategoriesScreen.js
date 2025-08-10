@@ -387,13 +387,17 @@ const CategoriesScreen = ({ navigation, route }) => {
               <Menu.Item
                 onPress={handleEditCategory}
                 title="Edit Category"
-                leadingIcon="pencil"
+                leadingIcon={() => (
+                  <Icon name="edit" size={20} color={theme.colors.text} />
+                )}
                 titleStyle={{ color: theme.colors.text }}
               />
               <Menu.Item
                 onPress={handleDeleteCategory}
                 title="Delete Category"
-                leadingIcon="trash"
+                leadingIcon={() => (
+                  <Icon name="trash" size={20} color={theme.colors.error} />
+                )}
                 titleStyle={{ color: theme.colors.error }}
               />
             </Menu>
