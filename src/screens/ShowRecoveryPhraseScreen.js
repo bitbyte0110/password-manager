@@ -60,7 +60,8 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
               // Start the modal flow: show BiometricSetupModal first
               setShowBiometricModal(true);
             } else {
-              // Original flow for backward compatibility
+              // Show success screen immediately, finish setup in background
+              setShowSuccessScreen(true);
               await initializeVaultAndNavigate();
             }
           },
@@ -166,9 +167,12 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
         setShowSuccessScreen(true);
         setTimeout(() => {
           if (navigation) {
-            navigation.replace('MainTabs');
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'MainTabs' }],
+            });
           }
-        }, 2500);
+        }, 0);
 
         // Success - break out of retry loop
         return;
@@ -228,6 +232,7 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
       setShowMFAModal(true);
     } else {
       // Skip directly to vault initialization if biometric was skipped
+      setShowSuccessScreen(true);
       initializeVaultAndNavigate();
     }
   };
@@ -240,7 +245,8 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
         `MFA setup completed with result: ${mfaEnabled ? 'enabled' : 'disabled'}`
       );
 
-      // Initialize vault and navigate
+      // Show success screen and initialize in background
+      setShowSuccessScreen(true);
       await initializeVaultAndNavigate();
     } catch (error) {
       console.error(
