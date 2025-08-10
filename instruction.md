@@ -109,3 +109,7 @@ Modular Codebase = Separate concerns; use clear naming and documentation.
 Accessible Design = Support light/dark themes and ensure UI elements remain legible under typical conditions.
 
 Real‑time Feedback = Provide inline validation and progress indicators where appropriate.
+
+password restore feature,after user delete password, the password will move to trash and user able to restore it
+
+password export and import feature

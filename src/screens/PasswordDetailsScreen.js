@@ -35,26 +35,26 @@ const PasswordDetailsScreen = () => {
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
   const [favorite, setFavorite] = useState(false);
   const [decryptionError, setDecryptionError] = useState(false);
-  const [hasInitialized, setHasInitialized] = useState(false);
+  // Remove one-time initialization gate so we refetch on ID changes
 
-  // Only fetch on initial load - avoid redundant focus-based refetching
+  // Always fetch when the target entry ID changes (handles restored entries/new IDs)
   useEffect(() => {
-    if (!hasInitialized) {
-      fetchEntry();
-      setHasInitialized(true);
-    }
-  }, [id, hasInitialized]);
+    fetchEntry();
+    // Reset decryption error and password visibility on ID change
+    setDecryptionError(false);
+    setShowPassword(false);
+  }, [id]);
 
   // Only refresh data when returning from EditPasswordScreen (check route params)
   useFocusEffect(
     useCallback(() => {
       // Only refetch if we're returning from edit screen or explicitly requested
-      if (route.params?.shouldRefresh && hasInitialized) {
+      if (route.params?.shouldRefresh) {
         fetchEntry();
         // Clear the refresh flag
         navigation.setParams({ shouldRefresh: undefined });
       }
-    }, [route.params?.shouldRefresh, hasInitialized])
+    }, [route.params?.shouldRefresh])
   );
 
   const fetchEntry = async () => {

@@ -1,5 +1,4 @@
 import * as SecureStore from 'expo-secure-store';
-import bcrypt from 'react-native-bcrypt';
 import { Buffer } from 'buffer';
 import databaseService from './databaseService';
 import encryptionService from './encryptionService';
@@ -1232,8 +1231,8 @@ class VaultService {
       }
 
       const deletedEntry = await this.dbService.db.getFirstAsync(
-        `SELECT id, original_password_id, deleted_at, expires_at, encrypted_data 
-         FROM deleted_passwords 
+        `SELECT id, original_password_id, deleted_at, expires_at, encrypted_payload
+         FROM deleted_passwords
          WHERE original_password_id = ? AND expires_at > datetime('now')`,
         [id]
       );
@@ -1619,7 +1618,23 @@ class VaultService {
     }
 
     try {
-      return await this.dbService.restorePasswordFromTrash(deletedPasswordId);
+      const newId =
+        await this.dbService.restorePasswordFromTrash(deletedPasswordId);
+
+      // Invalidate caches so the restored entry appears in lists immediately
+      const entryCacheKey = `entry_${newId}`;
+      this.entryCache.delete(entryCacheKey);
+      this.cacheTimestamps.delete(entryCacheKey);
+      for (const [key] of this.entryCache) {
+        if (key.startsWith('all_entries_')) {
+          this.entryCache.delete(key);
+          this.cacheTimestamps.delete(key);
+        }
+      }
+      this.categoryCache.clear();
+      this.categoryCacheTimestamps.clear();
+
+      return newId;
     } catch (error) {
       console.error('Error restoring password from trash:', error);
       throw error;
