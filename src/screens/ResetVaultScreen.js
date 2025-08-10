@@ -145,14 +145,19 @@ const ResetVaultScreen = () => {
               <Text style={[styles.dangerTitle, { color: theme.colors.error }]}>
                 DANGER ZONE
               </Text>
-              <Text style={[styles.dangerSubtitle, { color: theme.colors.text }]}>
+              <Text
+                style={[styles.dangerSubtitle, { color: theme.colors.text }]}
+              >
                 This action cannot be undone
               </Text>
             </View>
 
             {/* Warning Message */}
             <View
-              style={[styles.warningCard, { backgroundColor: theme.colors.card }]}
+              style={[
+                styles.warningCard,
+                { backgroundColor: theme.colors.card },
+              ]}
             >
               <Text style={[styles.warningTitle, { color: theme.colors.text }]}>
                 What will be deleted:
@@ -227,13 +232,19 @@ const ResetVaultScreen = () => {
                   { backgroundColor: theme.colors.warning + '15' },
                 ]}
               >
-                <Icon name="info-circle" size={18} color={theme.colors.warning} />
-                <Text style={[styles.cautionText, { color: theme.colors.text }]}>
+                <Icon
+                  name="info-circle"
+                  size={18}
+                  color={theme.colors.warning}
+                />
+                <Text
+                  style={[styles.cautionText, { color: theme.colors.text }]}
+                >
                   <Text style={{ fontWeight: 'bold' }}>Before proceeding:</Text>
                   {'\n'}
-                  Make sure you have exported or backed up any passwords you want
-                  to keep. This action will completely wipe your vault and require
-                  you to start over.
+                  Make sure you have exported or backed up any passwords you
+                  want to keep. This action will completely wipe your vault and
+                  require you to start over.
                 </Text>
               </View>
             </View>
@@ -331,7 +342,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 40,
+    paddingBottom: 16,
     borderBottomWidth: 1,
   },
   backButton: {
