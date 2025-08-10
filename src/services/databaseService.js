@@ -1378,21 +1378,50 @@ class DatabaseService {
         );
       }
 
+      // Determine a valid category ID to use on restore
       let categoryId = deletedEntry.category_id;
 
-      // Restore category if it was deleted and we have the data
-      if (deletedEntry.original_category_data && !categoryId) {
+      // If a category is referenced, verify it still exists
+      if (categoryId) {
+        const existing = await this.db.getFirstAsync(
+          'SELECT id FROM categories WHERE id = ?',
+          [categoryId]
+        );
+        if (!existing) {
+          // Try to recreate from stored snapshot; otherwise, fall back to null
+          if (deletedEntry.original_category_data) {
+            const categoryData = JSON.parse(
+              deletedEntry.original_category_data
+            );
+            const restored = await this.db.runAsync(
+              `INSERT INTO categories (name, description, icon, color, is_default, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)`,
+              [
+                categoryData.name,
+                categoryData.description,
+                categoryData.icon,
+                categoryData.color,
+                categoryData.is_default,
+                categoryData.created_at,
+                categoryData.updated_at,
+              ]
+            );
+            categoryId = restored.lastInsertRowId;
+          } else {
+            categoryId = null; // avoid foreign key violation
+          }
+        }
+      } else if (deletedEntry.original_category_data) {
+        // No category assigned; if we have snapshot data, recreate or reuse existing by snapshot id
         const categoryData = JSON.parse(deletedEntry.original_category_data);
-
-        // Check if category still exists
-        const existingCategory = await this.db.getFirstAsync(
+        const existingBySnapshot = await this.db.getFirstAsync(
           'SELECT id FROM categories WHERE id = ?',
           [categoryData.id]
         );
-
-        if (!existingCategory) {
-          // Restore the category
-          const categoryResult = await this.db.runAsync(
+        if (existingBySnapshot) {
+          categoryId = categoryData.id;
+        } else {
+          const created = await this.db.runAsync(
             `INSERT INTO categories (name, description, icon, color, is_default, created_at, updated_at)
              VALUES (?, ?, ?, ?, ?, ?, ?)`,
             [
@@ -1405,9 +1434,7 @@ class DatabaseService {
               categoryData.updated_at,
             ]
           );
-          categoryId = categoryResult.lastInsertRowId;
-        } else {
-          categoryId = categoryData.id;
+          categoryId = created.lastInsertRowId;
         }
       }
 
