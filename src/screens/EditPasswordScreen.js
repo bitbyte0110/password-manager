@@ -676,7 +676,7 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
               <Text
                 style={[styles.favoriteLabel, { color: theme.colors.text }]}
               >
-                Mark as Favorite
+                Mark as Favourite
               </Text>
             </TouchableOpacity>
           </View>
