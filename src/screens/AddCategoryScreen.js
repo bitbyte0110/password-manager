@@ -530,7 +530,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 40,
+    paddingBottom: 16,
     borderBottomWidth: 1,
   },
   backButton: {
@@ -541,6 +542,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     flex: 1,
+    textAlign: 'center',
   },
   headerRight: {
     width: 36,
