@@ -202,7 +202,7 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
 
       // Success - proceed to Step 2
       showSnackbar('Recovery phrase verified!');
-      
+
       // Store the normalized phrase for later use (temporary, will be cleared after reset)
       setRecoveryPhrase(normalizedPhrase);
 
@@ -274,7 +274,8 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
 
         // Import vault service for re-encryption
         const vaultService = require('../services/vaultService').default;
-        const encryptionService = require('../services/encryptionService').default;
+        const encryptionService =
+          require('../services/encryptionService').default;
 
         // First, try to get the original master password from backup
         let recoveryKey = normalizedRecoveryPhrase; // Default to recovery phrase
@@ -284,8 +285,12 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
 
         if (encryptedMasterPasswordData) {
           try {
-            console.log('🔓 Recovering original master password from backup...');
-            const encryptedMasterPassword = JSON.parse(encryptedMasterPasswordData);
+            console.log(
+              '🔓 Recovering original master password from backup...'
+            );
+            const encryptedMasterPassword = JSON.parse(
+              encryptedMasterPasswordData
+            );
             const originalMasterPassword = encryptionService.decryptText(
               encryptedMasterPassword,
               normalizedRecoveryPhrase
@@ -293,18 +298,23 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
             console.log('✅ Original master password recovered successfully');
             recoveryKey = originalMasterPassword; // Use recovered master password
           } catch (decryptError) {
-            console.warn('⚠️ Could not recover master password from backup, using recovery phrase directly:', decryptError.message);
+            console.warn(
+              '⚠️ Could not recover master password from backup, using recovery phrase directly:',
+              decryptError.message
+            );
             // Continue with recovery phrase as the key
           }
         } else {
-          console.log('⚠️ No encrypted master password backup found, using recovery phrase directly');
+          console.log(
+            '⚠️ No encrypted master password backup found, using recovery phrase directly'
+          );
         }
 
         // Use vault service's optimized bulk re-encryption
         await vaultService.bulkReencryptVault(
           newPassword,
           recoveryKey,
-          (progress) => {
+          progress => {
             setReencryptionProgress(Math.round(progress));
             console.log(`🔄 Re-encryption progress: ${Math.round(progress)}%`);
           }
@@ -321,11 +331,12 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
           'vault_encryptedMasterPassword',
           JSON.stringify(newEncryptedMasterPassword)
         );
-        console.log('✅ Updated encrypted master password backup for future recovery');
+        console.log(
+          '✅ Updated encrypted master password backup for future recovery'
+        );
 
         setReencryptionProgress(100);
         setIsReencrypting(false);
-
       } catch (reencryptError) {
         console.error('❌ Vault re-encryption failed:', reencryptError);
         setIsReencrypting(false);
@@ -348,7 +359,9 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
       clearSensitiveData();
 
       // Show success message
-      showSnackbar('✅ Password reset successfully! All existing passwords have been re-encrypted with your new password.');
+      showSnackbar(
+        '✅ Password reset successfully! All existing passwords have been re-encrypted with your new password.'
+      );
 
       // Navigate to Login with clean navigation state
       setTimeout(() => {
@@ -741,7 +754,8 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
             </View>
 
             <Text style={styles.progressNote}>
-              This ensures all your existing passwords work with your new master password.
+              This ensures all your existing passwords work with your new master
+              password.
             </Text>
           </View>
         </View>
