@@ -113,8 +113,8 @@ const LoginScreen = ({ navigation: navProp, route }) => {
     try {
       const masterHash = await SecureStore.getItemAsync('vault_masterHash');
       if (!masterHash) {
-        // No master password set, redirect to SetMasterPasswordScreen
-        navigation.replace('SetMasterPasswordScreen');
+        // No master password set, redirect to SetMasterPassword
+        navigation.replace('SetMasterPassword');
       }
     } catch (error) {
       console.error('Error checking master password:', error);
@@ -368,7 +368,7 @@ const LoginScreen = ({ navigation: navProp, route }) => {
 
       if (!storedHash) {
         showSnackbar('No master password found. Please set up your vault.');
-        navigation.replace('SetMasterPasswordScreen');
+        navigation.replace('SetMasterPassword');
         return;
       }
 

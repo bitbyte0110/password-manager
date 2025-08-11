@@ -276,7 +276,7 @@ const ShowRecoveryPhraseScreen = ({ navigation, route }) => {
             </Text>
             <Button
               mode="contained"
-              onPress={() => navigation?.replace('SetMasterPasswordScreen')}
+              onPress={() => navigation?.replace('SetMasterPassword')}
               style={styles.errorButton}
             >
               <Text>Go Back</Text>
