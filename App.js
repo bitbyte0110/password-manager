@@ -41,6 +41,7 @@ import ImportScreen from './src/screens/ImportScreen';
 import { PasswordProvider } from './src/PasswordContext';
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 import { DatabaseProvider } from './src/contexts/DatabaseContext';
+import ErrorBoundary from './src/components/ErrorBoundary';
 
 // Create Stack Navigator
 const Stack = createStackNavigator();
@@ -479,9 +480,11 @@ const AppWithTheme = () => {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AppWithTheme />
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AppWithTheme />
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 
