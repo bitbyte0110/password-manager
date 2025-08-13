@@ -42,6 +42,7 @@ import { PasswordProvider } from './src/PasswordContext';
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 import { DatabaseProvider } from './src/contexts/DatabaseContext';
 import ErrorBoundary from './src/components/ErrorBoundary';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 // Create Stack Navigator
 const Stack = createStackNavigator();
@@ -480,11 +481,13 @@ const AppWithTheme = () => {
 
 export default function App() {
   return (
-    <ErrorBoundary>
-      <ThemeProvider>
-        <AppWithTheme />
-      </ThemeProvider>
-    </ErrorBoundary>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ErrorBoundary>
+        <ThemeProvider>
+          <AppWithTheme />
+        </ThemeProvider>
+      </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }
 
