@@ -1724,20 +1724,33 @@ class VaultService {
     }
 
     try {
-      // Get current entry
       const entry = await this.dbService.getPasswordById(id);
       if (!entry) {
         throw new Error('Entry not found');
       }
 
-      // Decrypt entry first
-      const decrypted = await this.decryptPasswordEntry(entry);
+      const currentFavorite =
+        entry.is_favorite === 1 || entry.is_favorite === true;
+      const nextFavorite = !currentFavorite;
 
-      // Toggle favorite status
-      decrypted.isFavorite = !decrypted.isFavorite;
+      // Update only the favorite flag in DB without touching encrypted payload
+      const ok = await this.dbService.updateFavoriteStatus(id, nextFavorite);
+      if (!ok) return false;
 
-      // Update entry
-      return await this.updatePasswordEntry(id, decrypted);
+      // Invalidate caches for this entry and lists so UI reflects the change
+      const entryCacheKey = `entry_${id}`;
+      this.entryCache.delete(entryCacheKey);
+      this.cacheTimestamps.delete(entryCacheKey);
+      for (const [key] of this.entryCache) {
+        if (key.startsWith('all_entries_')) {
+          this.entryCache.delete(key);
+          this.cacheTimestamps.delete(key);
+        }
+      }
+      this.categoryCache.clear();
+      this.categoryCacheTimestamps.clear();
+
+      return true;
     } catch (error) {
       console.error('Error toggling favorite:', error);
       throw error;

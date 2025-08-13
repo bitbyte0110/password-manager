@@ -120,14 +120,16 @@ const PasswordDetailsScreen = () => {
   const handleToggleFavorite = async () => {
     if (!entry) return;
     try {
-      await vaultService.updatePasswordEntry(entry.id, {
-        isFavorite: !favorite,
-      });
-      setFavorite(!favorite);
-      setSnackbar({
-        visible: true,
-        message: !favorite ? 'Marked as favorite' : 'Removed from favorites',
-      });
+      const ok = await vaultService.toggleFavorite(entry.id);
+      if (ok) {
+        setFavorite(prev => !prev);
+        setSnackbar({
+          visible: true,
+          message: !favorite ? 'Marked as favorite' : 'Removed from favorites',
+        });
+      } else {
+        setSnackbar({ visible: true, message: 'Failed to update favorite' });
+      }
     } catch (e) {
       setSnackbar({ visible: true, message: 'Failed to update favorite' });
     }

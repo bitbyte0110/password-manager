@@ -929,6 +929,32 @@ class DatabaseService {
   }
 
   /**
+   * Update only the favorite status of a password entry (no encryption changes)
+   * @param {number} id - Password entry ID
+   * @param {boolean} isFavorite - New favorite status
+   * @returns {Promise<boolean>} Update success status
+   */
+  async updateFavoriteStatus(id, isFavorite) {
+    try {
+      if (!this.db) throw new Error('Database not initialized');
+
+      // Validate ID
+      if (!id || isNaN(id)) {
+        throw new Error('Valid password ID is required');
+      }
+
+      const result = await this.db.runAsync(
+        'UPDATE passwords SET is_favorite = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [isFavorite ? 1 : 0, id]
+      );
+
+      return result.changes > 0;
+    } catch (error) {
+      throw new Error(`Failed to update favorite status: ${error.message}`);
+    }
+  }
+
+  /**
    * Initialize null last_accessed values with created_at timestamp
    * @returns {Promise<void>}
    */
