@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { ActivityIndicator, Searchbar, Button } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/FontAwesome5';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 import vaultService from '../services/vaultService';
 import encryptionService from '../services/encryptionService';
@@ -21,12 +21,14 @@ import { usePasswords } from '../PasswordContext';
 const TrashScreen = () => {
   const { theme } = useTheme();
   const { addPassword } = usePasswords();
+  const navigation = useNavigation();
   const [deletedPasswords, setDeletedPasswords] = useState([]);
   const [filteredPasswords, setFilteredPasswords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState(null);
+  const [hasRestoredPassword, setHasRestoredPassword] = useState(false);
 
   // Load deleted passwords
   const loadDeletedPasswords = useCallback(async () => {
@@ -213,6 +215,33 @@ const TrashScreen = () => {
     }, [loadDeletedPasswords])
   );
 
+  // Add navigation cleanup effect to trigger vault refresh when leaving TrashScreen
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('blur', () => {
+      // If we've restored any passwords during this session, trigger a vault refresh
+      if (hasRestoredPassword) {
+        console.log(
+          'TrashScreen: Screen lost focus, setting refresh flag for MyVaultScreen due to restored passwords'
+        );
+
+        // Use a small delay to ensure this happens after navigation
+        setTimeout(() => {
+          try {
+            // Navigate to MyVault with refresh parameters
+            navigation.navigate('MainTabs', {
+              screen: 'MyVault',
+              params: { shouldRefresh: true, fromTrash: true },
+            });
+          } catch (error) {
+            console.warn('TrashScreen: Navigation error:', error);
+          }
+        }, 150);
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, hasRestoredPassword]);
+
   // Handle refresh
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -348,6 +377,9 @@ const TrashScreen = () => {
               // Update trash list to remove the restored item
               await loadDeletedPasswords();
 
+              // Set flag to trigger vault refresh when leaving TrashScreen
+              setHasRestoredPassword(true);
+
               Alert.alert('Success', 'Password restored successfully');
             } catch (err) {
               console.error('TrashScreen: Error restoring password:', err);
@@ -479,8 +511,8 @@ const TrashScreen = () => {
                 backgroundColor: item.decryptionError
                   ? theme.colors.disabled
                   : theme.colors.primary,
-                opacity: item.decryptionError ? 0.5 : 1,
               },
+              item.decryptionError && styles.actionButtonDisabled,
             ]}
             onPress={() => handleRestore(item)}
             disabled={item.decryptionError}
@@ -564,7 +596,7 @@ const TrashScreen = () => {
             onPress={loadDeletedPasswords}
             style={styles.retryButton}
           >
-            Retry
+            <Text>Retry</Text>
           </Button>
         </View>
       </SafeAreaView>
@@ -711,6 +743,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  actionButtonDisabled: {
+    opacity: 0.5,
   },
   emptyState: {
     alignItems: 'center',

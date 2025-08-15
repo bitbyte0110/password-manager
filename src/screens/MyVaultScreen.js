@@ -100,7 +100,13 @@ const MyVaultScreen = ({ navigation, route }) => {
 
       // Check if we should refresh data (from navigation params)
       if (route?.params?.shouldRefresh) {
-        console.log('MyVaultScreen: Refreshing data due to navigation params');
+        const isFromTrash = route?.params?.fromTrash;
+        console.log(
+          `MyVaultScreen: Refreshing data due to navigation params${
+            isFromTrash ? ' (returning from TrashScreen)' : ''
+          }`
+        );
+
         refreshAll(
           () =>
             vaultService.getPasswordEntries({
@@ -109,10 +115,14 @@ const MyVaultScreen = ({ navigation, route }) => {
             }),
           () => vaultService.getCategories()
         );
-        // Clear the parameter
-        navigation.setParams({ shouldRefresh: undefined });
+
+        // Clear the parameters
+        navigation.setParams({
+          shouldRefresh: undefined,
+          fromTrash: undefined,
+        });
       }
-    }, [route?.params?.shouldRefresh, refreshAll])
+    }, [route?.params?.shouldRefresh, route?.params?.fromTrash, refreshAll])
   );
 
   const initializeVault = async () => {
