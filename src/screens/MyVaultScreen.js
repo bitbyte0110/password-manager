@@ -112,25 +112,7 @@ const MyVaultScreen = ({ navigation, route }) => {
         // Clear the parameter
         navigation.setParams({ shouldRefresh: undefined });
       }
-
-      // Check for one-time refresh token from TrashScreen
-      if (route?.params?.refreshToken) {
-        console.log(
-          'MyVaultScreen: One-time refresh from TrashScreen:',
-          route.params.refreshToken
-        );
-        refreshAll(
-          () =>
-            vaultService.getPasswordEntries({
-              sortBy: 'updated_at',
-              sortOrder: 'DESC',
-            }),
-          () => vaultService.getCategories()
-        );
-        // Clear the refresh token to prevent multiple refreshes
-        navigation.setParams({ refreshToken: undefined });
-      }
-    }, [route?.params?.shouldRefresh, route?.params?.refreshToken, refreshAll])
+    }, [route?.params?.shouldRefresh, refreshAll])
   );
 
   const initializeVault = async () => {

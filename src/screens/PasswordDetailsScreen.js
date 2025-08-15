@@ -26,7 +26,7 @@ const PasswordDetailsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { id } = route.params;
-  const { deletePassword, updatePassword } = usePasswords();
+  const { deletePassword, updatePassword, getPasswordById } = usePasswords();
   const { theme } = useTheme();
 
   const [entry, setEntry] = useState(null);
@@ -81,6 +81,24 @@ const PasswordDetailsScreen = () => {
     try {
       console.log('PasswordDetailsScreen: Fetching entry for ID:', id);
 
+      // First, try to get the entry from context (immediate access for restored passwords)
+      const contextEntry = getPasswordById(id);
+      if (contextEntry) {
+        console.log('PasswordDetailsScreen: Found entry in context, using immediately:', contextEntry.title);
+        setEntry(contextEntry);
+        setFavorite(!!contextEntry.isFavorite);
+        setDecryptionError(false);
+        setLoading(false);
+        
+        // Update last accessed when viewing password details
+        vaultService.updateLastAccessed(id).catch(error => {
+          console.warn('Failed to update last accessed for view:', error);
+        });
+        return;
+      }
+
+      console.log('PasswordDetailsScreen: Entry not found in context, fetching from database...');
+
       // Refresh session before fetching to prevent authentication errors
       console.log('PasswordDetailsScreen: Refreshing session before fetch...');
       const sessionRefreshed = await vaultService.refreshSession();
@@ -98,7 +116,7 @@ const PasswordDetailsScreen = () => {
 
       const endTime = Date.now();
       console.log(
-        `PasswordDetailsScreen: Entry fetched in ${endTime - startTime}ms`
+        `PasswordDetailsScreen: Entry fetched from database in ${endTime - startTime}ms`
       );
 
       setEntry(data);

@@ -135,8 +135,26 @@ export const PasswordProvider = ({ children }) => {
   // Enhanced add, update, delete helpers with immediate state updates and global sync
   const addPassword = useCallback(
     async entry => {
+      console.log(
+        'PasswordContext: Adding password entry:',
+        entry.id,
+        entry.title
+      );
+
       // Optimistically update local state immediately
-      setPasswords(prev => [entry, ...prev]);
+      setPasswords(prev => {
+        // Check if entry already exists to prevent duplicates
+        const exists = prev.find(p => p.id === entry.id);
+        if (exists) {
+          console.log(
+            'PasswordContext: Entry already exists, updating instead:',
+            entry.id
+          );
+          return prev.map(p => (p.id === entry.id ? entry : p));
+        }
+        console.log('PasswordContext: Adding new entry to state:', entry.id);
+        return [entry, ...prev];
+      });
 
       // Update category counts
       setCategories(prev =>
@@ -156,6 +174,11 @@ export const PasswordProvider = ({ children }) => {
       if (entry.categoryId) {
         notifyCategoryRefresh(entry.categoryId);
       }
+
+      console.log(
+        'PasswordContext: Password added and listeners notified:',
+        entry.id
+      );
     },
     [notifyGlobalRefresh, notifyCategoryRefresh]
   );
@@ -250,6 +273,21 @@ export const PasswordProvider = ({ children }) => {
     [passwords]
   );
 
+  // Get password by ID from current state (for immediate access without database calls)
+  const getPasswordById = useCallback(
+    id => {
+      const entry = passwords.find(p => p.id === id);
+      console.log(
+        'PasswordContext: getPasswordById called for ID:',
+        id,
+        'Found:',
+        !!entry
+      );
+      return entry || null;
+    },
+    [passwords]
+  );
+
   const clearPasswords = useCallback(() => setPasswords([]), []);
 
   // Memoize context value to prevent unnecessary re-renders
@@ -274,6 +312,7 @@ export const PasswordProvider = ({ children }) => {
       deletePassword,
       clearPasswords,
       getPasswordsByCategory,
+      getPasswordById,
 
       // Event system
       subscribeToRefresh,
@@ -296,6 +335,7 @@ export const PasswordProvider = ({ children }) => {
       deletePassword,
       clearPasswords,
       getPasswordsByCategory,
+      getPasswordById,
       subscribeToRefresh,
       subscribeToCategoryRefresh,
       notifyGlobalRefresh,
