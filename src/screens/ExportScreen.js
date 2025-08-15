@@ -345,7 +345,7 @@ const ExportScreen = ({ navigation }) => {
               style={styles.passwordInput}
               value={exportPassword}
               onChangeText={handlePasswordChange}
-              placeholder="Enter a strong password for the export file"
+              placeholder="Enter a strong password"
               placeholderTextColor={colors.textSecondary}
               secureTextEntry={!showPassword}
               autoCapitalize="none"

@@ -440,12 +440,9 @@ const TrashScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              const deletedCount = await vaultService.emptyTrash(true);
+              await vaultService.emptyTrash(true);
               await loadDeletedPasswords();
-              Alert.alert(
-                'Success',
-                `${deletedCount} items permanently deleted`
-              );
+              Alert.alert('Success', 'All items permanently deleted');
             } catch (err) {
               console.error('Error emptying trash:', err);
               Alert.alert('Error', 'Failed to empty trash');

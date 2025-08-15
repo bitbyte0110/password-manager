@@ -166,11 +166,8 @@ const SettingsScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              const deletedCount = await vaultService.emptyTrash(true);
-              Alert.alert(
-                'Success',
-                `${deletedCount} items permanently deleted`
-              );
+              await vaultService.emptyTrash(true);
+              Alert.alert('Success', 'All items permanently deleted');
             } catch (error) {
               console.error('Error emptying trash:', error);
               Alert.alert('Error', 'Failed to empty trash');
