@@ -283,9 +283,20 @@ const EditPasswordScreen = ({ navigation: navProp }) => {
       await updatePassword(id, updatedEntry);
       showSnackbar('Password updated successfully!');
 
-      // Navigate back - no need for refresh parameters since context handles sync
+      // Generate refresh token for PasswordDetailsScreen
+      const refreshToken = `edit_save_${Date.now()}`;
+      console.log(
+        'EditPasswordScreen: Setting refresh token for PasswordDetailsScreen:',
+        refreshToken
+      );
+
+      // Navigate back with refresh token for the specific password
       setTimeout(() => {
-        navigation.goBack();
+        navigation.navigate('PasswordDetails', {
+          id: id,
+          refreshToken: refreshToken,
+          affectedId: id,
+        });
       }, 1000);
     } catch (error) {
       console.error('Error updating password:', error);

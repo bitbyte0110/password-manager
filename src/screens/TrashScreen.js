@@ -27,6 +27,7 @@ const TrashScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState(null);
+  const [hasRestoredPasswords, setHasRestoredPasswords] = useState(false);
 
   // Load deleted passwords
   const loadDeletedPasswords = useCallback(async () => {
@@ -213,6 +214,30 @@ const TrashScreen = ({ navigation }) => {
     }, [loadDeletedPasswords])
   );
 
+  // Set refresh token when leaving TrashScreen if passwords were restored
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (hasRestoredPasswords) {
+        console.log('TrashScreen: Setting refresh token for MyVault due to restored passwords');
+        // Generate a unique refresh token
+        const refreshToken = `trash_restore_${Date.now()}`;
+        
+        // Try to set refresh token on the parent navigator (MyVault tab)
+        try {
+          const parent = navigation.getParent();
+          if (parent) {
+            parent.setParams({ refreshToken });
+            console.log('TrashScreen: Refresh token set on parent:', refreshToken);
+          }
+        } catch (navError) {
+          console.warn('TrashScreen: Could not set refresh token on parent:', navError);
+        }
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, hasRestoredPasswords]);
+
   // Handle refresh
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -348,16 +373,8 @@ const TrashScreen = ({ navigation }) => {
               // Update trash list to remove the restored item
               await loadDeletedPasswords();
 
-              // Also set navigation parameter as backup to ensure MyVault refreshes
-              // This is redundant with context update but provides extra safety
-              try {
-                navigation.getParent()?.setParams({ shouldRefresh: true });
-              } catch (navError) {
-                console.warn(
-                  'TrashScreen: Could not set navigation refresh parameter:',
-                  navError
-                );
-              }
+              // Set flag to indicate passwords were restored (for refresh token)
+              setHasRestoredPasswords(true);
 
               Alert.alert('Success', 'Password restored successfully');
             } catch (err) {

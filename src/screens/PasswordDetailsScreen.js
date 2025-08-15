@@ -54,7 +54,26 @@ const PasswordDetailsScreen = () => {
         // Clear the refresh flag
         navigation.setParams({ shouldRefresh: undefined });
       }
-    }, [route.params?.shouldRefresh])
+
+      // Check for one-time refresh token from EditPasswordScreen
+      if (route.params?.refreshToken && route.params?.affectedId === id) {
+        console.log(
+          'PasswordDetailsScreen: One-time refresh from EditPasswordScreen:',
+          route.params.refreshToken
+        );
+        fetchEntry();
+        // Clear the refresh token to prevent multiple refreshes
+        navigation.setParams({
+          refreshToken: undefined,
+          affectedId: undefined,
+        });
+      }
+    }, [
+      route.params?.shouldRefresh,
+      route.params?.refreshToken,
+      route.params?.affectedId,
+      id,
+    ])
   );
 
   const fetchEntry = async () => {

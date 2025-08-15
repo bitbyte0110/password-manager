@@ -61,6 +61,16 @@ const MyVaultScreen = ({ navigation, route }) => {
     return unsubscribe;
   }, [subscribeToRefresh]);
 
+  // Listen for navigation state changes to detect when TrashScreen closes
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      // This will be triggered by the useFocusEffect above
+      // The navigation listener is just to ensure we catch all focus events
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
   useEffect(() => {
     initializeVault();
   }, []);
@@ -74,7 +84,7 @@ const MyVaultScreen = ({ navigation, route }) => {
     return () => clearTimeout(timeoutId);
   }, [passwords, searchQuery, selectedCategory, sortBy]);
 
-  // Refresh data when screen gains focus (e.g., returning from AddPasswordScreen)
+  // Refresh data when screen gains focus (e.g., returning from AddPasswordScreen or TrashScreen)
   useFocusEffect(
     useCallback(() => {
       // Refresh session to prevent timeout
@@ -102,7 +112,25 @@ const MyVaultScreen = ({ navigation, route }) => {
         // Clear the parameter
         navigation.setParams({ shouldRefresh: undefined });
       }
-    }, [route?.params?.shouldRefresh, refreshAll])
+
+      // Check for one-time refresh token from TrashScreen
+      if (route?.params?.refreshToken) {
+        console.log(
+          'MyVaultScreen: One-time refresh from TrashScreen:',
+          route.params.refreshToken
+        );
+        refreshAll(
+          () =>
+            vaultService.getPasswordEntries({
+              sortBy: 'updated_at',
+              sortOrder: 'DESC',
+            }),
+          () => vaultService.getCategories()
+        );
+        // Clear the refresh token to prevent multiple refreshes
+        navigation.setParams({ refreshToken: undefined });
+      }
+    }, [route?.params?.shouldRefresh, route?.params?.refreshToken, refreshAll])
   );
 
   const initializeVault = async () => {
