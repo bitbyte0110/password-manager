@@ -1366,6 +1366,43 @@ class VaultService {
   }
 
   /**
+   * Create a new category
+   * @param {Object} categoryData - Category data
+   * @returns {Promise<number>} Created category ID
+   */
+  async createCategory(categoryData) {
+    if (!this.isUserAuthenticated()) {
+      throw new Error('User not authenticated');
+    }
+
+    // Ensure database is initialized before attempting operations
+    if (!this.dbService || !this.dbService.isInitialized) {
+      throw new Error('Database not initialized');
+    }
+
+    try {
+      const categoryId = await this.dbService.addCategory({
+        name: categoryData.name,
+        description: categoryData.description || '',
+        icon: categoryData.icon || 'folder',
+        color: categoryData.color || '#007AFF',
+      });
+
+      // Clear category cache
+      this.categoryCache.clear();
+      this.categoryCacheTimestamps.clear();
+
+      console.log(
+        `VaultService: Created category "${categoryData.name}" with ID: ${categoryId}`
+      );
+      return categoryId;
+    } catch (error) {
+      console.error('Error creating category:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get database statistics
    * @returns {Promise<Object>} Database statistics
    */
@@ -2252,15 +2289,26 @@ class VaultService {
     try {
       const entries = await this.dbService.getAllPasswords();
       const decryptedEntries = [];
+      const categoryStats = new Map(); // Track categories being exported
+
+      console.log(`VaultService: Exporting ${entries.length} password entries`);
 
       for (const entry of entries) {
         try {
           const decrypted = await this.decryptPasswordEntry(entry);
+          const categoryName = decrypted.categoryName || 'General';
+
+          // Track category statistics
+          categoryStats.set(
+            categoryName,
+            (categoryStats.get(categoryName) || 0) + 1
+          );
+
           decryptedEntries.push({
             website: decrypted.title,
             username: decrypted.username,
             password: decrypted.password,
-            category: decrypted.category || 'General',
+            category: categoryName, // Use categoryName from database
             notes: decrypted.notes || '',
             favorite: decrypted.isFavorite || false,
             url: decrypted.url || '',
@@ -2269,6 +2317,12 @@ class VaultService {
           console.warn('Failed to decrypt entry for export:', decryptError);
           // Skip entries that can't be decrypted
         }
+      }
+
+      // Log export statistics
+      console.log('VaultService: Export category distribution:');
+      for (const [categoryName, count] of categoryStats) {
+        console.log(`  - ${categoryName}: ${count} passwords`);
       }
 
       return decryptedEntries;
@@ -2336,6 +2390,45 @@ class VaultService {
       return deletedCount;
     } catch (error) {
       console.error('Error clearing all passwords:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Clear all data from vault (passwords and categories except General) for import replace mode
+   * @returns {Promise<{passwordsDeleted: number, categoriesDeleted: number}>} Deletion counts
+   */
+  async clearAllDataForReplace() {
+    if (!this.isUserAuthenticated()) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      console.log(
+        'VaultService: Starting complete vault clear for replace mode...'
+      );
+
+      // Clear passwords first
+      const passwordsDeleted = await this.dbService.deleteAllPasswords();
+      console.log(`VaultService: Deleted ${passwordsDeleted} passwords`);
+
+      // Clear categories except General
+      const categoriesDeleted =
+        await this.dbService.deleteAllCategoriesExceptGeneral();
+      console.log(`VaultService: Deleted ${categoriesDeleted} categories`);
+
+      // Clear all caches
+      this.entryCache.clear();
+      this.cacheTimestamps.clear();
+      this.categoryCache.clear();
+      this.categoryCacheTimestamps.clear();
+
+      console.log(
+        `VaultService: Complete vault clear completed - ${passwordsDeleted} passwords, ${categoriesDeleted} categories deleted`
+      );
+      return { passwordsDeleted, categoriesDeleted };
+    } catch (error) {
+      console.error('Error clearing all data for replace:', error);
       throw error;
     }
   }

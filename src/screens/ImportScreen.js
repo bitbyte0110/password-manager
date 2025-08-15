@@ -227,13 +227,66 @@ const ImportScreen = ({ navigation }) => {
       );
 
       let importedCount = 0;
+      const categoryMap = new Map(); // Track category name to ID mapping
 
       if (importMode === 'replace') {
-        // Clear existing passwords first
-        console.log('Clearing all existing passwords...');
-        const deletedCount = await VaultService.clearAllPasswords();
-        console.log(`Cleared ${deletedCount} existing passwords`);
+        // Clear existing passwords and categories (except General)
+        console.log('ImportScreen: Clearing all existing passwords and categories...');
+        const deletionResult = await VaultService.clearAllDataForReplace();
+        console.log(`ImportScreen: Cleared ${deletionResult.passwordsDeleted} passwords and ${deletionResult.categoriesDeleted} categories`);
+        
+        // After clearing, only General category remains - add it to the map
+        categoryMap.set('general', 1);
+        console.log('ImportScreen: Reset categoryMap with General category only');
+      } else {
+        // For merge mode, load existing categories
+        console.log('ImportScreen: Loading existing categories for merge...');
+        const existingCategories = await VaultService.getCategories();
+        existingCategories.forEach(cat => {
+          categoryMap.set(cat.name.toLowerCase(), cat.id);
+        });
+        console.log(`ImportScreen: Found ${existingCategories.length} existing categories`);
       }
+
+      // Helper function to find or create category
+      const findOrCreateCategory = async (categoryName) => {
+        console.log(`ImportScreen: findOrCreateCategory called with: "${categoryName}"`);
+        
+        if (!categoryName || categoryName.trim() === '') {
+          console.log('ImportScreen: Empty category name, defaulting to General (ID 1)');
+          return 1; // Default to General category (ID 1)
+        }
+        
+        const normalizedName = categoryName.trim().toLowerCase();
+        console.log(`ImportScreen: Normalized name: "${normalizedName}"`);
+        console.log('ImportScreen: Current categoryMap:', Object.fromEntries(categoryMap));
+        
+        // Check if category already exists in our map
+        if (categoryMap.has(normalizedName)) {
+          const existingId = categoryMap.get(normalizedName);
+          console.log(`ImportScreen: Found existing category "${categoryName}" with ID: ${existingId}`);
+          return existingId;
+        }
+        
+        // Create new category
+        try {
+          console.log(`ImportScreen: Creating new category: "${categoryName}"`);
+          const newCategoryId = await VaultService.createCategory({
+            name: categoryName.trim(),
+            description: `Imported category: ${categoryName.trim()}`,
+            icon: 'folder',
+            color: '#007AFF', // Default blue color
+          });
+          
+          // Add to our map for future reference
+          categoryMap.set(normalizedName, newCategoryId);
+          console.log(`ImportScreen: Created category "${categoryName}" with ID: ${newCategoryId}`);
+          return newCategoryId;
+        } catch (error) {
+          console.error(`Failed to create category "${categoryName}":`, error);
+          return 1; // Fall back to General category
+        }
+      };
 
       // Process each imported password
       console.log(
@@ -308,14 +361,19 @@ const ImportScreen = ({ navigation }) => {
             }
           }
 
-          // Add the password entry
+          // Resolve category ID
+          const categoryId = await findOrCreateCategory(passwordEntry.category);
+          
+          console.log(`ImportScreen: Entry "${passwordEntry.website || passwordEntry.title}" - Category: "${passwordEntry.category}" -> ID: ${categoryId}`);
+          
+          // Add the password entry with resolved category ID
           await VaultService.addPassword({
             website: passwordEntry.website || passwordEntry.title,
             title: passwordEntry.website || passwordEntry.title,
             username: passwordEntry.username,
             password: passwordEntry.password,
             url: passwordEntry.url || '',
-            category: passwordEntry.category || 'General',
+            categoryId: categoryId, // Use resolved category ID instead of name
             notes: passwordEntry.notes || '',
             favorite: passwordEntry.favorite || false,
           });

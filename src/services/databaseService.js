@@ -755,7 +755,7 @@ class DatabaseService {
       if (!this.db) throw new Error('Database not initialized');
 
       const result = await this.db.getAllAsync(
-        `SELECT p.*, c.name as category_name, c.color as category_color
+        `SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon
          FROM passwords p
          LEFT JOIN categories c ON p.category_id = c.id
          ORDER BY p.updated_at DESC`
@@ -2561,6 +2561,38 @@ class DatabaseService {
         return passwordCount;
       } catch (error) {
         console.error('DatabaseService: Error deleting all passwords:', error);
+        throw error;
+      }
+    });
+  }
+
+  /**
+   * Delete all categories except General (for import replace functionality)
+   * @returns {Promise<number>} Number of deleted categories
+   */
+  async deleteAllCategoriesExceptGeneral() {
+    return this.executeTransaction(async () => {
+      try {
+        // Count existing categories (excluding General which has ID 1)
+        const countResult = await this.db.getFirstAsync(
+          'SELECT COUNT(*) as count FROM categories WHERE id != 1'
+        );
+        const categoryCount = countResult?.count || 0;
+
+        if (categoryCount === 0) {
+          console.log('DatabaseService: No custom categories to delete');
+          return 0;
+        }
+
+        // Delete all categories except General (id = 1)
+        await this.db.runAsync('DELETE FROM categories WHERE id != 1');
+
+        console.log(
+          `DatabaseService: Deleted ${categoryCount} custom categories for import replace`
+        );
+        return categoryCount;
+      } catch (error) {
+        console.error('DatabaseService: Error deleting categories:', error);
         throw error;
       }
     });
