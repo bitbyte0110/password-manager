@@ -414,15 +414,15 @@ const LoginScreen = ({ navigation: navProp, route }) => {
             }
           }
 
-          // Only enable biometric storage for MFA scenarios where we need stored credentials
-          // For non-MFA biometric login, we use OS-level authentication directly
-          if (biometricSucceeded && mfaEnabled && biometricEnabled) {
+          // Only enable biometric storage for non-MFA scenarios
+          // For MFA scenarios, biometric authentication is handled differently
+          if (biometricSucceeded && !mfaEnabled && biometricEnabled) {
             try {
               console.log(
-                '🔐 MFA scenario: Enabling biometric storage for future MFA workflows'
+                '🔐 Non-MFA scenario: Enabling biometric storage for future workflows'
               );
               await vaultService.enableBiometricAccess(masterPassword);
-              showSnackbar('Biometric storage updated for MFA workflows.');
+              showSnackbar('Biometric storage updated.');
             } catch (error) {
               console.error('Error enabling biometric access:', error);
               // Don't block login if biometric setup fails
