@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { Button, Switch } from 'react-native-paper';
-import Icon from 'react-native-vector-icons/FontAwesome5';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
@@ -173,11 +173,11 @@ const BiometricSettingsScreen = () => {
   const getBiometricIcon = () => {
     switch (biometricType) {
       case 'face':
-        return 'face-recognition';
+        return 'fingerprint';
       case 'fingerprint':
         return 'fingerprint';
       default:
-        return 'times-circle';
+        return 'close-circle';
     }
   };
 
@@ -202,7 +202,11 @@ const BiometricSettingsScreen = () => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-left" size={20} color={theme.colors.text} />
+          <MaterialCommunityIcons
+            name="arrow-left"
+            size={20}
+            color={theme.colors.text}
+          />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
           Biometric Login
@@ -232,7 +236,7 @@ const BiometricSettingsScreen = () => {
                   },
                 ]}
               >
-                <Icon
+                <MaterialCommunityIcons
                   name={getBiometricIcon()}
                   size={24}
                   color={
@@ -291,8 +295,8 @@ const BiometricSettingsScreen = () => {
 
             <View style={styles.compatibilityList}>
               <View style={styles.compatibilityItem}>
-                <Icon
-                  name="info-circle"
+                <MaterialCommunityIcons
+                  name="information"
                   size={16}
                   color={theme.colors.primary}
                 />
@@ -307,8 +311,8 @@ const BiometricSettingsScreen = () => {
               </View>
 
               <View style={styles.compatibilityItem}>
-                <Icon
-                  name="exclamation-triangle"
+                <MaterialCommunityIcons
+                  name="alert-triangle"
                   size={16}
                   color={theme.colors.warning}
                 />
