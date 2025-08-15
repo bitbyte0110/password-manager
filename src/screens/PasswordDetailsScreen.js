@@ -235,11 +235,11 @@ const PasswordDetailsScreen = () => {
           Unable to decrypt entry.
         </Text>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={{ marginTop: 20 }}
+          onPress={() => navigation.navigate('MainTabs', { screen: 'MyVault' })}
+          style={styles.goBackButton}
         >
-          <Text style={{ color: theme.colors.primary, fontWeight: 'bold' }}>
-            Go Back
+          <Text style={[styles.goBackText, { color: theme.colors.primary }]}>
+            Go Back to My Vault
           </Text>
         </TouchableOpacity>
       </View>
@@ -255,7 +255,7 @@ const PasswordDetailsScreen = () => {
       >
         <TouchableOpacity
           style={styles.headerBack}
-          onPress={() => navigation.goBack()}
+          onPress={() => navigation.navigate('MainTabs', { screen: 'MyVault' })}
         >
           <MaterialIcons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
@@ -654,6 +654,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  goBackButton: {
+    marginTop: 20,
+  },
+  goBackText: {
+    fontWeight: 'bold',
   },
 });
 
