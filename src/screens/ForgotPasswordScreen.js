@@ -9,6 +9,7 @@ import {
   Platform,
   Dimensions,
   Modal,
+  Alert,
 } from 'react-native';
 import { TextInput, Button, Snackbar, ProgressBar } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -246,7 +247,6 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
     }
 
     setIsLoading(true);
-    let originalMasterPassword = null; // Declare at function scope
 
     try {
       // Clear all lockout states and timers FIRST
@@ -277,8 +277,13 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
         const encryptionService =
           require('../services/encryptionService').default;
 
+        // Initialize vault service if needed
+        if (!vaultService.dbService || !vaultService.dbService.isInitialized) {
+          await vaultService.initialize();
+        }
+
         // First, try to get the original master password from backup
-        let recoveryKey = normalizedRecoveryPhrase; // Default to recovery phrase
+        let recoveryKey = null;
         const encryptedMasterPasswordData = await SecureStore.getItemAsync(
           'vault_encryptedMasterPassword'
         );
@@ -299,28 +304,103 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
             recoveryKey = originalMasterPassword; // Use recovered master password
           } catch (decryptError) {
             console.warn(
-              '⚠️ Could not recover master password from backup, using recovery phrase directly:',
+              '⚠️ Could not recover master password from backup:',
               decryptError.message
             );
-            // Continue with recovery phrase as the key
+            recoveryKey = null; // Will handle this case below
           }
         } else {
-          console.log(
-            '⚠️ No encrypted master password backup found, using recovery phrase directly'
-          );
+          console.log('⚠️ No encrypted master password backup found');
+          recoveryKey = null; // Will handle this case below
         }
 
-        // Use vault service's optimized bulk re-encryption
-        await vaultService.bulkReencryptVault(
-          newPassword,
-          recoveryKey,
-          progress => {
-            setReencryptionProgress(Math.round(progress));
-            console.log(`🔄 Re-encryption progress: ${Math.round(progress)}%`);
-          }
-        );
+        // If we couldn't recover the original master password, we need to handle existing data differently
+        if (!recoveryKey) {
+          console.log(
+            '⚠️ Cannot decrypt existing passwords without original master password'
+          );
+          console.log('🔄 Checking if vault has existing password entries...');
 
-        console.log('✅ Vault re-encryption completed successfully');
+          // Check if there are existing password entries
+          const existingEntries = await vaultService.dbService.db.getAllAsync(
+            'SELECT COUNT(*) as count FROM passwords'
+          );
+
+          if (existingEntries[0].count > 0) {
+            // There are existing passwords but we can't decrypt them
+            console.log(
+              `❌ Found ${existingEntries[0].count} existing password entries that cannot be recovered`
+            );
+
+            // Show warning to user about data loss
+            showSnackbar(
+              '⚠️ Warning: Cannot recover existing passwords without the original master password. Continuing will result in loss of stored passwords.'
+            );
+
+            // Ask user for confirmation before proceeding
+            const userConfirmed = await new Promise(resolve => {
+              Alert.alert(
+                'Data Recovery Warning',
+                `Found ${existingEntries[0].count} existing password entries. Without the original master password, these cannot be recovered and will be lost.\n\nDo you want to continue? This will reset your vault with the new password.`,
+                [
+                  {
+                    text: 'Cancel',
+                    style: 'cancel',
+                    onPress: () => resolve(false),
+                  },
+                  {
+                    text: 'Continue (Delete Existing)',
+                    style: 'destructive',
+                    onPress: () => resolve(true),
+                  },
+                ]
+              );
+            });
+
+            if (!userConfirmed) {
+              setIsLoading(false);
+              setIsReencrypting(false);
+              return;
+            }
+
+            // User confirmed - delete existing entries since they can't be recovered
+            console.log(
+              '🗑️ User confirmed deletion of unrecoverable password entries'
+            );
+            await vaultService.dbService.db.runAsync('DELETE FROM passwords');
+            console.log('✅ Cleared existing password entries');
+
+            // Skip re-encryption since there's nothing to re-encrypt
+            console.log('✅ Vault reset completed - no re-encryption needed');
+            setReencryptionProgress(100);
+            setIsReencrypting(false);
+          } else {
+            console.log(
+              '✅ No existing password entries found - proceeding with password reset'
+            );
+            setReencryptionProgress(100);
+            setIsReencrypting(false);
+          }
+        } else {
+          // We have the original master password - proceed with re-encryption
+          console.log(
+            '🔄 Starting vault re-encryption with recovered master password...'
+          );
+
+          // Use vault service's optimized bulk re-encryption
+          await vaultService.bulkReencryptVault(
+            newPassword,
+            recoveryKey,
+            progress => {
+              setReencryptionProgress(Math.round(progress));
+              console.log(
+                `🔄 Re-encryption progress: ${Math.round(progress)}%`
+              );
+            }
+          );
+
+          console.log('✅ Vault re-encryption completed successfully');
+        }
 
         // Create/update encrypted master password backup for future recovery
         const newEncryptedMasterPassword = encryptionService.encryptText(
