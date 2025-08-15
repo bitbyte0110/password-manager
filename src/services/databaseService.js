@@ -715,14 +715,19 @@ class DatabaseService {
         masterPassword
       );
 
+      // Use explicit Malaysia timezone timestamps
+      const malaysiaTimestamp = this.getMalaysiaTimestamp();
+
       const result = await this.db.runAsync(
         `INSERT INTO passwords 
-         (encrypted_payload, category_id, is_favorite)
-         VALUES (?, ?, ?)`,
+         (encrypted_payload, category_id, is_favorite, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`,
         [
           JSON.stringify(encryptedEntry.encrypted_payload),
           encryptedEntry.category_id,
           encryptedEntry.is_favorite,
+          malaysiaTimestamp,
+          malaysiaTimestamp,
         ]
       );
 
@@ -917,15 +922,30 @@ class DatabaseService {
         throw new Error('Valid password ID is required');
       }
 
+      // Use explicit Malaysia timezone timestamp
+      const malaysiaTimestamp = this.getMalaysiaTimestamp();
+
       const result = await this.db.runAsync(
-        'UPDATE passwords SET last_accessed = CURRENT_TIMESTAMP WHERE id = ?',
-        [id]
+        'UPDATE passwords SET last_accessed = ? WHERE id = ?',
+        [malaysiaTimestamp, id]
       );
 
       return result.changes > 0;
     } catch (error) {
       throw new Error(`Failed to update last accessed: ${error.message}`);
     }
+  }
+
+  /**
+   * Get Malaysia timezone timestamp string (UTC+8)
+   * @returns {string} Malaysia local time in YYYY-MM-DD HH:MM:SS format
+   */
+  getMalaysiaTimestamp() {
+    const now = new Date();
+    // Convert to Malaysia time (UTC+8)
+    const malaysiaTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+    // Format as SQLite datetime string
+    return malaysiaTime.toISOString().slice(0, 19).replace('T', ' ');
   }
 
   /**
@@ -943,9 +963,12 @@ class DatabaseService {
         throw new Error('Valid password ID is required');
       }
 
+      // Use explicit Malaysia timezone timestamp
+      const malaysiaTimestamp = this.getMalaysiaTimestamp();
+
       const result = await this.db.runAsync(
-        'UPDATE passwords SET is_favorite = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-        [isFavorite ? 1 : 0, id]
+        'UPDATE passwords SET is_favorite = ?, updated_at = ? WHERE id = ?',
+        [isFavorite ? 1 : 0, malaysiaTimestamp, id]
       );
 
       return result.changes > 0;
@@ -1210,15 +1233,19 @@ class DatabaseService {
         masterPassword
       );
 
+      // Use explicit Malaysia timezone timestamp
+      const malaysiaTimestamp = this.getMalaysiaTimestamp();
+
       const result = await this.db.runAsync(
         `UPDATE passwords 
          SET encrypted_payload = ?, category_id = ?, 
-             is_favorite = ?, updated_at = CURRENT_TIMESTAMP
+             is_favorite = ?, updated_at = ?
          WHERE id = ?`,
         [
           JSON.stringify(encryptedEntry.encrypted_payload),
           encryptedEntry.category_id,
           encryptedEntry.is_favorite,
+          malaysiaTimestamp,
           id,
         ]
       );

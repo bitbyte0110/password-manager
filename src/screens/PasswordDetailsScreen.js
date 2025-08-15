@@ -429,7 +429,16 @@ const PasswordDetailsScreen = () => {
             >
               Created:{' '}
               {entry.createdAt
-                ? new Date(entry.createdAt).toLocaleString()
+                ? new Date(entry.createdAt).toLocaleString('en-MY', {
+                    timeZone: 'Asia/Kuala_Lumpur',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false,
+                  })
                 : '-'}
             </Text>
             <Text
@@ -440,7 +449,16 @@ const PasswordDetailsScreen = () => {
             >
               Last Updated:{' '}
               {entry.updatedAt
-                ? new Date(entry.updatedAt).toLocaleString()
+                ? new Date(entry.updatedAt).toLocaleString('en-MY', {
+                    timeZone: 'Asia/Kuala_Lumpur',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false,
+                  })
                 : '-'}
             </Text>
           </View>
