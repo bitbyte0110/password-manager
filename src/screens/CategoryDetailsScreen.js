@@ -208,6 +208,9 @@ const CategoryDetailsScreen = () => {
             </View>
           </View>
           <View style={styles.cardRight}>
+            {item.isFavorite && (
+              <Icon name="star" size={16} color="#FFD700" solid />
+            )}
             <IconButton
               icon="clipboard"
               size={20}
