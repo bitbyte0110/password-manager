@@ -26,7 +26,7 @@ const PasswordDetailsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { id } = route.params;
-  const { deletePassword } = usePasswords();
+  const { deletePassword, updatePassword } = usePasswords();
   const { theme } = useTheme();
 
   const [entry, setEntry] = useState(null);
@@ -141,15 +141,31 @@ const PasswordDetailsScreen = () => {
     try {
       const ok = await vaultService.toggleFavorite(entry.id);
       if (ok) {
-        setFavorite(prev => !prev);
+        const newFavoriteStatus = !favorite;
+        setFavorite(newFavoriteStatus);
+
+        // Update the entry state with new favorite status
+        const updatedEntry = {
+          ...entry,
+          isFavorite: newFavoriteStatus,
+          updatedAt: new Date().toISOString(), // Update timestamp
+        };
+        setEntry(updatedEntry);
+
+        // Propagate the change to MyVaultScreen via context
+        await updatePassword(entry.id, updatedEntry);
+
         setSnackbar({
           visible: true,
-          message: !favorite ? 'Marked as favorite' : 'Removed from favorites',
+          message: newFavoriteStatus
+            ? 'Marked as favorite'
+            : 'Removed from favorites',
         });
       } else {
         setSnackbar({ visible: true, message: 'Failed to update favorite' });
       }
     } catch (e) {
+      console.error('Error toggling favorite:', e);
       setSnackbar({ visible: true, message: 'Failed to update favorite' });
     }
   };
