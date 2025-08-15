@@ -275,8 +275,14 @@ const AuthenticationModal = ({
             <Button
               mode="contained"
               onPress={onClose}
-              style={[styles.button, { backgroundColor: '#3A3A3C' }]}
+              style={[
+                styles.button,
+                {
+                  backgroundColor: '#3A3A3C',
+                },
+              ]}
               textColor="#FFFFFF"
+              labelStyle={{ color: '#FFFFFF' }}
               disabled={isLoading}
             >
               Cancel
