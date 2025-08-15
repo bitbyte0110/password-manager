@@ -256,6 +256,7 @@ const CategoriesScreen = ({ navigation, route }) => {
       categoryName: category.name,
       categoryColor: category.color,
       categoryIcon: category.icon,
+      categoryDescription: category.description,
     });
   };
 

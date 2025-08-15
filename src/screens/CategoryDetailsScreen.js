@@ -25,8 +25,13 @@ const CategoryDetailsScreen = () => {
   const { theme } = useTheme();
   const { executeWithDatabase } = useDatabase();
   const { subscribeToCategoryRefresh } = usePasswords();
-  const { categoryId, categoryName, categoryColor, categoryIcon } =
-    route.params;
+  const {
+    categoryId,
+    categoryName,
+    categoryColor,
+    categoryIcon,
+    categoryDescription,
+  } = route.params;
 
   const [passwords, setPasswords] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -307,6 +312,16 @@ const CategoryDetailsScreen = () => {
         >
           {passwords.length} {passwords.length === 1 ? 'password' : 'passwords'}
         </Text>
+        {categoryDescription && (
+          <Text
+            style={[
+              styles.categoryDescription,
+              { color: theme.colors.textSecondary },
+            ]}
+          >
+            {categoryDescription}
+          </Text>
+        )}
       </View>
 
       {/* Password List */}
@@ -318,7 +333,7 @@ const CategoryDetailsScreen = () => {
         contentContainerStyle={
           passwords.length === 0
             ? styles.emptyListContainer
-            : { paddingBottom: 100 }
+            : styles.listContainer
         }
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmptyState}
@@ -421,6 +436,14 @@ const styles = StyleSheet.create({
   },
   passwordCount: {
     fontSize: 14,
+  },
+  categoryDescription: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  listContainer: {
+    paddingBottom: 100,
   },
   passwordList: {
     flex: 1,
