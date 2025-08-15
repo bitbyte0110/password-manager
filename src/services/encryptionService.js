@@ -203,8 +203,8 @@ class EncryptionService {
         url: url ? this.encrypt(url, masterPassword, salt) : null,
         notes: notes ? this.encrypt(notes, masterPassword, salt) : null,
         categoryId: categoryId || null,
-        createdAt: passwordEntry.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: passwordEntry.createdAt || new Date().toLocaleString(),
+        updatedAt: new Date().toLocaleString(),
       };
 
       return encryptedEntry;
@@ -288,8 +288,8 @@ class EncryptionService {
         encrypted_payload: encryptedPayload,
         category_id: categoryId !== undefined ? categoryId : null,
         is_favorite: isFavorite ? 1 : 0,
-        created_at: passwordEntry.createdAt || new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: passwordEntry.createdAt || new Date().toLocaleString(),
+        updated_at: new Date().toLocaleString(),
       };
     } catch (error) {
       throw new Error(
