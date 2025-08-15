@@ -249,8 +249,8 @@ const ImportScreen = ({ navigation }) => {
       }
 
       // Helper function to find or create category
-      const findOrCreateCategory = async (categoryName) => {
-        console.log(`ImportScreen: findOrCreateCategory called with: "${categoryName}"`);
+      const findOrCreateCategory = async (categoryName, categoryIcon, categoryColor) => {
+        console.log(`ImportScreen: findOrCreateCategory called with: "${categoryName}", icon: "${categoryIcon || 'default'}", color: "${categoryColor || 'default'}"`);
         
         if (!categoryName || categoryName.trim() === '') {
           console.log('ImportScreen: Empty category name, defaulting to General (ID 1)');
@@ -268,19 +268,19 @@ const ImportScreen = ({ navigation }) => {
           return existingId;
         }
         
-        // Create new category
+        // Create new category with icon and color from import data
         try {
-          console.log(`ImportScreen: Creating new category: "${categoryName}"`);
+          console.log(`ImportScreen: Creating new category: "${categoryName}" with icon "${categoryIcon}" and color "${categoryColor}"`);
           const newCategoryId = await VaultService.createCategory({
             name: categoryName.trim(),
             description: `Imported category: ${categoryName.trim()}`,
-            icon: 'folder',
-            color: '#007AFF', // Default blue color
+            icon: categoryIcon || 'folder', // Use imported icon or default
+            color: categoryColor || '#007AFF', // Use imported color or default
           });
           
           // Add to our map for future reference
           categoryMap.set(normalizedName, newCategoryId);
-          console.log(`ImportScreen: Created category "${categoryName}" with ID: ${newCategoryId}`);
+          console.log(`ImportScreen: Created category "${categoryName}" with ID: ${newCategoryId}, icon: "${categoryIcon}", color: "${categoryColor}"`);
           return newCategoryId;
         } catch (error) {
           console.error(`Failed to create category "${categoryName}":`, error);
@@ -361,8 +361,12 @@ const ImportScreen = ({ navigation }) => {
             }
           }
 
-          // Resolve category ID
-          const categoryId = await findOrCreateCategory(passwordEntry.category);
+          // Resolve category ID with icon and color
+          const categoryId = await findOrCreateCategory(
+            passwordEntry.category, 
+            passwordEntry.categoryIcon, 
+            passwordEntry.categoryColor
+          );
           
           console.log(`ImportScreen: Entry "${passwordEntry.website || passwordEntry.title}" - Category: "${passwordEntry.category}" -> ID: ${categoryId}`);
           

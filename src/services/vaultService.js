@@ -2309,6 +2309,8 @@ class VaultService {
             username: decrypted.username,
             password: decrypted.password,
             category: categoryName, // Use categoryName from database
+            categoryIcon: decrypted.categoryIcon || 'folder', // Include category icon
+            categoryColor: decrypted.categoryColor || '#007AFF', // Include category color
             notes: decrypted.notes || '',
             favorite: decrypted.isFavorite || false,
             url: decrypted.url || '',
@@ -2319,10 +2321,27 @@ class VaultService {
         }
       }
 
-      // Log export statistics
+      // Log export statistics with category details
       console.log('VaultService: Export category distribution:');
-      for (const [categoryName, count] of categoryStats) {
-        console.log(`  - ${categoryName}: ${count} passwords`);
+      const categoryDetails = new Map(); // Track category details
+
+      // Collect category details from exported entries
+      for (const entry of decryptedEntries) {
+        if (!categoryDetails.has(entry.category)) {
+          categoryDetails.set(entry.category, {
+            icon: entry.categoryIcon,
+            color: entry.categoryColor,
+            count: 0,
+          });
+        }
+        categoryDetails.get(entry.category).count++;
+      }
+
+      // Log detailed category information
+      for (const [categoryName, details] of categoryDetails) {
+        console.log(
+          `  - ${categoryName}: ${details.count} passwords (icon: ${details.icon}, color: ${details.color})`
+        );
       }
 
       return decryptedEntries;
