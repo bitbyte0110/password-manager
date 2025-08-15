@@ -417,30 +417,31 @@ const styles = StyleSheet.create({
   },
   categoryInfo: {
     alignItems: 'center',
-    paddingVertical: 24,
+    paddingVertical: 32,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
   },
   categoryIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   categoryTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   passwordCount: {
     fontSize: 14,
+    marginBottom: 8,
   },
   categoryDescription: {
     fontSize: 14,
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: 0,
   },
   listContainer: {
     paddingBottom: 100,
@@ -510,10 +511,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   emptyState: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 80,
+    paddingTop: 40,
+    marginTop: -60,
+    minHeight: 300,
   },
   emptyTitle: {
     fontSize: 18,
