@@ -474,25 +474,11 @@ const LoginScreen = ({ navigation: navProp, route }) => {
         console.error('Error authenticating vault service:', vaultError);
         // Handle specific authentication errors
         if (vaultError.message?.includes('Invalid')) {
-          // Handle failed authentication (same logic as the else block above)
-          await incrementFailedAttempts();
-          const newAttempts = failedAttempts + 1;
-          const attemptsRemaining = MAX_FAILED_ATTEMPTS - newAttempts;
-
-          if (mfaMode) {
-            setPasswordError(
-              'Invalid master password. MFA Step 2 failed - both biometric and password required.'
-            );
-          } else if (attemptsRemaining > 0) {
-            const attemptText =
-              attemptsRemaining === 1 ? 'attempt' : 'attempts';
-            setPasswordError(
-              `Invalid master password. ${attemptsRemaining} ${attemptText} remaining.`
-            );
-          } else {
-            setPasswordError('Invalid master password.');
-          }
-          setMasterPassword('');
+          // Authentication failure is already handled in the main logic above
+          // Don't duplicate the error handling here
+          console.log(
+            'Authentication failed - error already handled in main logic'
+          );
         } else {
           showSnackbar('Authentication error. Please try again.');
         }
@@ -744,12 +730,6 @@ const LoginScreen = ({ navigation: navProp, route }) => {
               style={styles.modalInput}
               testID="login-password-input"
             />
-
-            {passwordError ? (
-              <Text style={[styles.errorText, { color: theme.colors.error }]}>
-                {passwordError}
-              </Text>
-            ) : null}
 
             <View style={styles.modalButtons}>
               <Button
