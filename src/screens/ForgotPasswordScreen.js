@@ -314,10 +314,10 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
           recoveryKey = null; // Will handle this case below
         }
 
-        // If we couldn't recover the original master password, we need to handle existing data differently
+        // If we couldn't recover the original master password, try using recovery phrase as decryption key
         if (!recoveryKey) {
           console.log(
-            '⚠️ Cannot decrypt existing passwords without original master password'
+            '⚠️ Could not recover original master password, trying recovery phrase as decryption key...'
           );
           console.log('🔄 Checking if vault has existing password entries...');
 
@@ -327,53 +327,83 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
           );
 
           if (existingEntries[0].count > 0) {
-            // There are existing passwords but we can't decrypt them
             console.log(
-              `❌ Found ${existingEntries[0].count} existing password entries that cannot be recovered`
+              `📊 Found ${existingEntries[0].count} existing password entries`
             );
-
-            // Show warning to user about data loss
-            showSnackbar(
-              '⚠️ Warning: Cannot recover existing passwords without the original master password. Continuing will result in loss of stored passwords.'
-            );
-
-            // Ask user for confirmation before proceeding
-            const userConfirmed = await new Promise(resolve => {
-              Alert.alert(
-                'Data Recovery Warning',
-                `Found ${existingEntries[0].count} existing password entries. Without the original master password, these cannot be recovered and will be lost.\n\nDo you want to continue? This will reset your vault with the new password.`,
-                [
-                  {
-                    text: 'Cancel',
-                    style: 'cancel',
-                    onPress: () => resolve(false),
-                  },
-                  {
-                    text: 'Continue (Delete Existing)',
-                    style: 'destructive',
-                    onPress: () => resolve(true),
-                  },
-                ]
+            
+            // Try using the recovery phrase as the decryption key
+            console.log('🔄 Testing if recovery phrase can decrypt existing passwords...');
+            
+            try {
+              // Test if we can decrypt with the recovery phrase
+              const testEntry = await vaultService.dbService.db.getFirstAsync(
+                'SELECT id, encrypted_payload FROM passwords LIMIT 1'
               );
-            });
+              
+              if (testEntry) {
+                const parsedPayload = JSON.parse(testEntry.encrypted_payload);
+                // Try to decrypt with recovery phrase
+                const testDecrypt = encryptionService.decryptPasswordEntryOptimized(
+                  { ...testEntry, encrypted_payload: parsedPayload },
+                  normalizedRecoveryPhrase
+                );
+                
+                if (testDecrypt && testDecrypt.title) {
+                  console.log('✅ Recovery phrase can decrypt existing passwords');
+                  recoveryKey = normalizedRecoveryPhrase; // Use recovery phrase as key
+                } else {
+                  throw new Error('Decryption returned empty result');
+                }
+              }
+            } catch (testError) {
+              console.warn(
+                '❌ Recovery phrase cannot decrypt existing passwords:',
+                testError.message
+              );
+              
+              // Show warning to user about data loss
+              showSnackbar(
+                '⚠️ Warning: Cannot recover existing passwords with this recovery phrase. Continuing will result in loss of stored passwords.'
+              );
 
-            if (!userConfirmed) {
-              setIsLoading(false);
+              // Ask user for confirmation before proceeding
+              const userConfirmed = await new Promise(resolve => {
+                Alert.alert(
+                  'Data Recovery Warning',
+                  `Found ${existingEntries[0].count} existing password entries that cannot be decrypted with this recovery phrase.\n\nThis may happen if:\n• The recovery phrase is incorrect\n• The passwords were encrypted with a different method\n\nDo you want to continue? This will reset your vault with the new password.`,
+                  [
+                    {
+                      text: 'Cancel',
+                      style: 'cancel',
+                      onPress: () => resolve(false),
+                    },
+                    {
+                      text: 'Continue (Delete Existing)',
+                      style: 'destructive',
+                      onPress: () => resolve(true),
+                    },
+                  ]
+                );
+              });
+
+              if (!userConfirmed) {
+                setIsLoading(false);
+                setIsReencrypting(false);
+                return;
+              }
+
+              // User confirmed - delete existing entries since they can't be recovered
+              console.log(
+                '🗑️ User confirmed deletion of unrecoverable password entries'
+              );
+              await vaultService.dbService.db.runAsync('DELETE FROM passwords');
+              console.log('✅ Cleared existing password entries');
+
+              // Skip re-encryption since there's nothing to re-encrypt
+              console.log('✅ Vault reset completed - no re-encryption needed');
+              setReencryptionProgress(100);
               setIsReencrypting(false);
-              return;
             }
-
-            // User confirmed - delete existing entries since they can't be recovered
-            console.log(
-              '🗑️ User confirmed deletion of unrecoverable password entries'
-            );
-            await vaultService.dbService.db.runAsync('DELETE FROM passwords');
-            console.log('✅ Cleared existing password entries');
-
-            // Skip re-encryption since there's nothing to re-encrypt
-            console.log('✅ Vault reset completed - no re-encryption needed');
-            setReencryptionProgress(100);
-            setIsReencrypting(false);
           } else {
             console.log(
               '✅ No existing password entries found - proceeding with password reset'
@@ -381,10 +411,13 @@ const ForgotPasswordScreen = ({ navigation: navProp }) => {
             setReencryptionProgress(100);
             setIsReencrypting(false);
           }
-        } else {
-          // We have the original master password - proceed with re-encryption
+        }
+        
+        // If we have a recovery key (either original password or recovery phrase), re-encrypt
+        if (recoveryKey) {
+          // We have the decryption key - proceed with re-encryption
           console.log(
-            '🔄 Starting vault re-encryption with recovered master password...'
+            '🔄 Starting vault re-encryption with recovery key...'
           );
 
           // Use vault service's optimized bulk re-encryption
