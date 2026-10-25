@@ -48,7 +48,12 @@ SecureVault implements a multi-layered defense strategy to protect your credenti
 * Android Studio / Android SDK (for mobile emulation or physical device testing)
 
 ### Installation
+### Option 1: Quick Install (Android APK)
+Download the latest `.apk` from the [Releases](https://github.com/bitbyte0110/password-manager/releases/latest) section and install it directly on your Android device.
 
+---
+
+### Option 2: Run from Source (Development)
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/bitbyte0110/password-manager.git
